@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="t d" viewBox="0 0 1200 275"><title id="t">TSPFN：小型生理时序上下文学习模型流程图</title><desc id="d">TSPFN：小型生理时序上下文学习模型的四步输入、处理和输出流程。</desc><defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0 0 L9 3 L0 6 Z" fill="#176b5b"/></marker></defs><g font-family="system-ui, sans-serif" fill="#202321"><text x="26" y="42" font-size="24" font-weight="600">TSPFN：小型生理时序上下文学习模型</text><g><rect x="26" y="100" width="248" height="126" rx="12" fill="#e8f2ef" stroke="#176b5b" stroke-width="2"/>
+<text x="150" y="143" text-anchor="middle" font-size="19" font-weight="600">支持集和查询序列</text>
+<text x="150" y="176" text-anchor="middle" font-size="15">多尺度时间—通道表格化</text></g><g><rect x="320" y="100" width="248" height="126" rx="12" fill="#e8f2ef" stroke="#176b5b" stroke-width="2"/>
+<text x="444" y="143" text-anchor="middle" font-size="19" font-weight="600">TSPFN 编码器</text>
+<text x="444" y="176" text-anchor="middle" font-size="15">通道 RoPE 与时序表征</text></g><g><rect x="614" y="100" width="248" height="126" rx="12" fill="#e8f2ef" stroke="#176b5b" stroke-width="2"/>
+<text x="738" y="143" text-anchor="middle" font-size="19" font-weight="600">上下文推断</text>
+<text x="738" y="176" text-anchor="middle" font-size="15">不更新参数的类别后验</text></g><g><rect x="908" y="100" width="248" height="126" rx="12" fill="#e8f2ef" stroke="#176b5b" stroke-width="2"/>
+<text x="1032" y="143" text-anchor="middle" font-size="19" font-weight="600">分类输出</text>
+<text x="1032" y="176" text-anchor="middle" font-size="15">AUROC 等跨域比较</text></g><path d="M274 163 H294" stroke="#176b5b" stroke-width="3" marker-end="url(#arrow)"/><path d="M568 163 H588" stroke="#176b5b" stroke-width="3" marker-end="url(#arrow)"/><path d="M862 163 H882" stroke="#176b5b" stroke-width="3" marker-end="url(#arrow)"/></g></svg>

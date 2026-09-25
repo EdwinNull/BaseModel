@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="t d" viewBox="0 0 1200 275"><title id="t">HiRID：高时间分辨 ICU 不规则时序流程图</title><desc id="d">HiRID：高时间分辨 ICU 不规则时序的四步输入、处理和输出流程。</desc><defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0 0 L9 3 L0 6 Z" fill="#176b5b"/></marker></defs><g font-family="system-ui, sans-serif" fill="#202321"><text x="26" y="42" font-size="24" font-weight="600">HiRID：高时间分辨 ICU 不规则时序</text><g><rect x="26" y="100" width="248" height="126" rx="12" fill="#e8f2ef" stroke="#176b5b" stroke-width="2"/>
+<text x="150" y="143" text-anchor="middle" font-size="19" font-weight="600">高频 ICU 观察</text>
+<text x="150" y="176" text-anchor="middle" font-size="15">原始时间序列或事件</text></g><g><rect x="320" y="100" width="248" height="126" rx="12" fill="#e8f2ef" stroke="#176b5b" stroke-width="2"/>
+<text x="444" y="143" text-anchor="middle" font-size="19" font-weight="600">申请访问与变量质量审计</text>
+<text x="444" y="176" text-anchor="middle" font-size="15">访问、许可和质量审计</text></g><g><rect x="614" y="100" width="248" height="126" rx="12" fill="#e8f2ef" stroke="#176b5b" stroke-width="2"/>
+<text x="738" y="143" text-anchor="middle" font-size="19" font-weight="600">连续时间/缺失建模</text>
+<text x="738" y="176" text-anchor="middle" font-size="15">任务构造与严格切分</text></g><g><rect x="908" y="100" width="248" height="126" rx="12" fill="#e8f2ef" stroke="#176b5b" stroke-width="2"/>
+<text x="1032" y="143" text-anchor="middle" font-size="19" font-weight="600">预测误差与缺失鲁棒性</text>
+<text x="1032" y="176" text-anchor="middle" font-size="15">指标、版本和复现记录</text></g><path d="M274 163 H294" stroke="#176b5b" stroke-width="3" marker-end="url(#arrow)"/><path d="M568 163 H588" stroke="#176b5b" stroke-width="3" marker-end="url(#arrow)"/><path d="M862 163 H882" stroke="#176b5b" stroke-width="3" marker-end="url(#arrow)"/></g></svg>

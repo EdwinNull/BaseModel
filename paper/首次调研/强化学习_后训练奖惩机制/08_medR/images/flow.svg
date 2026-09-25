@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="t d" viewBox="0 0 1200 275"><title id="t">medR：三驱动临床离线强化学习奖励流程图</title><desc id="d">medR：三驱动临床离线强化学习奖励的四步输入、处理和输出流程。</desc><defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0 0 L9 3 L0 6 Z" fill="#176b5b"/></marker></defs><g font-family="system-ui, sans-serif" fill="#202321"><text x="26" y="42" font-size="24" font-weight="600">medR：三驱动临床离线强化学习奖励</text><g><rect x="26" y="100" width="248" height="126" rx="12" fill="#e8f2ef" stroke="#176b5b" stroke-width="2"/>
+<text x="150" y="143" text-anchor="middle" font-size="19" font-weight="600">患者状态与时间间隔</text>
+<text x="150" y="176" text-anchor="middle" font-size="15">生理值、缺失和测量新鲜度</text></g><g><rect x="320" y="100" width="248" height="126" rx="12" fill="#e8f2ef" stroke="#176b5b" stroke-width="2"/>
+<text x="444" y="143" text-anchor="middle" font-size="19" font-weight="600">三驱动势函数</text>
+<text x="444" y="176" text-anchor="middle" font-size="15">稳定度 + 可信度 − 动作成本</text></g><g><rect x="614" y="100" width="248" height="126" rx="12" fill="#e8f2ef" stroke="#176b5b" stroke-width="2"/>
+<text x="738" y="143" text-anchor="middle" font-size="19" font-weight="600">离线策略学习</text>
+<text x="738" y="176" text-anchor="middle" font-size="15">固定临床轨迹，无在线探索</text></g><g><rect x="908" y="100" width="248" height="126" rx="12" fill="#e8f2ef" stroke="#176b5b" stroke-width="2"/>
+<text x="1032" y="143" text-anchor="middle" font-size="19" font-weight="600">奖励筛选与 OPE</text>
+<text x="1032" y="176" text-anchor="middle" font-size="15">WIS 和三类适应度</text></g><path d="M274 163 H294" stroke="#176b5b" stroke-width="3" marker-end="url(#arrow)"/><path d="M568 163 H588" stroke="#176b5b" stroke-width="3" marker-end="url(#arrow)"/><path d="M862 163 H882" stroke="#176b5b" stroke-width="3" marker-end="url(#arrow)"/></g></svg>

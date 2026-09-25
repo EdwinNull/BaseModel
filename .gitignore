@@ -1,0 +1,11 @@
+.DS_Store
+tmp/
+*.pdf
+paper/首次调研阅读/阅读证据/
+paper/首次调研阅读/检索记录/
+paper/首次调研阅读/核对证据/
+paper/首次调研/调研证据/检索记录/
+paper/首次调研/调研证据/证据/
+**/lint.json
+**/*.plan.json
+*.log

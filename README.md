@@ -8,6 +8,8 @@
 - [首次调研论文库及合并阅读索引](paper/首次调研/README.md)
 - [论文精读目录](paper/首次调研阅读/README.md)
 - [医学时序后训练与强化学习调研报告](research/medical-ts-posttrain-rl-20260923/report.md)
+- [医学时序大模型后训练与强化学习：数据集、基线与奖惩机制（深入轮）](research/medical-ts-rl-deep-dive-20260925/report.md)
+- [医学时序后训练与强化学习调研展示页（HTML，合并四轮成果）](医学时序后训练与强化学习调研.html)
 
 ## 仓库范围
 

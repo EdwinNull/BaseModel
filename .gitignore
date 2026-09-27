@@ -9,3 +9,6 @@ paper/首次调研/调研证据/证据/
 **/lint.json
 **/*.plan.json
 *.log
+
+# 医院真实世界数据：含患者可识别信息，严禁提交（服务器规范副本在 data/real_world/）
+data/

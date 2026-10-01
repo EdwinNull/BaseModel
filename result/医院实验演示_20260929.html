@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>医院数据实验演示：GAM 训练 → GD 测试（week01）</title>
+<style>
+/* 调色板取自 dataviz 参考实例，已用 validate_palette.js 在 light/dark 两种模式下校验通过
+   （--pairs all：CVD ΔE 9.2 / 正常视觉 ΔE 24.0）。浅色模式下 series-3 对比度 2.74 < 3:1，
+   按规范以「直接数值标签 + 完整表格视图」作为补偿，颜色从不单独承载信息。 */
+:root{
+  color-scheme: light;
+  --surface-1:#fcfcfb; --surface-2:#f6f5f2; --surface-3:#efeee9;
+  --text-primary:#0b0b0b; --text-secondary:#52514e; --text-muted:#78766f;
+  --hairline:#deddd6; --grid:#e8e7e1;
+  --series-1:#2a78d6; --series-2:#eb6834; --series-3:#1baf7a;
+  --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+  --seq-100:#e8f1fd; --seq-250:#86b6ef; --seq-400:#3987e5; --seq-550:#1a5fb4; --seq-700:#0d366b;
+}
+@media (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme: dark;
+    --surface-1:#1a1a19; --surface-2:#232322; --surface-3:#2c2c2a;
+    --text-primary:#ffffff; --text-secondary:#c3c2b7; --text-muted:#9a9890;
+    --hairline:#3a3a37; --grid:#333331;
+    --series-1:#3987e5; --series-2:#d95926; --series-3:#199e70;
+    --seq-100:#0d366b; --seq-250:#184f95; --seq-400:#2a78d6; --seq-550:#86b6ef; --seq-700:#e8f1fd;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --surface-1:#1a1a19; --surface-2:#232322; --surface-3:#2c2c2a;
+  --text-primary:#ffffff; --text-secondary:#c3c2b7; --text-muted:#9a9890;
+  --hairline:#3a3a37; --grid:#333331;
+  --series-1:#3987e5; --series-2:#d95926; --series-3:#199e70;
+  --seq-100:#0d366b; --seq-250:#184f95; --seq-400:#2a78d6; --seq-550:#86b6ef; --seq-700:#e8f1fd;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface-2);color:var(--text-primary);
+  font-family:system-ui,-apple-system,"Segoe UI","Noto Sans CJK SC","Microsoft YaHei",sans-serif;
+  font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1140px;margin:0 auto;padding:0 20px 80px}
+h1,h2,h3,h4{line-height:1.3;margin:0}
+a{color:var(--series-1)}
+/* ---- 页头 / 导航 ---- */
+header.top{background:var(--surface-1);border-bottom:1px solid var(--hairline);padding:34px 0 24px;margin-bottom:26px}
+header.top .wrap{padding-bottom:0}
+.eyebrow{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--text-muted);font-weight:600}
+h1{font-size:27px;margin:8px 0 10px;letter-spacing:-.01em}
+.sub{color:var(--text-secondary);max-width:80ch;font-size:15px}
+.meta{margin-top:14px;font-size:12.5px;color:var(--text-muted);display:flex;gap:18px;flex-wrap:wrap}
+nav.toc{position:sticky;top:0;z-index:30;background:var(--surface-1);border-bottom:1px solid var(--hairline);
+  margin-bottom:26px;overflow-x:auto}
+nav.toc ol{display:flex;gap:2px;list-style:none;margin:0;padding:0 20px;max-width:1140px;margin:0 auto}
+nav.toc a{display:block;padding:11px 12px;font-size:13px;color:var(--text-secondary);text-decoration:none;
+  border-bottom:2px solid transparent;white-space:nowrap}
+nav.toc a:hover{color:var(--text-primary);background:var(--surface-3)}
+nav.toc a.on{color:var(--text-primary);border-bottom-color:var(--series-1);font-weight:600}
+.themebtn{position:fixed;right:16px;bottom:16px;z-index:50;background:var(--surface-1);color:var(--text-secondary);
+  border:1px solid var(--hairline);border-radius:8px;padding:8px 13px;font-size:12.5px;cursor:pointer;
+  font-family:inherit;box-shadow:0 2px 10px rgba(0,0,0,.1)}
+.themebtn:hover{color:var(--text-primary)}
+/* ---- 区块 ---- */
+section{margin:0 0 40px;scroll-margin-top:56px}
+.card{background:var(--surface-1);border:1px solid var(--hairline);border-radius:12px;padding:22px 24px;margin-bottom:16px}
+h2{font-size:20px;margin-bottom:6px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+h2 .num{color:var(--text-muted);font-size:13px;font-weight:600;letter-spacing:.06em}
+h3{font-size:15.5px;margin:22px 0 8px}
+h4{font-size:13.5px;margin:16px 0 6px;color:var(--text-secondary)}
+.lede{color:var(--text-secondary);margin:6px 0 14px;max-width:84ch}
+p{margin:9px 0;max-width:86ch}
+ul,ol{margin:9px 0;padding-left:22px;max-width:86ch}
+li{margin:5px 0}
+small{font-size:12.5px;color:var(--text-muted)}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;
+  background:var(--surface-3);padding:1px 5px;border-radius:4px;word-break:break-all}
+/* ---- 结论条 / 判读 ---- */
+.verdict{display:flex;gap:13px;align-items:flex-start;padding:15px 17px;border-radius:10px;
+  background:var(--surface-3);border-left:3px solid var(--text-muted);margin:14px 0}
+.verdict.yes{border-left-color:var(--good)} .verdict.no{border-left-color:var(--critical)}
+.verdict.part{border-left-color:var(--warning)} .verdict.info{border-left-color:var(--series-1)}
+.verdict .ico{font-size:17px;line-height:1.4;flex:none}
+.verdict b{display:block;margin-bottom:3px}
+.verdict p{margin:4px 0}
+/* ---- 统计磁贴 ---- */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px;margin:16px 0}
+.tile{background:var(--surface-1);border:1px solid var(--hairline);border-radius:10px;padding:14px 16px}
+.tile .k{font-size:12px;color:var(--text-muted);font-weight:600;letter-spacing:.02em}
+.tile .v{font-size:25px;font-weight:650;margin:3px 0 1px;letter-spacing:-.02em}
+.tile .n{font-size:12px;color:var(--text-secondary);line-height:1.45}
+.hero{background:var(--surface-3);border:1px solid var(--hairline);border-radius:12px;padding:20px 24px;margin:16px 0}
+.hero .v{font-size:40px;font-weight:680;letter-spacing:-.025em;line-height:1.1}
+.hero .k{font-size:13px;color:var(--text-secondary);margin-top:5px}
+/* ---- 表格 ---- */
+.tablewrap{overflow-x:auto;margin:12px 0;border:1px solid var(--hairline);border-radius:10px;background:var(--surface-1)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:right;padding:8px 12px;border-bottom:1px solid var(--grid);white-space:nowrap}
+th{background:var(--surface-3);font-weight:600;font-size:12px;color:var(--text-secondary);
+  position:sticky;top:0;text-align:right}
+th:first-child,td:first-child{text-align:left;white-space:normal;min-width:130px}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--surface-2)}
+td.num,th.num{font-variant-numeric:tabular-nums}
+tr.hi td{background:var(--surface-3);font-weight:600}
+.ci{color:var(--text-muted);font-size:11.5px;font-variant-numeric:tabular-nums}
+.swatch{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:baseline}
+.tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:20px;background:var(--surface-3);
+  color:var(--text-secondary);border:1px solid var(--hairline);margin-left:5px;white-space:nowrap}
+.tag.good{color:var(--good);border-color:var(--good)} .tag.crit{color:var(--critical);border-color:var(--critical)}
+.tag.warn{color:var(--serious);border-color:var(--serious)}
+/* ---- 图表 ---- */
+figure{margin:18px 0 8px}
+figcaption{font-size:12.5px;color:var(--text-muted);margin-top:9px;max-width:84ch}
+figure .ftitle{font-size:14px;font-weight:600;margin-bottom:2px}
+figure .fsub{font-size:12.5px;color:var(--text-secondary);margin-bottom:11px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin:0 0 12px;font-size:12.5px;color:var(--text-secondary)}
+.legend span{display:flex;align-items:center;gap:6px}
+svg{display:block;max-width:100%;overflow:visible}
+svg text{font-family:inherit;fill:var(--text-secondary)}
+.axlab{font-size:11px;fill:var(--text-muted)}
+.vallab{font-size:11px;fill:var(--text-primary);font-variant-numeric:tabular-nums}
+.gridline{stroke:var(--grid);stroke-width:1}
+.axis{stroke:var(--hairline);stroke-width:1}
+.mark{cursor:pointer}
+.mark:hover{filter:brightness(1.08)}
+.tip{position:fixed;z-index:60;pointer-events:none;opacity:0;transition:opacity .09s;
+  background:var(--surface-1);border:1px solid var(--hairline);border-radius:8px;padding:9px 12px;
+  font-size:12.5px;box-shadow:0 4px 18px rgba(0,0,0,.16);max-width:290px;line-height:1.5}
+.tip.on{opacity:1}
+.tip b{display:block;margin-bottom:3px;font-size:13px;color:var(--text-primary)}
+.tip .r{display:flex;justify-content:space-between;gap:16px;color:var(--text-secondary)}
+.tip .r i{font-style:normal;font-variant-numeric:tabular-nums;color:var(--text-primary)}
+/* ---- 折叠 ---- */
+details{border:1px solid var(--hairline);border-radius:10px;background:var(--surface-1);margin:12px 0;overflow:hidden}
+details summary{cursor:pointer;padding:11px 16px;font-size:13.5px;font-weight:600;color:var(--text-secondary);
+  background:var(--surface-3);list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px}
+details summary::-webkit-details-marker{display:none}
+details summary::after{content:"展开 ▾";font-size:11.5px;font-weight:400;color:var(--text-muted);flex:none}
+details[open] summary::after{content:"收起 ▴"}
+details summary:hover{color:var(--text-primary)}
+details .body{padding:6px 16px 16px}
+details .body > .tablewrap{border:none;border-radius:0;margin:0 -16px}
+/* ---- 流程图 ---- */
+.flow{display:flex;gap:9px;align-items:stretch;flex-wrap:wrap;margin:16px 0}
+.flow .step{flex:1 1 150px;min-width:150px;background:var(--surface-1);border:1px solid var(--hairline);
+  border-radius:10px;padding:12px 14px;position:relative}
+.flow .step .t{font-size:12px;color:var(--text-muted);font-weight:600}
+.flow .step .h{font-size:14px;font-weight:600;margin:3px 0 4px}
+.flow .step .d{font-size:12.5px;color:var(--text-secondary);line-height:1.5}
+.flow .step.acc{border-left:3px solid var(--good)}
+.flow .step.warnb{border-left:3px solid var(--warning)}
+.flow .arrow{align-self:center;color:var(--text-muted);font-size:17px;flex:none}
+/* ---- 状态点（带图标+文字，不靠颜色单独表意）---- */
+.st{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;white-space:nowrap}
+.st .dot{width:8px;height:8px;border-radius:50%;flex:none}
+.st.ok .dot{background:var(--good)} .st.no .dot{background:var(--critical)}
+.st.part .dot{background:var(--warning)} .st.na .dot{background:var(--text-muted)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:16px;margin:14px 0}
+.footnote{border-top:1px solid var(--hairline);margin-top:30px;padding-top:18px;font-size:12.5px;color:var(--text-muted)}
+.footnote p{max-width:none}
+@media print{
+  nav.toc,.themebtn{display:none}
+  body{background:#fff}
+  details{break-inside:avoid} details .body{display:block!important}
+  section{break-after:page}
+}
+@media (max-width:640px){
+  h1{font-size:22px} .hero .v{font-size:32px} .tile .v{font-size:21px}
+  .wrap{padding:0 14px 60px}
+}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <div class="eyebrow">basemodel · week01 · 医院真实世界数据</div>
+  <h1>用最简单的模型，在 GAM 上训练、在 GD 上测试</h1>
+  <p class="sub">两家医院的老年流感住院数据：广安门医院（GAM，旧数据）用于训练，广东省中医院（GD，新数据 CRF）
+  用于外部测试。终点 E1 = 住院期间有创机械通气、入住 ICU、ECMO 或院内死亡。
+  本页汇总任务完成情况、全部模型结果，以及两个数据集对齐细节的逐项审计。</p>
+  <div class="meta">
+    <span>生成时间 <b id="gen"></b></span>
+    <span>数字全部来自 <code>logs/</code> 下的 metrics.json，无手工抄录</span>
+    <span>仅聚合量，不含任何患者级信息</span>
+  </div>
+</div></header>
+
+<nav class="toc"><ol>
+  <li><a href="#q">任务是否完成</a></li>
+  <li><a href="#design">实验设计</a></li>
+  <li><a href="#main">主结果</a></li>
+  <li><a href="#compare">v2 对比 v1.0</a></li>
+  <li><a href="#a1">A1 敏感性</a></li>
+  <li><a href="#align">对齐差距审计</a></li>
+  <li><a href="#limits">局限与下一步</a></li>
+  <li><a href="#repro">复现与证据</a></li>
+</ol></nav>
+
+<div class="wrap">
+
+<!-- ======================= 1 任务是否完成 ======================= -->
+<section id="q">
+  <div class="card">
+    <h2><span class="num">01</span>「使用最简单的模型，在 GAM 上训练，在 GD 上测试」是否已完成</h2>
+    <div class="verdict yes"><span class="ico">✓</span><div>
+      <b>是，已完成，而且做了两遍。</b>
+      <p>v1.0（<code>E1_stay_fluidx_all_20260927</code>，规则标签）与 v2（<code>V2_main_e1_20260928</code>，
+      GAM 结局改为人工裁定标签）都完成了「GAM 训练 → GD 外部测试」的完整闭环：
+      患者级隔离、输入窗口断言、5 个种子、5 次重复内部交叉验证、10,000 次患者聚类 bootstrap，
+      并各自通过标签打乱的冒烟检查。最简单的模型（URB-65 评分、逻辑回归）在两次运行里都在。</p>
+    </div></div>
+    <div id="q-tiles" class="tiles"></div>
+    <div class="verdict info"><span class="ico">→</span><div>
+      <b>核心结论：逻辑回归最好，基础模型没有稳定优势。</b>
+      <p id="q-lead"></p>
+    </div></div>
+    <h3>完成度逐项核对</h3>
+    <div class="tablewrap"><table id="q-check"><thead><tr>
+      <th>任务要求</th><th>状态</th><th>证据</th></tr></thead><tbody></tbody></table></div>
+    <div class="verdict part"><span class="ico">!</span><div>
+      <b>两点未完成，需要说明。</b>
+      <p><b>一、</b>执行计划原本要求先做 CDM v2（彻底对齐）再跑 v2.0。实际执行时跳过了对齐改造，
+      只替换了 GAM 训练标签。所以 v2 证明的是「标签口径的影响」，不是「彻底对齐的影响」。
+      对齐差距本页第 06 节已逐项审计，改造本身尚未做。</p>
+      <p><b>二、</b>GD 已在 v1.0、A1 七项、A3、A5 中多次评价过，<b>已不是未使用过的外部集</b>。
+      v2 与 v1.0 并列报告，不替代 v1.0，也不构成一次新的独立外部验证。</p>
+    </div>
+  </div>
+</section>
+<!-- ======================= 2 实验设计 ======================= -->
+<section id="design">
+  <div class="card">
+    <h2><span class="num">02</span>实验设计：数据怎么切、模型看到什么</h2>
+    <p class="lede">理解结果之前需要三件事：索引时点 t0 在哪、输入窗口有多长、标签怎么定。
+    这三项都属于 A 档决策，运行前已锁定，不因结果改动。</p>
+    <div class="flow">
+      <div class="step"><div class="t">训练源</div><div class="h">GAM 住院</div>
+        <div class="d">广安门医院呼吸科住院。t0 = 流感首次阳性（163 次中 99 次）或入院。</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="t">输入窗口</div><div class="h">[t0 前一天 0 点, t0)</div>
+        <div class="d">每个变量取窗口内<b>第一个</b>值，加年龄、性别。严格早于 t0，代码内断言。</div></div>
+      <div class="arrow">→</div>
+      <div class="step"><div class="t">变量筛选</div><div class="h">15 个数值变量</div>
+        <div class="d">规则：GAM 训练集覆盖率 ≥50%。<b>只看训练集</b>，不看 GD，避免用测试集信息选特征。</div></div>
+      <div class="arrow">→</div>
+      <div class="step acc"><div class="t">外部测试</div><div class="h">GD CRF</div>
+        <div class="d">广东省中医院老年流感 CRF。纯外部，292 次住院 / 38 事件。</div></div>
+    </div>
+    <div class="grid2">
+      <div>
+        <h3>两个评价集的区别（关键）</h3>
+        <ul>
+          <li><b>GD_primary（主评价集）</b>：292 次住院、38 个事件。判断「这次住院期间是否发生 E1」。
+          <span class="tag warn">38 个事件中 26 个发生在 t0 当天</span></li>
+          <li><b>GD_prospective（前瞻子集）</b>：263 次住院、9 个事件。只算 t0 之后<b>新发</b>的事件，
+          排除当天就已转重的人。这是针对「事后测量」问题的检验。
+          <span class="tag crit">只有 9 个事件，区间极宽</span></li>
+        </ul>
+        <p><small>为什么这一点最重要：主评价集里过半事件与 t0 同日，意味着模型的输入可能已经包含了
+        「正在转重」的生理信号，而不是提前预警。前瞻子集没有这个问题，但事件太少，
+        任何模型的置信区间都覆盖 0.45–0.80，无法区分优劣。两个数据方补充（真实入院时间、事件时刻）
+        才能真正解决，属 A6。</small></p>
+      </div>
+      <div>
+        <h3>模型（由简到繁）</h3>
+        <div class="tablewrap"><table id="d-models"><thead><tr>
+          <th>模型</th><th>类型</th><th>在哪次运行</th></tr></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+    <h3>纳入的 15 个变量</h3>
+    <p id="d-vars" style="font-size:13px;color:var(--text-secondary)"></p>
+    <details><summary>样本构成（Table 1）：训练集与两个评价集</summary><div class="body">
+      <div class="tablewrap"><table id="d-cohort"><thead><tr>
+        <th>项目</th><th class="num">GAM 训练（v1.0 规则标签）</th><th class="num">GAM 训练（v2 裁定标签）</th>
+        <th class="num">GD 主评价集</th><th class="num">GD 前瞻子集</th></tr></thead><tbody></tbody></table></div>
+      <p><small>v2 只改 GAM 训练标签，事件 10 → 14（只增不减，3 次住院 0→1、另有组成层面的修正）。
+      GD 两侧的标签、样本、患者归属与 v1.0 逐位相同——这一点已由对比脚本断言核对。</small></p>
+    </div></details>
+  </div>
+</section>
+
+<!-- ======================= 3 主结果 ======================= -->
+<section id="main">
+  <div class="card">
+    <h2><span class="num">03</span>主结果：GD 外部测试的区分度</h2>
+    <p class="lede">AUROC = 随机取一个发生事件和一个未发生事件的住院，模型给前者更高分的概率。
+    0.5 是随机猜测。误差条是 10,000 次患者聚类 bootstrap 的 95% 置信区间，
+    所有模型共用同一批重抽样，因此模型之间是配对比较。</p>
+    <div id="m-hero"></div>
+    <figure>
+      <div class="ftitle">GD 主评价集 AUROC（n=292，38 个事件）</div>
+      <div class="fsub">同一批 GD 住院，两次运行的模型并列。误差条 = 95% CI。</div>
+      <div class="legend" id="m-legend"></div>
+      <div id="chart-main"></div>
+      <figcaption>逻辑回归（v2 为 0.744）与 v1.0 的 LightGBM、TabPFN、Qwen3-8B 零样本处在同一水平，
+      置信区间大幅重叠。MIRA 冻结嵌入是唯一明显更差的模型。所有区间都包含 0.6，
+      样本量决定了这份数据无法精细区分中等水平的模型。</figcaption>
+    </figure>
+    <figure>
+      <div class="ftitle">前瞻子集：事件降到 9 个后，所有模型都无法区分</div>
+      <div class="fsub">同样的模型、同样的训练，只把标签换成「t0 之后新发」。</div>
+      <div id="chart-prosp"></div>
+      <figcaption>9 个事件下，每个区间的宽度都超过 0.4，彼此完全重叠，连 0.5（随机）都常在区间内。
+      这不是模型的问题，是事件数不足。不能用这一栏给模型排序。</figcaption>
+    </figure>
+    <details><summary>完整指标表：AUROC、AUPRC、Brier、校准斜率、O/E、90% 特异度下的敏感度</summary><div class="body">
+      <div id="m-tables"></div>
+      <p style="padding:0 0 4px"><small>AUPRC 对事件率敏感，跨评价集不可比。Brier 越低越好。
+      校准斜率 1.0 为理想，明显小于 1 表示预测过于极端。O/E = 实际事件数 / 预测事件数之和，
+      小于 1 表示高估风险。90% 特异度下的敏感度是把模型当告警器用时的实际捕获率。</small></p>
+    </div></details>
+    <details><summary>内部交叉验证 vs 外部测试：哪些模型是过拟合，哪些不是</summary><div class="body">
+      <div class="tablewrap"><table id="m-internal"><thead><tr>
+        <th>模型</th><th class="num">GAM 内部 CV AUROC</th><th class="num">GD 主评价集 AUROC</th>
+        <th class="num">落差</th><th>判读</th></tr></thead><tbody></tbody></table></div>
+      <p style="padding:0 0 4px"><small><b>判读口径必须区分模型容量。</b>
+      URB-65 内部高出 GD 0.092，但它是固定的 4 分制评分，训练集上只拟合一个一维单调校准——
+      单调变换不改变排序，而 AUROC 只取决于排序，所以它的 AUROC 没有可过拟合的自由度。
+      它的内外落差只能解释为两家医院病例构成与变量可得性的差异。
+      本页第 05 节给出实测印证：换训练标签后它的 ΔAUROC 恰为 0.000。
+      真正命中「过拟合或迁移失败」的是 MIRA 冻结嵌入。</small></p>
+    </div></details>
+    <details><summary>冒烟检查：标签打乱后，模型确实退回随机水平</summary><div class="body">
+      <div class="tablewrap"><table id="m-smoke"><thead><tr>
+        <th>模型</th><th class="num">正式运行 AUROC</th><th class="num">标签打乱后 AUROC</th></tr></thead><tbody></tbody></table></div>
+      <p style="padding:0 0 4px"><small>冒烟运行（<code>SMOKE_v2_main_20260928</code>）在训练集和验证集内部各自打乱标签。
+      如果流程有泄漏，打乱后仍会有区分度。打乱后各模型都落回 0.5 附近，说明流程没有把标签信息漏进输入。
+      冒烟的指标本身没有意义，只用于检查流程。</small></p>
+    </div></details>
+  </div>
+</section>
+<!-- ======================= 4 v2 vs v1.0 ======================= -->
+<section id="compare">
+  <div class="card">
+    <h2><span class="num">04</span>把 GAM 训练标签从规则改成人工裁定，结果变了吗</h2>
+    <p class="lede">v1.0 的 GAM 结局标签全部来自病历文本规则，没有人工核查，而训练集只有 10 个事件——
+    错 1 个就是 10%。v2 对 46 次住院的 79 个判定做了人工裁定（规则宽召回 → 本地 Qwen3-14B 第二标注 → 研究者裁定）。
+    GD 侧标签完全不动，所以「同一模型在 v2 与 v1.0 之间的差值」只反映训练标签的影响。</p>
+    <div class="verdict no"><span class="ico">＝</span><div>
+      <b>没有改变任何结论。</b>
+      <p id="c-lead"></p>
+    </div></div>
+    <figure>
+      <div class="ftitle">同一模型、同一批 GD 住院：换标签带来的 AUROC 变化</div>
+      <div class="fsub">配对 bootstrap（10,000 次，按患者聚类）。零线 = 没有变化。</div>
+      <div id="chart-diff"></div>
+      <figcaption id="c-diffcap"></figcaption>
+    </figure>
+    <div class="grid2">
+      <div>
+        <h3>一个可用来自检的现象</h3>
+        <p>URB-65 的差值恰好是 <b>0.000（区间也是 0.000–0.000）</b>。这不是巧合，而是必然：
+        它的预测是固定 4 分制评分经过一个单调校准得到的，换训练标签只改变校准曲线，
+        不改变住院之间的排序，而 AUROC 与 AUPRC 只取决于排序。</p>
+        <p>这条性质让它成为配对流程的<b>内置自检</b>：如果 URB-65 的差值不为 0，
+        说明配对对齐或数据读取环节出了错。Qwen3-8B / 14B 零样本同理。</p>
+      </div>
+      <div>
+        <h3>裁定改动了什么</h3>
+        <div class="tablewrap"><table id="c-adj"><thead><tr>
+          <th>项目</th><th class="num">数量</th></tr></thead><tbody></tbody></table></div>
+        <p><small>裁定只看 GAM 病历，在任何 v2 模型运行之前完成，不看 GD，也不看模型输出。
+        裁定材料与结果留在服务器 <code>derived/review/</code>（700/600），不外传。</small></p>
+      </div>
+    </div>
+    <details><summary>配对差值完整表：模型之间、以及 v2 与 v1.0 之间</summary><div class="body">
+      <div id="c-tables"></div>
+      <p style="padding:0 0 4px"><small>区间包含 0 就意味着这份数据不足以判定方向。
+      在 38 个事件、292 次住院的规模下，只有 MIRA 冻结嵌入相对逻辑回归的劣势（−0.166，−0.281 至 −0.065）
+      区间不含 0。</small></p>
+    </div></details>
+    <details><summary>MIRA LoRA 微调（mira_ft）：预先登记的局限</summary><div class="body">
+      <p>研究者要求在 v2 中加入 MIRA 微调作为<b>探索性</b>分析。以下四点在运行前已登记，
+      不是看到结果后补写的：</p>
+      <ol>
+        <li><b>训练事件只有 14 个</b>，LoRA 参数约 29.5 万、读出头约 2,300 个。结果只能作探索性描述。</li>
+        <li><b>GD 有 99.4% 的变量序列只有 1 个时间点</b>，微调学到的时间结构在 GD 上用不上。
+        因此它在 GD 上的表现<b>不能</b>解释为时序建模能力的证据。</li>
+        <li>内部交叉验证每折只有约 3 个事件、40 轮固定训练无法收敛，所以它的内部 CV（0.565）
+        低于 GD（0.682）——这是欠拟合，不是过拟合。</li>
+        <li>MoE 路由的 scatter 运算在 GPU 上不保证逐位确定，同种子重复运行可能有微小差异。</li>
+      </ol>
+      <p>结果：它高于 MIRA 冻结嵌入（+0.104），低于逻辑回归（−0.062），两个区间都包含 0。
+      各种子的 AUROC 离散度见下表。</p>
+      <div class="tablewrap"><table id="c-seed"><thead><tr>
+        <th>评价集</th><th class="num">5 个种子的 AUROC</th><th class="num">均值</th>
+        <th class="num">标准差</th><th class="num">极差</th></tr></thead><tbody></tbody></table></div>
+    </div></details>
+  </div>
+</section>
+
+<!-- ======================= 5 A1 敏感性 ======================= -->
+<section id="a1">
+  <div class="card">
+    <h2><span class="num">05</span>A1 敏感性：换 7 种口径，结论稳不稳</h2>
+    <p class="lede">7 个预注册口径，每项六模型、5 个种子、5 次交叉验证重复、10,000 次 bootstrap，
+    批次 7 项全部 completed、返回码 0。<b>只作敏感性描述，不据此挑选口径</b>——
+    主任务口径仍是 E1 / 流感索引 / 首值。</p>
+    <figure>
+      <div class="ftitle">7 个口径 × 6 个模型的 GD 主评价集 AUROC</div>
+      <div class="fsub">每行一个口径。颜色深浅 = AUROC 高低；数值直接标在格内。</div>
+      <div id="chart-a1"></div>
+      <figcaption>逻辑回归在 7 个口径里都处于最好或接近最好的水平（0.706–0.772）。
+      扩展终点（E2 加无创通气、E3 再加呼吸衰竭）把事件数从 38 提到 77 / 99，区间收窄，
+      但模型排序没有本质变化。MIRA 冻结嵌入在全部 7 个口径都不高于逻辑回归。</figcaption>
+    </figure>
+    <details><summary>A1 完整表：7 个口径 × 6 个模型 × 2 个评价集</summary><div class="body">
+      <div id="a1-tables"></div>
+    </div></details>
+  </div>
+</section>
+<!-- ======================= 6 对齐差距审计 ======================= -->
+<section id="align">
+  <div class="card">
+    <h2><span class="num">06</span>数据集对齐细节：逐项审计</h2>
+    <p class="lede">两家医院的数据已经被映射到同一个通用数据模型（CDM <code>aligned_20260927</code>）：
+    表结构、变量编码、单位都统一了。<b>但「对齐」不等于「可比」。</b>
+    下面是对四类语义不对称的量化审计，脚本 <code>scripts/data_audit/cdm_v2_gap_audit.py</code>，
+    窗口口径直接调用实验代码本身，保证看到的和模型看到的一致。</p>
+    <div class="verdict info"><span class="ico">≠</span><div>
+      <b>一句话总结：结构层面已经对齐；语义层面有四类不对称，其中两类已知会影响结论。</b>
+      <p>影响最大的是结局标签来源不对称（v2 的人工裁定正是针对它）和时间语义不对称
+      （GD 没有真实测量时刻，被统一放在索引前一天 0 点）。这两类无法靠改代码解决，需要数据方补充。</p>
+    </div></div>
+    <div id="al-tiles" class="tiles"></div>
+
+    <h3>A · 变量层：同一个变量，两家医院测出来一样吗</h3>
+    <figure>
+      <div class="ftitle">15 个入选变量的两院分布差异（标准化均值差 SMD）</div>
+      <div class="fsub">SMD = 两组均值差 / 合并标准差。|SMD| &gt; 0.1 通常认为分布有实质差异。
+      负值 = GAM 低于 GD。</div>
+      <div id="chart-smd"></div>
+      <figcaption id="al-smdcap"></figcaption>
+    </figure>
+    <details><summary>逐变量明细：覆盖率、观测密度、时间精度、中位数比、取整堆积</summary><div class="body">
+      <div class="tablewrap"><table id="al-vars"><thead><tr>
+        <th>变量</th><th class="num">GAM 覆盖率</th><th class="num">GD 覆盖率</th>
+        <th class="num">GAM 每次观测数</th><th class="num">GD 每次观测数</th>
+        <th class="num">中位数比 GAM/GD</th><th class="num">SMD</th>
+        <th class="num">GAM 末位 0/5</th><th class="num">GD 末位 0/5</th></tr></thead><tbody></tbody></table></div>
+      <p style="padding:0 0 4px"><small><b>观测数是去重后的</b>（按住院 × 变量 × 时刻折叠，与实验特征构造同一步）。
+      「末位 0/5 占比」衡量人工读数的取整习惯：均匀取整时期望是 0.2，明显高于 0.2 说明有人工凑整，
+      两院差异大则说明测量方式不同。</small></p>
+    </div></details>
+
+    <h3>B · 时间层：索引时点意味着什么</h3>
+    <div class="grid2">
+      <div>
+        <h4>GAM（旧数据）</h4>
+        <ul>
+          <li>t0 = 流感首次阳性时刻，<b>不是入院时刻</b>。163 次住院中 99 次按此规则。</li>
+          <li>入院到流感确诊的中位间隔约 <b>87 小时（3.6 天）</b>。这段时间的观测全部落在输入窗口之外。</li>
+          <li>入院锚点本身可信：入院时刻与首次观测之差中位数 0 小时，无负值。</li>
+          <li>窗口内观测的时间精度：分钟级与病历书写时间混合。</li>
+        </ul>
+      </div>
+      <div>
+        <h4>GD（新数据 CRF）</h4>
+        <ul>
+          <li>t0 = 首个体征日期。<b>没有入院时间</b>。</li>
+          <li>数值<b>没有真实测量时刻</b>：提前量在四分位上都恰好是 24.0 小时，
+          说明它们被统一放在索引前一天 0 点。</li>
+          <li>窗口内 <b>2,721 个观测是纯日期精度</b>、1,242 个是分钟精度。</li>
+          <li>每个变量每次住院基本只有 1 个值，<b>没有时间序列</b>。</li>
+        </ul>
+      </div>
+    </div>
+    <div class="verdict part"><span class="ico">!</span><div>
+      <b>后果一：时序基础模型在这份数据上没有发挥空间。</b>
+      <p>GD 有 99.4% 的变量序列只有 1 个点。MIRA 的 CT-RoPE 对每条序列做时间归一化，
+      单点序列的表示与时间无关，只取决于数值。这解释了为什么 MIRA 冻结嵌入（0.578）
+      和微调版（0.682）都没有超过逻辑回归——不是模型不行，是这份数据里没有时间结构可用。</p>
+      <p><b>后果二：日期精度的时间戳目前在表里看起来和真实时间戳一样。</b>
+      CDM v2 需要新增 <code>time_kind</code> 字段（真实时刻 / 仅日期 / 由锚点推算）显式标注，
+      否则任何依赖时间间隔的分析都会把「推算值」当成「实测值」。</p>
+    </div></div>
+
+    <h3>C · 结局层：同一个终点，两家医院的来源完全不同</h3>
+    <p>这是四类不对称里影响最大的一类，也是 v2 人工裁定要解决的问题。</p>
+    <div class="tablewrap"><table id="al-outcome"><thead><tr>
+      <th>终点组成</th><th>GAM 来源</th><th class="num">GAM 时间精度</th>
+      <th>GD 来源</th><th class="num">GD 时间精度</th></tr></thead><tbody></tbody></table></div>
+    <p><small><b>precision 含义：</b>minute = 精确到分钟；day = 只有日期（存成当天 0 点）；
+    note = 病历书写时间（近似，可能晚于事件实际发生）；unknown = 没有时间。
+    GAM 的 ICU 与有创通气全部是 note 精度——病历写下的时间不等于事件发生的时间。
+    GD 的全部是 CRF 人工填写的 day 精度。<b>两侧不仅来源不同，时间精度也不同。</b></small></p>
+    <div class="tablewrap"><table id="al-e1"><thead><tr>
+      <th>E1 阳性住院</th><th class="num">事件 / 纳入</th><th class="num">首个组成构成</th>
+      <th class="num">首个组成的时间精度</th><th class="num">无任何时间的事件</th></tr></thead><tbody></tbody></table></div>
+    <p><small><b>这张表把「来源不对称」落到了实处。</b>GAM 训练集 10 个事件的首个组成时间精度是
+    <code>note 15 / minute 3</code>——以病历书写时间为主；GD 主评价集 38 个事件则是
+    <code>day 52 / unknown 3</code>，全部是日期精度，还有 3 个事件连日期都没有。
+    换句话说，<b>模型在训练时学的是「病历何时写下」，评价时用的是「CRF 填了哪一天」</b>，
+    两者的时间含义并不相同。计数大于事件数是因为同一事件可能有多个组成同时发生。</small></p>
+
+    <h3>D · 协变量偏移：能不能从检验值认出这是哪家医院</h3>
+    <div id="al-shift"></div>
+    <figure>
+      <div class="ftitle">哪些变量最能区分两家医院（置换重要性）</div>
+      <div class="fsub">只用 v1.0 的输入特征、不用标签，训练一个「GAM vs GD」分类器。
+      置换重要性 = 打乱该变量后判别 AUROC 的下降幅度。</div>
+      <div id="chart-shift"></div>
+      <figcaption id="al-shiftcap"></figcaption>
+    </figure>
+
+    <h3>E · 三态问题：「未提及」被当成了「阴性」</h3>
+    <div class="verdict no"><span class="ico">✕</span><div>
+      <b>这是一处可量化的系统性偏差。</b>
+      <p>GAM 的症状字段<b>缺失率为 0</b>——因为它是从病历文本用规则抽取的，病历没写就记 0。
+      GD 来自 CRF，有真正的空白。后果直接可见：<b id="al-cough"></b></p>
+    </div></div>
+    <figure>
+      <div class="ftitle">入院症状阳性率：GAM（病历规则）对比 GD（CRF 填写）</div>
+      <div class="fsub">同一批老年流感住院患者。差距主要来自记录方式，不是真实临床差异。</div>
+      <div class="legend" id="al-symlegend"></div>
+      <div id="chart-sym"></div>
+      <figcaption>咳嗽、咳痰、发热在 GAM 明显偏低：流感住院患者的咳嗽率不应只有五成。
+      而乏力、呼吸困难在 GAM 偏高，说明规则对不同症状的抽取灵敏度也不一致。
+      这就是 CDM v2 要把症状与基础病改成三态 <code>assertion(present / absent / not_mentioned)</code> 的直接理由，
+      也是执行计划把症状列为次要分析、并要求另抽 30–50 条人工核查的原因。</figcaption>
+    </figure>
+    <details><summary>基础病三态明细（10 项）</summary><div class="body">
+      <div class="tablewrap"><table id="al-com"><thead><tr>
+        <th>基础病</th><th class="num">GAM 阳性率</th><th class="num">GD 阳性率</th>
+        <th class="num">差（GAM−GD）</th><th class="num">GAM 缺失率</th><th class="num">GD 缺失率</th></tr></thead><tbody></tbody></table></div>
+      <p style="padding:0 0 4px"><small>基础病两侧缺失率都是 0，但原因不同：GAM 来自病史+入院诊断规则（未提及记 0），
+      GD 来自 CRF 勾选。差值方向不一致（冠心病、脑卒中在 GAM 偏高，支气管扩张、免疫抑制在 GD 偏高），
+      说明这既有记录方式差异也有真实人群差异，无法只靠对齐分离。</small></p>
+    </div></details>
+    <details><summary>F · 对齐层重复行：发现了，但不影响已有结果</summary><div class="body">
+      <div class="tablewrap"><table id="al-dup"><thead><tr>
+        <th>表</th><th class="num">总行数</th><th class="num">整行完全重复</th><th>分布</th></tr></thead><tbody></tbody></table></div>
+      <p style="padding:0 0 4px"><small id="al-dupnote"></small></p>
+    </div></details>
+
+    <h3>汇总：五类差距与应对</h3>
+    <div class="tablewrap"><table id="al-summary"><thead><tr>
+      <th>差距</th><th>实测</th><th>能否靠对齐解决</th><th>应对</th></tr></thead><tbody></tbody></table></div>
+  </div>
+</section>
+<!-- ======================= 7 局限 ======================= -->
+<section id="limits">
+  <div class="card">
+    <h2><span class="num">07</span>局限与下一步</h2>
+    <p class="lede">按重要性排序。前三条会改变结论强度，不是形式化的免责声明。</p>
+    <ol>
+      <li><b>索引当天事件占比过半。</b>GD 主评价集 38 个事件中 26 个发生在 t0 当天，
+      模型的输入可能已包含「正在转重」的信号，而非提前预警。前瞻子集是针对这一点的检验，
+      但只有 9 个事件，不足以支持结论。<b>需要数据方补充真实入院时间与事件时刻（A6）。</b></li>
+      <li><b>GD 不再是未使用过的外部集。</b>v1.0、A1 七项、A3、A5、v2 都在 GD 上评价过。
+      v2 与 v1.0 并列报告，不替代 v1.0，也不构成新的独立外部验证。</li>
+      <li><b>裁定人只有 1 名，没有第二人独立复核</b>，无法给出人际一致性。
+      报告的 κ 是「规则 / LLM 对裁定」的一致性，不是裁定本身的可靠性。
+      并且裁定工具中各组成的 LLM 结论对裁定人可见，可能造成锚定——
+      κ 0.88–1.0 的一部分可能来自这条路径，<b>不能读作 LLM 独立准确性</b>。</li>
+      <li><b>训练集事件数极少</b>（v1.0 为 10 个、v2 为 14 个）。所有 v2−v1.0 的差值区间都很宽，
+      方向性不作结论。MIRA 微调的结果只作探索性描述。</li>
+      <li><b>GD 没有时间序列</b>（99.4% 单点），时序基础模型在这份数据上没有发挥空间。
+      这限制了本路线能回答的问题，不是模型实现的缺陷。</li>
+      <li><b>CDM v2 的对齐改造尚未执行。</b>本页第 06 节完成的是差距审计（只读），
+      去重、<code>time_kind</code>、三态编码、<code>outcome_components</code> 表都还没做。</li>
+    </ol>
+    <h3>下一步（需研究者裁决的在前）</h3>
+    <div class="tablewrap"><table id="l-next"><thead><tr>
+      <th>事项</th><th>类型</th><th>说明</th></tr></thead><tbody></tbody></table></div>
+  </div>
+</section>
+
+<!-- ======================= 8 复现 ======================= -->
+<section id="repro">
+  <div class="card">
+    <h2><span class="num">08</span>复现命令与证据路径</h2>
+    <p class="lede">全部在服务器 <code>/home/ud202482579/wangyiming/basemodel</code> 下、用 <code>.venv/bin/python</code> 执行。
+    <code>derived/</code> 为 700/600 权限，内容不外传。</p>
+    <h3>运行与产物</h3>
+    <div class="tablewrap"><table id="r-runs"><thead><tr>
+      <th>运行</th><th>模型</th><th>指标路径（logs/）</th><th>生成时间</th></tr></thead><tbody></tbody></table></div>
+    <h3>命令</h3>
+    <div class="tablewrap"><table id="r-cmds"><thead><tr>
+      <th>用途</th><th>命令</th></tr></thead><tbody></tbody></table></div>
+    <h3>结果锁定与隐私</h3>
+    <ul>
+      <li>v2 主运行的配置、代码与裁定表在运行前锁定：
+      <code>logs/2026-09-28/v2_pipeline/V2_main_e1_20260928_plan_lock.txt</code>（27 个文件的 sha256）。</li>
+      <li>补充运行前重新核验了上述 27 个文件，<b>全部未变</b>；
+      新增代码的 sha256 记在 <code>logs/2026-09-29/v2_pipeline/V2_sup_e1_20260929_plan_lock.txt</code>。</li>
+      <li>隐私扫描 <code>scripts/data_audit/scan_code_identifiers.py</code> 要求 0 命中，
+      扫描范围含本页 HTML 与全部文档、脚本。</li>
+      <li>裁定工具 <code>review/adjudicate_gam_outcomes.py</code> 会在屏幕显示原始病人 ID 与病历片段，
+      <b>只由研究者本人运行</b>。</li>
+    </ul>
+    <div class="footnote">
+      <p>本页由 <code>scripts/build_week01_report_html.py</code> 从 metrics.json 生成，数字无手工抄录。
+      对应的 Markdown 主报告是 <code>docs/basemodel/result/week01/医院实验结果.md</code>。</p>
+      <p>全部结果为描述性与探索性。口径与超参数在运行前锁定，
+      <b>不得依据 GD 上的结果回头改口径、调超参或挑选结果</b>。</p>
+    </div>
+  </div>
+</section>
+
+</div>
+<button class="themebtn" id="themebtn" aria-label="切换深浅色">◐ 深浅色</button>
+<div class="tip" id="tip" role="tooltip" aria-live="polite"></div>
+<script>
+const DATA = {"generated_at": "2026-09-29 11:22", "v1": {"run_id": "E1_stay_fluidx_all_20260927", "generated_at": "2026-09-27 19:21:25", "models": ["urb65", "lr", "lgbm", "tabpfn", "mira_r0b", "llm_zs"], "eval": {"GD_primary": {"n": 292, "n_events": 38, "models": {"urb65": {"label": "URB-65 评分", "auroc": {"est": 0.631, "lo": 0.535, "hi": 0.723}, "auprc": {"est": 0.192, "lo": 0.125, "hi": 0.291}, "brier": {"est": 0.113, "lo": 0.083, "hi": 0.145}, "cal_slope": {"est": 0.413, "lo": 0.113, "hi": 0.738}, "oe": 1.72, "sens90": {"est": 0.105, "lo": 0.023, "hi": 0.214}, "diff_vs_lr": {"est": -0.102, "lo": -0.204, "hi": 0.001}, "per_seed": [0.6311, 0.6311, 0.6311, 0.6311, 0.6311]}, "lr": {"label": "逻辑回归", "auroc": {"est": 0.733, "lo": 0.627, "hi": 0.826}, "auprc": {"est": 0.37, "lo": 0.242, "hi": 0.547}, "brier": {"est": 0.101, "lo": 0.073, "hi": 0.13}, "cal_slope": {"est": 0.683, "lo": 0.394, "hi": 1.037}, "oe": 1.54, "sens90": {"est": 0.368, "lo": 0.2, "hi": 0.544}, "diff_vs_lr": null, "per_seed": [0.7359, 0.7228, 0.7359, 0.7359, 0.7359]}, "lgbm": {"label": "LightGBM", "auroc": {"est": 0.737, "lo": 0.651, "hi": 0.817}, "auprc": {"est": 0.351, "lo": 0.224, "hi": 0.501}, "brier": {"est": 0.108, "lo": 0.078, "hi": 0.139}, "cal_slope": {"est": 1.035, "lo": 0.649, "hi": 1.466}, "oe": 1.92, "sens90": {"est": 0.263, "lo": 0.132, "hi": 0.435}, "diff_vs_lr": {"est": 0.005, "lo": -0.052, "hi": 0.062}, "per_seed": [0.7539, 0.7108, 0.7482, 0.7106, 0.7252]}, "tabpfn": {"label": "TabPFN v2", "auroc": {"est": 0.739, "lo": 0.653, "hi": 0.821}, "auprc": {"est": 0.359, "lo": 0.225, "hi": 0.515}, "brier": {"est": 0.103, "lo": 0.075, "hi": 0.131}, "cal_slope": {"est": 0.805, "lo": 0.507, "hi": 1.162}, "oe": 1.4, "sens90": {"est": 0.316, "lo": 0.159, "hi": 0.474}, "diff_vs_lr": {"est": 0.007, "lo": -0.046, "hi": 0.061}, "per_seed": [0.7358, 0.7378, 0.7337, 0.7355, 0.7442]}, "mira_r0b": {"label": "MIRA 冻结嵌入", "auroc": {"est": 0.609, "lo": 0.493, "hi": 0.721}, "auprc": {"est": 0.264, "lo": 0.161, "hi": 0.426}, "brier": {"est": 0.117, "lo": 0.084, "hi": 0.152}, "cal_slope": {"est": 0.286, "lo": -0.002, "hi": 0.597}, "oe": 2.81, "sens90": {"est": 0.316, "lo": 0.138, "hi": 0.459}, "diff_vs_lr": {"est": -0.124, "lo": -0.241, "hi": -0.014}, "per_seed": [0.6091, 0.6091, 0.6091, 0.6091, 0.6091]}, "llm_zs": {"label": "Qwen3-8B 零样本", "auroc": {"est": 0.731, "lo": 0.64, "hi": 0.817}, "auprc": {"est": 0.314, "lo": 0.202, "hi": 0.467}, "brier": {"est": 0.106, "lo": 0.079, "hi": 0.134}, "cal_slope": {"est": 0.605, "lo": 0.366, "hi": 0.876}, "oe": 1.18, "sens90": {"est": 0.395, "lo": 0.212, "hi": 0.545}, "diff_vs_lr": {"est": -0.002, "lo": -0.091, "hi": 0.094}, "per_seed": [0.7309, 0.7309, 0.7309, 0.7309, 0.7309]}}}, "GD_prospective": {"n": 263, "n_events": 9, "models": {"urb65": {"label": "URB-65 评分", "auroc": {"est": 0.642, "lo": 0.433, "hi": 0.831}, "auprc": {"est": 0.058, "lo": 0.021, "hi": 0.163}, "brier": {"est": 0.039, "lo": 0.022, "hi": 0.058}, "cal_slope": {"est": 0.449, "lo": -0.228, "hi": 1.139}, "oe": 0.48, "sens90": {"est": 0.111, "lo": 0.0, "hi": 0.375}, "diff_vs_lr": {"est": -0.022, "lo": -0.144, "hi": 0.129}, "per_seed": [0.6415, 0.6415, 0.6415, 0.6415, 0.6415]}, "lr": {"label": "逻辑回归", "auroc": {"est": 0.663, "lo": 0.397, "hi": 0.894}, "auprc": {"est": 0.147, "lo": 0.032, "hi": 0.442}, "brier": {"est": 0.038, "lo": 0.021, "hi": 0.057}, "cal_slope": {"est": 0.491, "lo": -0.487, "hi": 1.232}, "oe": 0.48, "sens90": {"est": 0.333, "lo": 0.0, "hi": 0.667}, "diff_vs_lr": null, "per_seed": [0.6649, 0.6667, 0.6649, 0.6649, 0.6649]}, "lgbm": {"label": "LightGBM", "auroc": {"est": 0.629, "lo": 0.407, "hi": 0.838}, "auprc": {"est": 0.187, "lo": 0.026, "hi": 0.48}, "brier": {"est": 0.034, "lo": 0.017, "hi": 0.054}, "cal_slope": {"est": 0.699, "lo": -0.506, "hi": 1.743}, "oe": 0.55, "sens90": {"est": 0.333, "lo": 0.0, "hi": 0.667}, "diff_vs_lr": {"est": -0.034, "lo": -0.161, "hi": 0.082}, "per_seed": [0.6794, 0.6041, 0.6312, 0.5991, 0.6098]}, "tabpfn": {"label": "TabPFN v2", "auroc": {"est": 0.643, "lo": 0.397, "hi": 0.871}, "auprc": {"est": 0.152, "lo": 0.03, "hi": 0.459}, "brier": {"est": 0.038, "lo": 0.022, "hi": 0.057}, "cal_slope": {"est": 0.572, "lo": -0.283, "hi": 1.561}, "oe": 0.42, "sens90": {"est": 0.333, "lo": 0.0, "hi": 0.693}, "diff_vs_lr": {"est": -0.021, "lo": -0.14, "hi": 0.077}, "per_seed": [0.6457, 0.6465, 0.6382, 0.6395, 0.6339]}, "mira_r0b": {"label": "MIRA 冻结嵌入", "auroc": {"est": 0.663, "lo": 0.387, "hi": 0.886}, "auprc": {"est": 0.102, "lo": 0.032, "hi": 0.328}, "brier": {"est": 0.037, "lo": 0.018, "hi": 0.058}, "cal_slope": {"est": 0.281, "lo": -0.454, "hi": 1.019}, "oe": 0.85, "sens90": {"est": 0.222, "lo": 0.0, "hi": 0.571}, "diff_vs_lr": {"est": -0.0, "lo": -0.317, "hi": 0.271}, "per_seed": [0.6627, 0.6627, 0.6627, 0.6627, 0.6627]}, "llm_zs": {"label": "Qwen3-8B 零样本", "auroc": {"est": 0.56, "lo": 0.327, "hi": 0.783}, "auprc": {"est": 0.066, "lo": 0.021, "hi": 0.246}, "brier": {"est": 0.052, "lo": 0.033, "hi": 0.073}, "cal_slope": {"est": 0.184, "lo": -0.666, "hi": 0.714}, "oe": 0.36, "sens90": {"est": 0.222, "lo": 0.0, "hi": 0.5}, "diff_vs_lr": {"est": -0.103, "lo": -0.266, "hi": 0.066}, "per_seed": [0.5604, 0.5604, 0.5604, 0.5604, 0.5604]}}}}, "internal": {"urb65": {"mean": 0.7982, "sd": 0.0111, "label": "URB-65 评分"}, "lr": {"mean": 0.7626, "sd": 0.1044, "label": "逻辑回归"}, "lgbm": {"mean": 0.6602, "sd": 0.0468, "label": "LightGBM"}, "tabpfn": {"mean": 0.6816, "sd": 0.0291, "label": "TabPFN v2"}, "mira_r0b": {"mean": 0.7008, "sd": 0.0921, "label": "MIRA 冻结嵌入"}, "llm_zs": {"mean": 0.7603, "sd": 0.0459, "label": "Qwen3-8B 零样本"}}, "cohort": {"primary": {"GAM_IP": {"n_total": 173, "n_included": 163, "n_events": 10, "n_patients_included": 161, "event_rate": 0.061, "events_before_t0": 7, "events_first_component": {"ICU": 7, "IMV": 3}, "events_precision": {"note": 10}, "excluded": {"event_before_index": 10}}, "GD_CRF": {"n_total": 297, "n_included": 292, "n_events": 38, "n_patients_included": 290, "event_rate": 0.13, "events_before_t0": 26, "events_first_component": {"ICU": 30, "IMV": 5}, "events_precision": {"day": 35}, "excluded": {"no_anchor": 4, "event_before_index": 1}}}, "prospective": {"GAM_IP": {"n_total": 173, "n_included": 153, "n_events": 3, "n_patients_included": 151, "event_rate": 0.02, "events_before_t0": 0, "events_first_component": {"IMV": 2, "ICU": 1}, "events_precision": {"note": 3}, "excluded": {"prior_event": 17, "left_before_t0": 3}}, "GD_CRF": {"n_total": 297, "n_included": 263, "n_events": 9, "n_patients_included": 261, "event_rate": 0.034, "events_before_t0": 0, "events_first_component": {"ICU": 6, "IMV": 3}, "events_precision": {"day": 9}, "excluded": {"prior_event": 27, "no_anchor": 4, "unknown_event_time": 3}}}}}, "v2": {"run_id": "V2_main_e1_20260928", "generated_at": "2026-09-28 23:53:51", "models": ["urb65", "lr", "mira_r0b", "mira_ft"], "eval": {"GD_primary": {"n": 292, "n_events": 38, "models": {"urb65": {"label": "URB-65 评分", "auroc": {"est": 0.631, "lo": 0.535, "hi": 0.723}, "auprc": {"est": 0.192, "lo": 0.125, "hi": 0.291}, "brier": {"est": 0.111, "lo": 0.083, "hi": 0.14}, "cal_slope": {"est": 0.545, "lo": 0.149, "hi": 0.971}, "oe": 1.23, "sens90": {"est": 0.105, "lo": 0.023, "hi": 0.214}, "diff_vs_lr": {"est": -0.113, "lo": -0.216, "hi": -0.016}, "per_seed": [0.6311, 0.6311, 0.6311, 0.6311, 0.6311]}, "lr": {"label": "逻辑回归", "auroc": {"est": 0.744, "lo": 0.641, "hi": 0.836}, "auprc": {"est": 0.401, "lo": 0.261, "hi": 0.567}, "brier": {"est": 0.098, "lo": 0.073, "hi": 0.124}, "cal_slope": {"est": 0.833, "lo": 0.503, "hi": 1.248}, "oe": 1.0, "sens90": {"est": 0.421, "lo": 0.25, "hi": 0.594}, "diff_vs_lr": null, "per_seed": [0.7449, 0.7449, 0.7449, 0.7547, 0.7204]}, "mira_r0b": {"label": "MIRA 冻结嵌入", "auroc": {"est": 0.578, "lo": 0.452, "hi": 0.699}, "auprc": {"est": 0.268, "lo": 0.158, "hi": 0.419}, "brier": {"est": 0.113, "lo": 0.084, "hi": 0.143}, "cal_slope": {"est": 0.148, "lo": -0.097, "hi": 0.503}, "oe": 1.11, "sens90": {"est": 0.368, "lo": 0.194, "hi": 0.526}, "diff_vs_lr": {"est": -0.166, "lo": -0.281, "hi": -0.065}, "per_seed": [0.5782, 0.5782, 0.5782, 0.5782, 0.5782]}, "mira_ft": {"label": "MIRA LoRA 微调", "auroc": {"est": 0.682, "lo": 0.571, "hi": 0.784}, "auprc": {"est": 0.316, "lo": 0.2, "hi": 0.488}, "brier": {"est": 0.208, "lo": 0.197, "hi": 0.219}, "cal_slope": {"est": 1.557, "lo": 0.752, "hi": 2.557}, "oe": 0.29, "sens90": {"est": 0.342, "lo": 0.196, "hi": 0.533}, "diff_vs_lr": {"est": -0.062, "lo": -0.184, "hi": 0.062}, "per_seed": [0.6859, 0.6881, 0.6859, 0.676, 0.6507]}}}, "GD_prospective": {"n": 263, "n_events": 9, "models": {"urb65": {"label": "URB-65 评分", "auroc": {"est": 0.642, "lo": 0.433, "hi": 0.831}, "auprc": {"est": 0.058, "lo": 0.021, "hi": 0.163}, "brier": {"est": 0.042, "lo": 0.026, "hi": 0.06}, "cal_slope": {"est": 0.592, "lo": -0.301, "hi": 1.5}, "oe": 0.34, "sens90": {"est": 0.111, "lo": 0.0, "hi": 0.375}, "diff_vs_lr": {"est": 0.029, "lo": -0.085, "hi": 0.165}, "per_seed": [0.6415, 0.6415, 0.6415, 0.6415, 0.6415]}, "lr": {"label": "逻辑回归", "auroc": {"est": 0.613, "lo": 0.329, "hi": 0.882}, "auprc": {"est": 0.132, "lo": 0.037, "hi": 0.371}, "brier": {"est": 0.046, "lo": 0.03, "hi": 0.064}, "cal_slope": {"est": 0.542, "lo": -0.693, "hi": 1.414}, "oe": 0.3, "sens90": {"est": 0.444, "lo": 0.111, "hi": 0.8}, "diff_vs_lr": null, "per_seed": [0.6168, 0.6168, 0.6168, 0.6234, 0.5967]}, "mira_r0b": {"label": "MIRA 冻结嵌入", "auroc": {"est": 0.452, "lo": 0.207, "hi": 0.707}, "auprc": {"est": 0.049, "lo": 0.016, "hi": 0.15}, "brier": {"est": 0.054, "lo": 0.035, "hi": 0.076}, "cal_slope": {"est": -0.139, "lo": -0.412, "hi": 0.536}, "oe": 0.33, "sens90": {"est": 0.222, "lo": 0.0, "hi": 0.545}, "diff_vs_lr": {"est": -0.161, "lo": -0.468, "hi": 0.092}, "per_seed": [0.4523, 0.4523, 0.4523, 0.4523, 0.4523]}, "mira_ft": {"label": "MIRA LoRA 微调", "auroc": {"est": 0.505, "lo": 0.231, "hi": 0.789}, "auprc": {"est": 0.079, "lo": 0.021, "hi": 0.262}, "brier": {"est": 0.206, "lo": 0.195, "hi": 0.217}, "cal_slope": {"est": 0.476, "lo": -2.796, "hi": 2.423}, "oe": 0.08, "sens90": {"est": 0.333, "lo": 0.0, "hi": 0.667}, "diff_vs_lr": {"est": -0.108, "lo": -0.396, "hi": 0.197}, "per_seed": [0.4829, 0.5026, 0.5026, 0.5276, 0.577]}}}}, "internal": {"urb65": {"mean": 0.7235, "sd": 0.0067, "label": "URB-65 评分"}, "lr": {"mean": 0.7343, "sd": 0.0474, "label": "逻辑回归"}, "mira_r0b": {"mean": 0.6653, "sd": 0.0498, "label": "MIRA 冻结嵌入"}, "mira_ft": {"mean": 0.5646, "sd": 0.0824, "label": "MIRA LoRA 微调"}}, "cohort": {"primary": {"GAM_IP": {"n_total": 173, "n_included": 163, "n_events": 14, "n_patients_included": 161, "event_rate": 0.086, "events_before_t0": 7, "events_first_component": {"ICU": 8, "IMV": 4, "DEATH": 2}, "events_precision": {"day": 13, "note": 1}, "excluded": {"event_before_index": 10}}, "GD_CRF": {"n_total": 297, "n_included": 292, "n_events": 38, "n_patients_included": 290, "event_rate": 0.13, "events_before_t0": 26, "events_first_component": {"ICU": 30, "IMV": 5}, "events_precision": {"day": 35}, "excluded": {"no_anchor": 4, "event_before_index": 1}}}, "prospective": {"GAM_IP": {"n_total": 173, "n_included": 152, "n_events": 6, "n_patients_included": 150, "event_rate": 0.039, "events_before_t0": 0, "events_first_component": {"ICU": 2, "DEATH": 2, "IMV": 2}, "events_precision": {"day": 6}, "excluded": {"prior_event": 17, "left_before_t0": 3, "unknown_event_time": 1}}, "GD_CRF": {"n_total": 297, "n_included": 263, "n_events": 9, "n_patients_included": 261, "event_rate": 0.034, "events_before_t0": 0, "events_first_component": {"ICU": 6, "IMV": 3}, "events_precision": {"day": 9}, "excluded": {"prior_event": 27, "no_anchor": 4, "unknown_event_time": 3}}}}, "variables": ["VS001", "VS002", "VS003", "VS004", "VS005", "LAB001", "LAB002", "LAB003", "LAB004", "LAB005", "LAB006", "LAB009", "LAB010", "LAB011", "LAB012"]}, "smoke": {"run_id": "SMOKE_v2_main_20260928", "eval": {"GD_primary": {"urb65": {"est": 0.493, "lo": 0.409, "hi": 0.576}, "lr": {"est": 0.477, "lo": 0.377, "hi": 0.581}, "mira_r0b": {"est": 0.415, "lo": 0.324, "hi": 0.508}, "mira_ft": {"est": 0.521, "lo": 0.405, "hi": 0.636}}, "GD_prospective": {"urb65": {"est": 0.399, "lo": 0.25, "hi": 0.554}, "lr": {"est": 0.455, "lo": 0.268, "hi": 0.644}, "mira_r0b": {"est": 0.361, "lo": 0.19, "hi": 0.551}, "mira_ft": {"est": 0.513, "lo": 0.305, "hi": 0.725}}}}, "compare": {"generated_at": "2026-09-29 00:30:04", "purpose": "v2（GAM 结局人工裁定标签）与 v1.0（规则标签）对比；全部为描述性结果，不据此改口径或挑选结果", "runs": {"v2": {"run_id": "V2_main_e1_20260928", "generated_at": "2026-09-28 23:53:51", "cdm": "derived/aligned_20260927", "models": ["urb65", "lr", "mira_r0b", "mira_ft"]}, "v1": {"run_id": "E1_stay_fluidx_all_20260927", "generated_at": "2026-09-27 19:21:25", "cdm": "derived/aligned_20260927", "models": ["urb65", "lr", "lgbm", "tabpfn", "mira_r0b", "llm_zs"]}}, "bootstrap": {"n_boot": 10000, "seed": 20260928, "unit": "患者聚类（patient_id）", "impl": "experiments.rw_gam2gd.evaluate.cluster_bootstrap", "keys_recomputed": ["auroc", "auprc"], "note": "mira_ft 用加权交叉熵，概率偏高；预先登记只比较 AUROC/AUPRC，不比较校准与 O/E"}, "assertions": ["GD_primary: 复算的 mira_r0b / mira_ft AUROC 点估计与 metrics.json 一致", "GD_prospective: 复算的 mira_r0b / mira_ft AUROC 点估计与 metrics.json 一致", "GD_primary: v2 与 v1.0 的 GD encounter_id 集合（n=292）、标签（事件 38）与患者归属完全相同", "GD_prospective: v2 与 v1.0 的 GD encounter_id 集合（n=263）、标签（事件 9）与患者归属完全相同"], "v2_within": {"GD_primary": {"n": 292, "n_events": 38, "n_boot_valid_from_run": 10000, "metrics": {"urb65": {"auroc": {"est": 0.6311, "lo": 0.5351, "hi": 0.7228}, "auprc": {"est": 0.1922, "lo": 0.1251, "hi": 0.2907}}, "lr": {"auroc": {"est": 0.7442, "lo": 0.641, "hi": 0.8365}, "auprc": {"est": 0.4006, "lo": 0.2612, "hi": 0.5665}}, "mira_r0b": {"auroc": {"est": 0.5782, "lo": 0.452, "hi": 0.6986}, "auprc": {"est": 0.2681, "lo": 0.1581, "hi": 0.4195}}, "mira_ft": {"auroc": {"est": 0.6821, "lo": 0.5706, "hi": 0.7836}, "auprc": {"est": 0.3162, "lo": 0.2001, "hi": 0.4883}}}, "paired_diff": {"mira_ft_minus_lr": {"source": "metrics.json external.GD_primary.diff_vs_lr", "auroc": {"est": -0.0621, "lo": -0.1839, "hi": 0.0618}, "auprc": {"est": -0.0843, "lo": -0.2353, "hi": 0.0877}}, "mira_r0b_minus_lr": {"source": "metrics.json external.GD_primary.diff_vs_lr", "auroc": {"est": -0.166, "lo": -0.281, "hi": -0.0647}, "auprc": {"est": -0.1325, "lo": -0.2347, "hi": -0.0339}}, "mira_ft_minus_mira_r0b": {"source": "重算（predictions.parquet，10000 次患者聚类 bootstrap，种子 20260928）", "n_boot_valid": 10000, "auroc": {"est": 0.1039, "lo": -0.0644, "hi": 0.2767}, "auprc": {"est": 0.0482, "lo": -0.1207, "hi": 0.236}}}}, "GD_prospective": {"n": 263, "n_events": 9, "n_boot_valid_from_run": 9998, "metrics": {"urb65": {"auroc": {"est": 0.6415, "lo": 0.4326, "hi": 0.8314}, "auprc": {"est": 0.0575, "lo": 0.0205, "hi": 0.1631}}, "lr": {"auroc": {"est": 0.6129, "lo": 0.329, "hi": 0.8816}, "auprc": {"est": 0.1325, "lo": 0.0369, "hi": 0.3707}}, "mira_r0b": {"auroc": {"est": 0.4523, "lo": 0.207, "hi": 0.707}, "auprc": {"est": 0.0489, "lo": 0.0163, "hi": 0.1503}}, "mira_ft": {"auroc": {"est": 0.5052, "lo": 0.2312, "hi": 0.7886}, "auprc": {"est": 0.0791, "lo": 0.0213, "hi": 0.2619}}}, "paired_diff": {"mira_ft_minus_lr": {"source": "metrics.json external.GD_prospective.diff_vs_lr", "auroc": {"est": -0.1076, "lo": -0.3957, "hi": 0.1973}, "auprc": {"est": -0.0534, "lo": -0.1985, "hi": 0.043}}, "mira_r0b_minus_lr": {"source": "metrics.json external.GD_prospective.diff_vs_lr", "auroc": {"est": -0.1605, "lo": -0.4684, "hi": 0.0921}, "auprc": {"est": -0.0836, "lo": -0.2919, "hi": -0.0007}}, "mira_ft_minus_mira_r0b": {"source": "重算（predictions.parquet，10000 次患者聚类 bootstrap，种子 20260928）", "n_boot_valid": 9999, "auroc": {"est": 0.0529, "lo": -0.3445, "hi": 0.4679}, "auprc": {"est": 0.0302, "lo": -0.075, "hi": 0.2005}}}}}, "v2_vs_v1": {"GD_primary": {"n": 292, "n_events": 38, "paired_diff_v2_minus_v1": {"urb65": {"v1_auroc": {"est": 0.6311, "lo": 0.5369, "hi": 0.7245}, "v2_auroc": {"est": 0.6311, "lo": 0.5369, "hi": 0.7245}, "diff_auroc": {"est": 0.0, "lo": 0.0, "hi": 0.0}, "diff_auprc": {"est": 0.0, "lo": 0.0, "hi": 0.0}, "n_boot_valid": 10000}, "lr": {"v1_auroc": {"est": 0.7328, "lo": 0.6302, "hi": 0.8288}, "v2_auroc": {"est": 0.7442, "lo": 0.6394, "hi": 0.8392}, "diff_auroc": {"est": 0.0114, "lo": -0.0488, "hi": 0.0678}, "diff_auprc": {"est": 0.0302, "lo": -0.0625, "hi": 0.104}, "n_boot_valid": 10000}, "mira_r0b": {"v1_auroc": {"est": 0.6091, "lo": 0.4917, "hi": 0.7193}, "v2_auroc": {"est": 0.5782, "lo": 0.455, "hi": 0.6985}, "diff_auroc": {"est": -0.0309, "lo": -0.1139, "hi": 0.0449}, "diff_auprc": {"est": 0.0042, "lo": -0.0871, "hi": 0.0759}, "n_boot_valid": 10000}}, "note": "GD 标签在两版中相同，差值只来自 GAM 训练标签的变化（事件 10→14）；mira_ft 只在 v2 中存在，无 v1.0 对照，不参与本表"}, "GD_prospective": {"n": 263, "n_events": 9, "paired_diff_v2_minus_v1": {"urb65": {"v1_auroc": {"est": 0.6415, "lo": 0.4357, "hi": 0.8343}, "v2_auroc": {"est": 0.6415, "lo": 0.4357, "hi": 0.8343}, "diff_auroc": {"est": 0.0, "lo": 0.0, "hi": 0.0}, "diff_auprc": {"est": 0.0, "lo": 0.0, "hi": 0.0}, "n_boot_valid": 9999}, "lr": {"v1_auroc": {"est": 0.6632, "lo": 0.3956, "hi": 0.8936}, "v2_auroc": {"est": 0.6129, "lo": 0.3295, "hi": 0.8841}, "diff_auroc": {"est": -0.0503, "lo": -0.1753, "hi": 0.0441}, "diff_auprc": {"est": -0.0142, "lo": -0.1972, "hi": 0.1198}, "n_boot_valid": 9999}, "mira_r0b": {"v1_auroc": {"est": 0.6627, "lo": 0.3942, "hi": 0.8868}, "v2_auroc": {"est": 0.4523, "lo": 0.2112, "hi": 0.7087}, "diff_auroc": {"est": -0.2104, "lo": -0.4238, "hi": -0.0157}, "diff_auprc": {"est": -0.0533, "lo": -0.2623, "hi": 0.0453}, "n_boot_valid": 9999}}, "note": "GD 标签在两版中相同，差值只来自 GAM 训练标签的变化（事件 10→14）；mira_ft 只在 v2 中存在，无 v1.0 对照，不参与本表"}}, "internal_cv_vs_gd": {"urb65": {"internal_cv_auroc_mean": 0.7235, "internal_cv_auroc_sd": 0.0067, "gd_primary_auroc": 0.6311, "gd_prospective_auroc": 0.6415, "gap_internal_minus_gd_primary": 0.0924, "auroc_has_fitted_dof": false, "internal_much_higher_than_gd": false, "reading": "内部 CV 明显高于 GD，但该模型的 AUROC 无拟合自由度（固定评分 + 单调校准），落差来自数据集病例构成差异，不构成过拟合"}, "lr": {"internal_cv_auroc_mean": 0.7343, "internal_cv_auroc_sd": 0.0474, "gd_primary_auroc": 0.7442, "gd_prospective_auroc": 0.6129, "gap_internal_minus_gd_primary": -0.0099, "auroc_has_fitted_dof": true, "internal_much_higher_than_gd": false, "reading": "内部 CV 低于 GD，没有过拟合的证据；但内部 CV 本身偏低，需看是否欠拟合"}, "mira_r0b": {"internal_cv_auroc_mean": 0.6653, "internal_cv_auroc_sd": 0.0498, "gd_primary_auroc": 0.5782, "gd_prospective_auroc": 0.4523, "gap_internal_minus_gd_primary": 0.0871, "auroc_has_fitted_dof": true, "internal_much_higher_than_gd": true, "reading": "内部 CV 明显高于 GD：过拟合或迁移失败"}, "mira_ft": {"internal_cv_auroc_mean": 0.5646, "internal_cv_auroc_sd": 0.0824, "gd_primary_auroc": 0.6821, "gd_prospective_auroc": 0.5052, "gap_internal_minus_gd_primary": -0.1175, "auroc_has_fitted_dof": true, "internal_much_higher_than_gd": false, "reading": "内部 CV 低于 GD，没有过拟合的证据；但内部 CV 本身偏低，需看是否欠拟合"}, "_note": "内部 CV = GAM 旧数据 5 折分组交叉验证（重复 5 次），GD = 新数据外部验证。过拟合判读口径：差值 ≥0.05、大于内部 CV 标准差，且该模型的 AUROC 确有拟合自由度（urb65 为固定评分 + 单调校准，不满足最后一条）"}, "auroc_per_seed": {"GD_primary": {"urb65": {"seeds": [0.6311, 0.6311, 0.6311, 0.6311, 0.6311], "mean": 0.6311, "sd": 0.0, "min": 0.6311, "max": 0.6311, "range": 0.0}, "lr": {"seeds": [0.7449, 0.7449, 0.7449, 0.7547, 0.7204], "mean": 0.742, "sd": 0.0128, "min": 0.7204, "max": 0.7547, "range": 0.0343}, "mira_r0b": {"seeds": [0.5782, 0.5782, 0.5782, 0.5782, 0.5782], "mean": 0.5782, "sd": 0.0, "min": 0.5782, "max": 0.5782, "range": 0.0}, "mira_ft": {"seeds": [0.6859, 0.6881, 0.6859, 0.676, 0.6507], "mean": 0.6773, "sd": 0.0156, "min": 0.6507, "max": 0.6881, "range": 0.0374}}, "GD_prospective": {"urb65": {"seeds": [0.6415, 0.6415, 0.6415, 0.6415, 0.6415], "mean": 0.6415, "sd": 0.0, "min": 0.6415, "max": 0.6415, "range": 0.0}, "lr": {"seeds": [0.6168, 0.6168, 0.6168, 0.6234, 0.5967], "mean": 0.6141, "sd": 0.0101, "min": 0.5967, "max": 0.6234, "range": 0.0267}, "mira_r0b": {"seeds": [0.4523, 0.4523, 0.4523, 0.4523, 0.4523], "mean": 0.4523, "sd": 0.0, "min": 0.4523, "max": 0.4523, "range": 0.0}, "mira_ft": {"seeds": [0.4829, 0.5026, 0.5026, 0.5276, 0.577], "mean": 0.5185, "sd": 0.0363, "min": 0.4829, "max": 0.577, "range": 0.0941}}, "_note": "每个种子单独训练一次并单独评价；报告的主结果用的是各种子预测概率的平均。urb65 无随机性；mira_ft 的 MoE 路由在 GPU 上不保证逐位确定，同种子重复运行可能有微小差异（交接文档 §1.4）"}}, "audit": {"generated_at": "2026-09-29 10:27:23", "purpose": "执行计划 P1 对齐差距审计：量化 GAM 与 GD 的语义不对称，为 P2（CDM v2）确定改动范围", "cdm": "derived/aligned_20260927", "v1_config": "experiments/rw_gam2gd/configs/e1_stay_fluidx_all.json", "window": {"rule": "[索引前一天 0 点, t0)", "index_rule": "flu_index", "obs_days": 1, "pre_index_hours": 24, "note": "口径直接取自 v1.0 配置与 rw_gam2gd 的窗口函数，本脚本不自行定义"}, "cohort": {"train": {"n_total": 173, "n_included": 163, "n_events": 10}, "GD_primary": {"n_total": 297, "n_included": 292, "n_events": 38}, "GD_prospective": {"n_total": 297, "n_included": 263, "n_events": 9}}, "selected_variables": {"n": 15, "codes": ["VS001", "VS002", "VS003", "VS004", "VS005", "LAB001", "LAB002", "LAB003", "LAB004", "LAB005", "LAB006", "LAB009", "LAB010", "LAB011", "LAB012"], "names": ["体温", "心率/脉搏", "呼吸频率", "收缩压", "舒张压", "白细胞计数 WBC", "中性粒细胞绝对值 NEU", "淋巴细胞绝对值 LYM", "血红蛋白 Hb", "血小板 PLT", "C反应蛋白 CRP", "丙氨酸氨基转移酶 ALT", "天冬氨酸氨基转移酶 AST", "肌酐 CREA", "尿素 BUN/Urea"], "excluded_by_coverage": ["VS006", "LAB007", "LAB008", "LAB013", "LAB014", "LAB015"]}, "A_variables": {"VS001": {"name": "体温", "unit": "℃", "selected_in_v1": true, "GAM_train": {"coverage": 0.877, "n_obs": 250, "n_obs_distinct_times": 250, "obs_per_encounter_raw": {"n": 143, "p25": 1.0, "median": 2.0, "p75": 2.0}, "obs_per_encounter_distinct_times": {"n": 143, "p25": 1.0, "median": 2.0, "p75": 2.0}, "time_precision": {"note": 250}, "value": {"n": 250, "p25": 36.3, "median": 36.7, "p75": 37.7}, "heaping": {"n": 250, "integer_share": 0.144, "last_digit_0_share": 0.0, "last_digit_0_or_5_share": 0.0}}, "GD_primary": {"coverage": 0.997, "n_obs": 291, "n_obs_distinct_times": 291, "obs_per_encounter_raw": {"n": 291, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 291, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"minute": 248, "day": 43}, "value": {"n": 291, "p25": 36.5, "median": 36.8, "p75": 37.8}, "heaping": {"n": 291, "integer_share": 0.082, "last_digit_0_share": 0.0, "last_digit_0_or_5_share": 0.0}}, "gam_over_gd_median_ratio": 0.997, "smd_gam_minus_gd": -0.128}, "VS002": {"name": "心率/脉搏", "unit": "次/分", "selected_in_v1": true, "GAM_train": {"coverage": 0.834, "n_obs": 246, "n_obs_distinct_times": 246, "obs_per_encounter_raw": {"n": 136, "p25": 2.0, "median": 2.0, "p75": 2.0}, "obs_per_encounter_distinct_times": {"n": 136, "p25": 2.0, "median": 2.0, "p75": 2.0}, "time_precision": {"note": 246}, "value": {"n": 246, "p25": 75.0, "median": 80.0, "p75": 90.75}, "heaping": {"n": 246, "integer_share": 1.0, "last_digit_0_share": 0.118, "last_digit_0_or_5_share": 0.203}}, "GD_primary": {"coverage": 0.997, "n_obs": 293, "n_obs_distinct_times": 293, "obs_per_encounter_raw": {"n": 291, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 291, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"minute": 250, "day": 43}, "value": {"n": 293, "p25": 78.0, "median": 90.0, "p75": 101.0}, "heaping": {"n": 293, "integer_share": 1.0, "last_digit_0_share": 0.14, "last_digit_0_or_5_share": 0.239}}, "gam_over_gd_median_ratio": 0.889, "smd_gam_minus_gd": -0.472}, "VS003": {"name": "呼吸频率", "unit": "次/分", "selected_in_v1": true, "GAM_train": {"coverage": 0.828, "n_obs": 236, "n_obs_distinct_times": 236, "obs_per_encounter_raw": {"n": 135, "p25": 1.0, "median": 2.0, "p75": 2.0}, "obs_per_encounter_distinct_times": {"n": 135, "p25": 1.0, "median": 2.0, "p75": 2.0}, "time_precision": {"note": 236}, "value": {"n": 236, "p25": 18.0, "median": 18.0, "p75": 20.0}, "heaping": {"n": 236, "integer_share": 1.0, "last_digit_0_share": 0.242, "last_digit_0_or_5_share": 0.275}}, "GD_primary": {"coverage": 0.983, "n_obs": 287, "n_obs_distinct_times": 287, "obs_per_encounter_raw": {"n": 287, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 287, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"minute": 244, "day": 43}, "value": {"n": 287, "p25": 20.0, "median": 20.0, "p75": 22.0}, "heaping": {"n": 287, "integer_share": 1.0, "last_digit_0_share": 0.425, "last_digit_0_or_5_share": 0.467}}, "gam_over_gd_median_ratio": 0.9, "smd_gam_minus_gd": -0.644}, "VS004": {"name": "收缩压", "unit": "mmHg", "selected_in_v1": true, "GAM_train": {"coverage": 0.706, "n_obs": 206, "n_obs_distinct_times": 206, "obs_per_encounter_raw": {"n": 115, "p25": 1.0, "median": 2.0, "p75": 2.0}, "obs_per_encounter_distinct_times": {"n": 115, "p25": 1.0, "median": 2.0, "p75": 2.0}, "time_precision": {"note": 206}, "value": {"n": 206, "p25": 120.0, "median": 132.0, "p75": 143.0}, "heaping": {"n": 206, "integer_share": 1.0, "last_digit_0_share": 0.18, "last_digit_0_or_5_share": 0.291}}, "GD_primary": {"coverage": 0.993, "n_obs": 292, "n_obs_distinct_times": 292, "obs_per_encounter_raw": {"n": 290, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 290, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"minute": 250, "day": 42}, "value": {"n": 292, "p25": 116.75, "median": 130.5, "p75": 143.25}, "heaping": {"n": 292, "integer_share": 1.0, "last_digit_0_share": 0.086, "last_digit_0_or_5_share": 0.158}}, "gam_over_gd_median_ratio": 1.011, "smd_gam_minus_gd": 0.042}, "VS005": {"name": "舒张压", "unit": "mmHg", "selected_in_v1": true, "GAM_train": {"coverage": 0.706, "n_obs": 206, "n_obs_distinct_times": 206, "obs_per_encounter_raw": {"n": 115, "p25": 1.0, "median": 2.0, "p75": 2.0}, "obs_per_encounter_distinct_times": {"n": 115, "p25": 1.0, "median": 2.0, "p75": 2.0}, "time_precision": {"note": 206}, "value": {"n": 206, "p25": 68.0, "median": 77.0, "p75": 85.0}, "heaping": {"n": 206, "integer_share": 1.0, "last_digit_0_share": 0.165, "last_digit_0_or_5_share": 0.277}}, "GD_primary": {"coverage": 0.993, "n_obs": 292, "n_obs_distinct_times": 292, "obs_per_encounter_raw": {"n": 290, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 290, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"minute": 250, "day": 42}, "value": {"n": 292, "p25": 68.0, "median": 77.0, "p75": 85.0}, "heaping": {"n": 292, "integer_share": 1.0, "last_digit_0_share": 0.099, "last_digit_0_or_5_share": 0.247}}, "gam_over_gd_median_ratio": 1.0, "smd_gam_minus_gd": -0.038}, "VS006": {"name": "SpO2(指脉氧)", "unit": "%", "selected_in_v1": false, "GAM_train": {"coverage": 0.037, "n_obs": 7, "n_obs_distinct_times": 7, "obs_per_encounter_raw": {"n": 6, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 6, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"note": 7}, "value": {"n": 7, "p25": 92.0, "median": 94.0, "p75": 96.0}, "heaping": {"n": 7, "integer_share": 1.0, "last_digit_0_share": 0.143, "last_digit_0_or_5_share": 0.286}}, "GD_primary": {"coverage": 0.308, "n_obs": 90, "n_obs_distinct_times": 90, "obs_per_encounter_raw": {"n": 90, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 90, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"minute": 85, "day": 5}, "value": {"n": 90, "p25": 96.0, "median": 98.0, "p75": 99.0}, "heaping": {"n": 90, "integer_share": 1.0, "last_digit_0_share": 0.211, "last_digit_0_or_5_share": 0.278}}, "gam_over_gd_median_ratio": 0.959, "smd_gam_minus_gd": -0.762}, "LAB001": {"name": "白细胞计数 WBC", "unit": "10^9/L", "selected_in_v1": true, "GAM_train": {"coverage": 0.73, "n_obs": 149, "n_obs_distinct_times": 149, "obs_per_encounter_raw": {"n": 119, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 119, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"minute": 149}, "value": {"n": 149, "p25": 4.4, "median": 5.97, "p75": 7.96}, "heaping": {"n": 149, "integer_share": 0.047, "last_digit_0_share": 0.286, "last_digit_0_or_5_share": 0.429}}, "GD_primary": {"coverage": 0.873, "n_obs": 257, "n_obs_distinct_times": 257, "obs_per_encounter_raw": {"n": 255, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 255, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"day": 257}, "value": {"n": 257, "p25": 5.36, "median": 7.33, "p75": 10.45}, "heaping": {"n": 257, "integer_share": 0.012, "last_digit_0_share": 0.0, "last_digit_0_or_5_share": 0.0}}, "gam_over_gd_median_ratio": 0.814, "smd_gam_minus_gd": -0.353}, "LAB002": {"name": "中性粒细胞绝对值 NEU", "unit": "10^9/L", "selected_in_v1": true, "GAM_train": {"coverage": 0.73, "n_obs": 149, "n_obs_distinct_times": 149, "obs_per_encounter_raw": {"n": 119, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 119, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"minute": 149}, "value": {"n": 149, "p25": 3.13, "median": 4.68, "p75": 6.55}, "heaping": {"n": 149, "integer_share": 0.0, "last_digit_0_share": null, "last_digit_0_or_5_share": null}}, "GD_primary": {"coverage": 0.873, "n_obs": 257, "n_obs_distinct_times": 257, "obs_per_encounter_raw": {"n": 255, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 255, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"day": 257}, "value": {"n": 257, "p25": 3.77, "median": 5.53, "p75": 8.62}, "heaping": {"n": 257, "integer_share": 0.012, "last_digit_0_share": 0.0, "last_digit_0_or_5_share": 0.0}}, "gam_over_gd_median_ratio": 0.846, "smd_gam_minus_gd": -0.305}, "LAB003": {"name": "淋巴细胞绝对值 LYM", "unit": "10^9/L", "selected_in_v1": true, "GAM_train": {"coverage": 0.73, "n_obs": 149, "n_obs_distinct_times": 149, "obs_per_encounter_raw": {"n": 119, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 119, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"minute": 149}, "value": {"n": 149, "p25": 0.54, "median": 0.76, "p75": 1.11}, "heaping": {"n": 149, "integer_share": 0.007, "last_digit_0_share": 0.0, "last_digit_0_or_5_share": 0.0}}, "GD_primary": {"coverage": 0.873, "n_obs": 257, "n_obs_distinct_times": 257, "obs_per_encounter_raw": {"n": 255, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 255, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"day": 257}, "value": {"n": 257, "p25": 0.58, "median": 0.93, "p75": 1.45}, "heaping": {"n": 257, "integer_share": 0.012, "last_digit_0_share": 0.0, "last_digit_0_or_5_share": 0.0}}, "gam_over_gd_median_ratio": 0.817, "smd_gam_minus_gd": -0.321}, "LAB004": {"name": "血红蛋白 Hb", "unit": "g/L", "selected_in_v1": true, "GAM_train": {"coverage": 0.73, "n_obs": 149, "n_obs_distinct_times": 149, "obs_per_encounter_raw": {"n": 119, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 119, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"minute": 149}, "value": {"n": 149, "p25": 101.0, "median": 117.0, "p75": 133.0}, "heaping": {"n": 149, "integer_share": 1.0, "last_digit_0_share": 0.087, "last_digit_0_or_5_share": 0.215}}, "GD_primary": {"coverage": 0.87, "n_obs": 256, "n_obs_distinct_times": 256, "obs_per_encounter_raw": {"n": 254, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 254, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"day": 256}, "value": {"n": 256, "p25": 111.0, "median": 125.0, "p75": 138.0}, "heaping": {"n": 256, "integer_share": 1.0, "last_digit_0_share": 0.117, "last_digit_0_or_5_share": 0.203}}, "gam_over_gd_median_ratio": 0.936, "smd_gam_minus_gd": -0.306}, "LAB005": {"name": "血小板 PLT", "unit": "10^9/L", "selected_in_v1": true, "GAM_train": {"coverage": 0.73, "n_obs": 149, "n_obs_distinct_times": 149, "obs_per_encounter_raw": {"n": 119, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 119, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"minute": 149}, "value": {"n": 149, "p25": 129.0, "median": 174.0, "p75": 228.0}, "heaping": {"n": 149, "integer_share": 1.0, "last_digit_0_share": 0.101, "last_digit_0_or_5_share": 0.208}}, "GD_primary": {"coverage": 0.873, "n_obs": 257, "n_obs_distinct_times": 257, "obs_per_encounter_raw": {"n": 255, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 255, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"day": 257}, "value": {"n": 257, "p25": 149.0, "median": 198.0, "p75": 268.0}, "heaping": {"n": 257, "integer_share": 1.0, "last_digit_0_share": 0.097, "last_digit_0_or_5_share": 0.183}}, "gam_over_gd_median_ratio": 0.879, "smd_gam_minus_gd": -0.387}, "LAB006": {"name": "C反应蛋白 CRP", "unit": "mg/L", "selected_in_v1": true, "GAM_train": {"coverage": 0.699, "n_obs": 141, "n_obs_distinct_times": 141, "obs_per_encounter_raw": {"n": 114, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 114, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"minute": 141}, "value": {"n": 141, "p25": 5.25, "median": 14.96, "p75": 37.01}, "heaping": {"n": 141, "integer_share": 0.021, "last_digit_0_share": 0.333, "last_digit_0_or_5_share": 0.333}}, "GD_primary": {"coverage": 0.781, "n_obs": 230, "n_obs_distinct_times": 230, "obs_per_encounter_raw": {"n": 228, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 228, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"day": 230}, "value": {"n": 230, "p25": 12.82, "median": 34.725, "p75": 72.09}, "heaping": {"n": 230, "integer_share": 0.022, "last_digit_0_share": 0.0, "last_digit_0_or_5_share": 0.0}}, "gam_over_gd_median_ratio": 0.431, "smd_gam_minus_gd": -0.328}, "LAB007": {"name": "降钙素原 PCT", "unit": "ng/mL", "selected_in_v1": false, "GAM_train": {"coverage": 0.485, "n_obs": 94, "n_obs_distinct_times": 94, "obs_per_encounter_raw": {"n": 79, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 79, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"minute": 94}, "value": {"n": 94, "p25": 0.05, "median": 0.085, "p75": 0.217}, "heaping": {"n": 94, "integer_share": 0.021, "last_digit_0_share": 0.0, "last_digit_0_or_5_share": 0.5}}, "GD_primary": {"coverage": 0.709, "n_obs": 207, "n_obs_distinct_times": 207, "obs_per_encounter_raw": {"n": 207, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 207, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"day": 207}, "value": {"n": 207, "p25": 0.07, "median": 0.15, "p75": 0.51}, "heaping": {"n": 207, "integer_share": 0.01, "last_digit_0_share": 0.5, "last_digit_0_or_5_share": 0.5}}, "gam_over_gd_median_ratio": 0.567, "smd_gam_minus_gd": -0.15}, "LAB008": {"name": "白细胞介素-6 IL-6", "unit": "pg/mL", "selected_in_v1": false, "GAM_train": {"coverage": 0.061, "n_obs": 10, "n_obs_distinct_times": 10, "obs_per_encounter_raw": {"n": 10, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 10, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"minute": 10}, "value": {"n": 10, "p25": 4.873, "median": 18.13, "p75": 39.127}, "heaping": {"n": 10, "integer_share": 0.0, "last_digit_0_share": null, "last_digit_0_or_5_share": null}}, "GD_primary": {"coverage": 0.113, "n_obs": 33, "n_obs_distinct_times": 33, "obs_per_encounter_raw": {"n": 33, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 33, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"day": 33}, "value": {"n": 33, "p25": 19.5, "median": 80.2, "p75": 450.7}, "heaping": {"n": 33, "integer_share": 0.333, "last_digit_0_share": 0.364, "last_digit_0_or_5_share": 0.455}}, "gam_over_gd_median_ratio": 0.226, "smd_gam_minus_gd": -0.628}, "LAB009": {"name": "丙氨酸氨基转移酶 ALT", "unit": "U/L", "selected_in_v1": true, "GAM_train": {"coverage": 0.595, "n_obs": 124, "n_obs_distinct_times": 124, "obs_per_encounter_raw": {"n": 97, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 97, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"minute": 124}, "value": {"n": 124, "p25": 13.05, "median": 19.05, "p75": 37.125}, "heaping": {"n": 124, "integer_share": 0.089, "last_digit_0_share": 0.182, "last_digit_0_or_5_share": 0.273}}, "GD_primary": {"coverage": 0.825, "n_obs": 241, "n_obs_distinct_times": 241, "obs_per_encounter_raw": {"n": 241, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 241, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"day": 241}, "value": {"n": 241, "p25": 13.0, "median": 19.0, "p75": 30.0}, "heaping": {"n": 241, "integer_share": 1.0, "last_digit_0_share": 0.141, "last_digit_0_or_5_share": 0.241}}, "gam_over_gd_median_ratio": 1.003, "smd_gam_minus_gd": 0.266}, "LAB010": {"name": "天冬氨酸氨基转移酶 AST", "unit": "U/L", "selected_in_v1": true, "GAM_train": {"coverage": 0.595, "n_obs": 124, "n_obs_distinct_times": 124, "obs_per_encounter_raw": {"n": 97, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 97, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"minute": 124}, "value": {"n": 124, "p25": 20.35, "median": 26.7, "p75": 41.7}, "heaping": {"n": 124, "integer_share": 0.105, "last_digit_0_share": 0.0, "last_digit_0_or_5_share": 0.308}}, "GD_primary": {"coverage": 0.825, "n_obs": 241, "n_obs_distinct_times": 241, "obs_per_encounter_raw": {"n": 241, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 241, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"day": 241}, "value": {"n": 241, "p25": 21.0, "median": 27.0, "p75": 39.0}, "heaping": {"n": 241, "integer_share": 1.0, "last_digit_0_share": 0.095, "last_digit_0_or_5_share": 0.199}}, "gam_over_gd_median_ratio": 0.989, "smd_gam_minus_gd": 0.118}, "LAB011": {"name": "肌酐 CREA", "unit": "μmol/L", "selected_in_v1": true, "GAM_train": {"coverage": 0.595, "n_obs": 126, "n_obs_distinct_times": 126, "obs_per_encounter_raw": {"n": 97, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 97, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"minute": 126}, "value": {"n": 126, "p25": 56.0, "median": 72.0, "p75": 90.75}, "heaping": {"n": 126, "integer_share": 1.0, "last_digit_0_share": 0.111, "last_digit_0_or_5_share": 0.222}}, "GD_primary": {"coverage": 0.87, "n_obs": 256, "n_obs_distinct_times": 256, "obs_per_encounter_raw": {"n": 254, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 254, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"day": 256}, "value": {"n": 256, "p25": 69.0, "median": 86.0, "p75": 106.25}, "heaping": {"n": 256, "integer_share": 1.0, "last_digit_0_share": 0.109, "last_digit_0_or_5_share": 0.215}}, "gam_over_gd_median_ratio": 0.837, "smd_gam_minus_gd": -0.287}, "LAB012": {"name": "尿素 BUN/Urea", "unit": "mmol/L", "selected_in_v1": true, "GAM_train": {"coverage": 0.595, "n_obs": 126, "n_obs_distinct_times": 126, "obs_per_encounter_raw": {"n": 97, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 97, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"minute": 126}, "value": {"n": 126, "p25": 3.835, "median": 5.225, "p75": 8.893}, "heaping": {"n": 126, "integer_share": 0.0, "last_digit_0_share": null, "last_digit_0_or_5_share": null}}, "GD_primary": {"coverage": 0.87, "n_obs": 256, "n_obs_distinct_times": 256, "obs_per_encounter_raw": {"n": 254, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 254, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"day": 256}, "value": {"n": 256, "p25": 4.5, "median": 5.94, "p75": 8.105}, "heaping": {"n": 256, "integer_share": 0.039, "last_digit_0_share": 0.0, "last_digit_0_or_5_share": 0.6}}, "gam_over_gd_median_ratio": 0.88, "smd_gam_minus_gd": -0.085}, "LAB013": {"name": "D-二聚体", "unit": "mg/L", "selected_in_v1": false, "GAM_train": {"coverage": 0.368, "n_obs": 72, "n_obs_distinct_times": 72, "obs_per_encounter_raw": {"n": 60, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 60, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"minute": 72}, "value": {"n": 72, "p25": 0.453, "median": 1.32, "p75": 2.703}, "heaping": {"n": 72, "integer_share": 0.056, "last_digit_0_share": 0.0, "last_digit_0_or_5_share": 1.0}}, "GD_primary": {"coverage": 0.757, "n_obs": 221, "n_obs_distinct_times": 221, "obs_per_encounter_raw": {"n": 221, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 221, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"day": 221}, "value": {"n": 221, "p25": 0.36, "median": 0.63, "p75": 1.49}, "heaping": {"n": 221, "integer_share": 0.014, "last_digit_0_share": 0.667, "last_digit_0_or_5_share": 0.667}}, "gam_over_gd_median_ratio": 2.095, "smd_gam_minus_gd": 0.294}, "LAB014": {"name": "铁蛋白 Ferritin", "unit": "ng/mL", "selected_in_v1": false, "GAM_train": {"coverage": 0.117, "n_obs": 19, "n_obs_distinct_times": 19, "obs_per_encounter_raw": {"n": 19, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 19, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"minute": 19}, "value": {"n": 19, "p25": 107.35, "median": 178.94, "p75": 365.575}, "heaping": {"n": 19, "integer_share": 0.0, "last_digit_0_share": null, "last_digit_0_or_5_share": null}}, "GD_primary": {"coverage": 0.034, "n_obs": 10, "n_obs_distinct_times": 10, "obs_per_encounter_raw": {"n": 10, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 10, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"day": 10}, "value": {"n": 10, "p25": 243.475, "median": 561.1, "p75": 1290.885}, "heaping": {"n": 10, "integer_share": 0.0, "last_digit_0_share": null, "last_digit_0_or_5_share": null}}, "gam_over_gd_median_ratio": 0.319, "smd_gam_minus_gd": -0.751}, "LAB015": {"name": "乳酸脱氢酶 LDH", "unit": "U/L", "selected_in_v1": false, "GAM_train": {"coverage": 0.344, "n_obs": 63, "n_obs_distinct_times": 63, "obs_per_encounter_raw": {"n": 56, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 56, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"minute": 63}, "value": {"n": 63, "p25": 167.5, "median": 198.0, "p75": 254.0}, "heaping": {"n": 63, "integer_share": 1.0, "last_digit_0_share": 0.143, "last_digit_0_or_5_share": 0.206}}, "GD_primary": {"coverage": 0.774, "n_obs": 227, "n_obs_distinct_times": 227, "obs_per_encounter_raw": {"n": 226, "p25": 1.0, "median": 1.0, "p75": 1.0}, "obs_per_encounter_distinct_times": {"n": 226, "p25": 1.0, "median": 1.0, "p75": 1.0}, "time_precision": {"day": 227}, "value": {"n": 227, "p25": 186.0, "median": 233.0, "p75": 296.5}, "heaping": {"n": 227, "integer_share": 1.0, "last_digit_0_share": 0.119, "last_digit_0_or_5_share": 0.22}}, "gam_over_gd_median_ratio": 0.85, "smd_gam_minus_gd": -0.144}}, "B_anchor": {"anchor_rule": {"first_valid_vitals_time": 292, "admission_note_admit_time": 173, "first_valid_event_time": 1}, "anchor_precision": {"minute": 422, "day": 44, "": 4}, "train": {"events": {"n_encounters_with_record": 163, "n_before_anchor": 163, "share_before_anchor": 1.0, "lead_hours_if_before": {"n": 163, "p25": 14.2, "median": 86.767, "p75": 177.65}}, "imaging": {"n_encounters_with_record": 153, "n_before_anchor": 144, "share_before_anchor": 0.941, "lead_hours_if_before": {"n": 144, "p25": 13.444, "median": 85.757, "p75": 177.627}}, "treatments": {"n_encounters_with_record": 102, "n_before_anchor": 71, "share_before_anchor": 0.696, "lead_hours_if_before": {"n": 71, "p25": 8.0, "median": 11.933, "p75": 14.9}}, "notes": {"n_encounters_with_record": 163, "n_before_anchor": 163, "share_before_anchor": 1.0, "lead_hours_if_before": {"n": 163, "p25": 13.51, "median": 86.096, "p75": 179.028}}}, "GD_primary": {"events": {"n_encounters_with_record": 292, "n_before_anchor": 292, "share_before_anchor": 1.0, "lead_hours_if_before": {"n": 292, "p25": 24.0, "median": 24.0, "p75": 24.0}}, "imaging": {"n_encounters_with_record": 278, "n_before_anchor": 211, "share_before_anchor": 0.759, "lead_hours_if_before": {"n": 211, "p25": 24.0, "median": 24.0, "p75": 48.0}}, "treatments": {"n_encounters_with_record": 263, "n_before_anchor": 140, "share_before_anchor": 0.532, "lead_hours_if_before": {"n": 140, "p25": 24.0, "median": 24.0, "p75": 24.0}}, "notes": {"n_encounters_with_record": 277, "n_before_anchor": 210, "share_before_anchor": 0.758, "lead_hours_if_before": {"n": 210, "p25": 24.0, "median": 24.0, "p75": 48.0}}}, "GAM_first_event_minus_admission_hours": {"n": 173, "p25": 0.0, "median": 0.0, "p75": 0.0, "n_negative": 0, "note": "负值 = 首次观测早于入院锚点，说明锚点不是真实入院时刻"}, "_how_to_read": "1) t0 不是入院时刻：GAM 的 t0 是流感首次阳性（163 次中 99 次），GD 的 t0 是首个体征日期。入院在 t0 之前，所以『锚点前有记录』本身是设计使然，不是异常；有意义的是提前量的分布。2) GAM 的提前量中位数约 87 小时（≈3.6 天），说明流感确诊普遍晚于入院数天，入院到确诊之间的观测被排除在输入窗口之外。3) GD 的提前量在四分位上都恰好是 24.0 小时：GD 的数值没有真实测量时刻，被统一放在索引前一天 0 点（time_precision=day）。这是 P2 需要用 time_kind=date_only / anchor_imputed 显式标注的对象——目前它在表里看起来和真实时间戳一样。4) GAM 入院锚点与首次观测之差中位数 0 小时、无负值，说明 GAM 的入院时刻本身是可信的。"}, "C_outcomes": {"by_source_component": {"GAM_IP": {"DEATH": {"n_rows": 4, "n_encounters": 4, "precision": {"minute": 4}, "n_unknown_time": 0}, "ICU": {"n_rows": 13, "n_encounters": 13, "precision": {"note": 13}, "n_unknown_time": 0}, "IMV": {"n_rows": 16, "n_encounters": 16, "precision": {"note": 16}, "n_unknown_time": 0}, "NIV": {"n_rows": 12, "n_encounters": 12, "precision": {"note": 12}, "n_unknown_time": 0}, "RF": {"n_rows": 46, "n_encounters": 23, "precision": {"minute": 28, "note": 9, "unknown": 9}, "n_unknown_time": 9}}, "GD_CRF": {"DEATH": {"n_rows": 5, "n_encounters": 5, "precision": {"day": 5}, "n_unknown_time": 0}, "ECMO": {"n_rows": 1, "n_encounters": 1, "precision": {"day": 1}, "n_unknown_time": 0}, "ICU": {"n_rows": 35, "n_encounters": 35, "precision": {"day": 32, "unknown": 3}, "n_unknown_time": 3}, "IMV": {"n_rows": 17, "n_encounters": 17, "precision": {"day": 17}, "n_unknown_time": 0}, "NIV": {"n_rows": 59, "n_encounters": 59, "precision": {"day": 59}, "n_unknown_time": 0}, "RF": {"n_rows": 99, "n_encounters": 79, "precision": {"unknown": 75, "day": 17, "minute": 7}, "n_unknown_time": 75}}}, "e1_positive": {"train": {"n_included": 163, "n_events": 10, "first_component": {"ICU": 7, "IMV": 3}, "n_event_without_any_time": 0, "precision_of_first": {"note": 15, "minute": 3}}, "GD_primary": {"n_included": 292, "n_events": 38, "first_component": {"ICU": 26, "IMV": 9}, "n_event_without_any_time": 3, "precision_of_first": {"day": 52, "unknown": 3}}}, "note": "GAM 的 IMV/ICU/ECMO 来自病历文本规则（precision=note），GD 来自 CRF 人工填写；这一不对称是 v2 做人工裁定的直接原因"}, "D_institution_shift": {"design": "逻辑回归，5 折患者分组交叉验证，标签 = 机构（不是结局）", "auroc_mean": 0.7092, "auroc_sd": 0.026, "auroc_per_fold": [0.7508, 0.6907, 0.7182, 0.6973, 0.6891], "n_gam": 163, "n_gd": 292, "permutation_importance_top": [{"feature": "VS003", "name": "呼吸频率", "auroc_drop_mean": 0.0962, "sd": 0.0187}, {"feature": "LAB003", "name": "淋巴细胞绝对值 LYM", "auroc_drop_mean": 0.0433, "sd": 0.0063}, {"feature": "LAB011", "name": "肌酐 CREA", "auroc_drop_mean": 0.0384, "sd": 0.0088}, {"feature": "VS002", "name": "心率/脉搏", "auroc_drop_mean": 0.0233, "sd": 0.0108}, {"feature": "LAB009", "name": "丙氨酸氨基转移酶 ALT", "auroc_drop_mean": 0.022, "sd": 0.0071}, {"feature": "LAB006", "name": "C反应蛋白 CRP", "auroc_drop_mean": 0.0201, "sd": 0.0067}, {"feature": "LAB004", "name": "血红蛋白 Hb", "auroc_drop_mean": 0.0154, "sd": 0.0094}, {"feature": "LAB001", "name": "白细胞计数 WBC", "auroc_drop_mean": 0.0108, "sd": 0.0064}, {"feature": "VS001", "name": "体温", "auroc_drop_mean": 0.0102, "sd": 0.0065}, {"feature": "LAB010", "name": "天冬氨酸氨基转移酶 AST", "auroc_drop_mean": 0.0094, "sd": 0.0044}], "missing_rate_by_source": {"VS001": {"GAM": 0.123, "GD": 0.003}, "VS002": {"GAM": 0.166, "GD": 0.003}, "VS003": {"GAM": 0.172, "GD": 0.017}, "VS004": {"GAM": 0.294, "GD": 0.007}, "VS005": {"GAM": 0.294, "GD": 0.007}, "LAB001": {"GAM": 0.27, "GD": 0.127}, "LAB002": {"GAM": 0.27, "GD": 0.127}, "LAB003": {"GAM": 0.27, "GD": 0.127}, "LAB004": {"GAM": 0.27, "GD": 0.13}, "LAB005": {"GAM": 0.27, "GD": 0.127}, "LAB006": {"GAM": 0.301, "GD": 0.219}, "LAB009": {"GAM": 0.405, "GD": 0.175}, "LAB010": {"GAM": 0.405, "GD": 0.175}, "LAB011": {"GAM": 0.405, "GD": 0.13}, "LAB012": {"GAM": 0.405, "GD": 0.13}, "age": {"GAM": 0.0, "GD": 0.0}, "sex_male": {"GAM": 0.0, "GD": 0.0}}, "reading": "AUROC 越接近 1，说明两院住院在输入特征上越容易区分，跨院迁移的协变量偏移越大"}, "E_tri_state_and_duplicates": {"tri_state": {"comorbidities": {"COM001": {"name": "COPD", "present_in_cdm": true, "column": "COM001", "train": {"n": 163, "n_1": 21, "n_0": 142, "n_missing": 0, "positive_share": 0.129, "missing_share": 0.0}, "GD_primary": {"n": 292, "n_1": 51, "n_0": 241, "n_missing": 0, "positive_share": 0.175, "missing_share": 0.0}, "positive_share_gam_minus_gd": -0.046}, "COM002": {"name": "哮喘", "present_in_cdm": true, "column": "COM002", "train": {"n": 163, "n_1": 8, "n_0": 155, "n_missing": 0, "positive_share": 0.049, "missing_share": 0.0}, "GD_primary": {"n": 292, "n_1": 17, "n_0": 275, "n_missing": 0, "positive_share": 0.058, "missing_share": 0.0}, "positive_share_gam_minus_gd": -0.009}, "COM003": {"name": "支气管扩张", "present_in_cdm": true, "column": "COM003", "train": {"n": 163, "n_1": 10, "n_0": 153, "n_missing": 0, "positive_share": 0.061, "missing_share": 0.0}, "GD_primary": {"n": 292, "n_1": 45, "n_0": 247, "n_missing": 0, "positive_share": 0.154, "missing_share": 0.0}, "positive_share_gam_minus_gd": -0.093}, "COM004": {"name": "冠心病", "present_in_cdm": true, "column": "COM004", "train": {"n": 163, "n_1": 51, "n_0": 112, "n_missing": 0, "positive_share": 0.313, "missing_share": 0.0}, "GD_primary": {"n": 292, "n_1": 62, "n_0": 230, "n_missing": 0, "positive_share": 0.212, "missing_share": 0.0}, "positive_share_gam_minus_gd": 0.101}, "COM005": {"name": "心力衰竭", "present_in_cdm": true, "column": "COM005", "train": {"n": 163, "n_1": 24, "n_0": 139, "n_missing": 0, "positive_share": 0.147, "missing_share": 0.0}, "GD_primary": {"n": 292, "n_1": 27, "n_0": 265, "n_missing": 0, "positive_share": 0.092, "missing_share": 0.0}, "positive_share_gam_minus_gd": 0.055}, "COM006": {"name": "糖尿病", "present_in_cdm": true, "column": "COM006", "train": {"n": 163, "n_1": 54, "n_0": 109, "n_missing": 0, "positive_share": 0.331, "missing_share": 0.0}, "GD_primary": {"n": 292, "n_1": 82, "n_0": 210, "n_missing": 0, "positive_share": 0.281, "missing_share": 0.0}, "positive_share_gam_minus_gd": 0.05}, "COM007": {"name": "CKD", "present_in_cdm": true, "column": "COM007", "train": {"n": 163, "n_1": 21, "n_0": 142, "n_missing": 0, "positive_share": 0.129, "missing_share": 0.0}, "GD_primary": {"n": 292, "n_1": 34, "n_0": 258, "n_missing": 0, "positive_share": 0.116, "missing_share": 0.0}, "positive_share_gam_minus_gd": 0.013}, "COM008": {"name": "肿瘤", "present_in_cdm": true, "column": "COM008", "train": {"n": 163, "n_1": 37, "n_0": 126, "n_missing": 0, "positive_share": 0.227, "missing_share": 0.0}, "GD_primary": {"n": 292, "n_1": 49, "n_0": 243, "n_missing": 0, "positive_share": 0.168, "missing_share": 0.0}, "positive_share_gam_minus_gd": 0.059}, "COM009": {"name": "脑卒中", "present_in_cdm": true, "column": "COM009", "train": {"n": 163, "n_1": 45, "n_0": 118, "n_missing": 0, "positive_share": 0.276, "missing_share": 0.0}, "GD_primary": {"n": 292, "n_1": 54, "n_0": 237, "n_missing": 1, "positive_share": 0.185, "missing_share": 0.003}, "positive_share_gam_minus_gd": 0.091}, "COM010": {"name": "免疫抑制", "present_in_cdm": true, "column": "COM010", "train": {"n": 163, "n_1": 9, "n_0": 154, "n_missing": 0, "positive_share": 0.055, "missing_share": 0.0}, "GD_primary": {"n": 292, "n_1": 38, "n_0": 254, "n_missing": 0, "positive_share": 0.13, "missing_share": 0.0}, "positive_share_gam_minus_gd": -0.075}}, "symptoms": {"SYM001": {"name": "发热", "present_in_cdm": true, "column": "adm_SYM001", "train": {"n": 163, "n_1": 43, "n_0": 120, "n_missing": 0, "positive_share": 0.264, "missing_share": 0.0}, "GD_primary": {"n": 292, "n_1": 118, "n_0": 167, "n_missing": 7, "positive_share": 0.404, "missing_share": 0.024}, "positive_share_gam_minus_gd": -0.14}, "SYM002": {"name": "咳嗽", "present_in_cdm": true, "column": "adm_SYM002", "train": {"n": 163, "n_1": 80, "n_0": 83, "n_missing": 0, "positive_share": 0.491, "missing_share": 0.0}, "GD_primary": {"n": 292, "n_1": 235, "n_0": 50, "n_missing": 7, "positive_share": 0.805, "missing_share": 0.024}, "positive_share_gam_minus_gd": -0.314}, "SYM003": {"name": "咳痰", "present_in_cdm": true, "column": "adm_SYM003", "train": {"n": 163, "n_1": 75, "n_0": 88, "n_missing": 0, "positive_share": 0.46, "missing_share": 0.0}, "GD_primary": {"n": 292, "n_1": 216, "n_0": 69, "n_missing": 7, "positive_share": 0.74, "missing_share": 0.024}, "positive_share_gam_minus_gd": -0.28}, "SYM004": {"name": "咽痛", "present_in_cdm": true, "column": "adm_SYM004", "train": {"n": 163, "n_1": 7, "n_0": 156, "n_missing": 0, "positive_share": 0.043, "missing_share": 0.0}, "GD_primary": {"n": 292, "n_1": 34, "n_0": 251, "n_missing": 7, "positive_share": 0.116, "missing_share": 0.024}, "positive_share_gam_minus_gd": -0.073}, "SYM005": {"name": "肌痛", "present_in_cdm": true, "column": "adm_SYM005", "train": {"n": 163, "n_1": 3, "n_0": 160, "n_missing": 0, "positive_share": 0.018, "missing_share": 0.0}, "GD_primary": {"n": 292, "n_1": 26, "n_0": 259, "n_missing": 7, "positive_share": 0.089, "missing_share": 0.024}, "positive_share_gam_minus_gd": -0.071}, "SYM006": {"name": "乏力", "present_in_cdm": true, "column": "adm_SYM006", "train": {"n": 163, "n_1": 75, "n_0": 88, "n_missing": 0, "positive_share": 0.46, "missing_share": 0.0}, "GD_primary": {"n": 292, "n_1": 82, "n_0": 203, "n_missing": 7, "positive_share": 0.281, "missing_share": 0.024}, "positive_share_gam_minus_gd": 0.179}, "SYM007": {"name": "呼吸困难", "present_in_cdm": true, "column": "adm_SYM007", "train": {"n": 163, "n_1": 70, "n_0": 93, "n_missing": 0, "positive_share": 0.429, "missing_share": 0.0}, "GD_primary": {"n": 292, "n_1": 96, "n_0": 189, "n_missing": 7, "positive_share": 0.329, "missing_share": 0.024}, "positive_share_gam_minus_gd": 0.1}}, "_not_mentioned_evidence": "GAM 的症状字段缺失率为 0（每次住院都落成 0 或 1），因为它是从病历文本用规则抽取的：病历没写就记 0。GD 来自 CRF，有真正的空白（12 次住院）。后果可以直接量化：咳嗽在 GAM 的阳性率明显低于 GD——流感住院患者咳嗽率不应这么低，差额主要是『病历未提及』被当成了『没有该症状』。这就是 P2 要把症状/基础病改成 assertion(present/absent/not_mentioned) 三态的直接理由；也是执行计划 D4 把症状列为次要分析、并要求另抽 30–50 条人工核查的原因。", "com_method": {"CRF": 297, "GAM_history+admission_dx_rule": 173}, "note": "GAM 的基础病来自病史+入院诊断规则，GD 来自 CRF。规则法下『未提及』与『明确否认』都会落成同一个取值，这正是 P2 要新增 assertion(present/absent/not_mentioned) 的原因"}, "duplicate_rows": {"events": {"n_rows": 93711, "key": ["encounter_id", "var", "time", "value"], "n_duplicate_rows_by_key": 36824, "n_duplicate_rows_all_columns": 36824, "by_source": {"GAM_IP": 23489, "GAM_OP": 13335}}, "treatments": {"n_rows": 5624, "key": ["encounter_id", "var", "start", "status"], "n_duplicate_rows_by_key": 0, "n_duplicate_rows_all_columns": 0, "by_source": {}}, "imaging": {"n_rows": 1484, "key": ["encounter_id", "modality", "time", "study_token"], "n_duplicate_rows_by_key": 161, "n_duplicate_rows_all_columns": 0, "by_source": {"GAM_IP": 161}}, "complications": {"n_rows": 11041, "key": ["encounter_id", "var", "time", "status"], "n_duplicate_rows_by_key": 0, "n_duplicate_rows_all_columns": 0, "by_source": {}}, "_impact_on_v1_experiments": "无影响。features._collapse_same_time 按 (住院, 变量, 时刻) 取均值后才构造特征，sequences() 也走同一步并断言时间严格递增，因此整行重复不会进入表格特征或 MIRA 序列。重复只影响『原始行数』这类计数，A 节的观测密度同时报了去重前后两个值。P2 去重属于数据卫生与可读性改进，不是修 v1.0 的结果错误。"}}}, "model_cn": {"urb65": "URB-65 评分", "lr": "逻辑回归", "lgbm": "LightGBM", "tabpfn": "TabPFN v2", "mira_r0b": "MIRA 冻结嵌入", "mira_ft": "MIRA LoRA 微调", "llm_zs": "Qwen3-8B 零样本", "llm_zs_14b": "Qwen3-14B 零样本"}, "a1": {"A1-1_e2": {"label": "A1-1 E2（加 NIV）", "models": ["urb65", "lr", "lgbm", "tabpfn", "mira_r0b", "llm_zs"], "eval": {"GD_primary": {"n": 292, "n_events": 77, "models": {"urb65": {"label": "URB-65 评分", "auroc": {"est": 0.621, "lo": 0.549, "hi": 0.691}, "auprc": {"est": 0.354, "lo": 0.274, "hi": 0.446}, "brier": {"est": 0.21, "lo": 0.171, "hi": 0.25}, "cal_slope": {"est": 0.342, "lo": 0.14, "hi": 0.561}, "oe": 2.41, "sens90": {"est": 0.091, "lo": 0.031, "hi": 0.158}, "diff_vs_lr": {"est": -0.141, "lo": -0.221, "hi": -0.062}, "per_seed": [0.6214, 0.6214, 0.6214, 0.6214, 0.6214]}, "lr": {"label": "逻辑回归", "auroc": {"est": 0.762, "lo": 0.693, "hi": 0.826}, "auprc": {"est": 0.579, "lo": 0.469, "hi": 0.689}, "brier": {"est": 0.181, "lo": 0.147, "hi": 0.217}, "cal_slope": {"est": 1.0, "lo": 0.693, "hi": 1.43}, "oe": 1.98, "sens90": {"est": 0.442, "lo": 0.296, "hi": 0.586}, "diff_vs_lr": null, "per_seed": [0.7563, 0.7563, 0.7689, 0.7689, 0.7563]}, "lgbm": {"label": "LightGBM", "auroc": {"est": 0.715, "lo": 0.65, "hi": 0.777}, "auprc": {"est": 0.495, "lo": 0.391, "hi": 0.605}, "brier": {"est": 0.202, "lo": 0.165, "hi": 0.241}, "cal_slope": {"est": 0.911, "lo": 0.618, "hi": 1.241}, "oe": 2.59, "sens90": {"est": 0.312, "lo": 0.198, "hi": 0.459}, "diff_vs_lr": {"est": -0.047, "lo": -0.108, "hi": 0.014}, "per_seed": [0.7125, 0.723, 0.6904, 0.7179, 0.7088]}, "tabpfn": {"label": "TabPFN v2", "auroc": {"est": 0.74, "lo": 0.675, "hi": 0.799}, "auprc": {"est": 0.495, "lo": 0.39, "hi": 0.617}, "brier": {"est": 0.197, "lo": 0.161, "hi": 0.236}, "cal_slope": {"est": 0.836, "lo": 0.575, "hi": 1.138}, "oe": 2.43, "sens90": {"est": 0.325, "lo": 0.179, "hi": 0.444}, "diff_vs_lr": {"est": -0.023, "lo": -0.079, "hi": 0.035}, "per_seed": [0.7443, 0.739, 0.7413, 0.7337, 0.7369]}, "mira_r0b": {"label": "MIRA 冻结嵌入", "auroc": {"est": 0.672, "lo": 0.592, "hi": 0.749}, "auprc": {"est": 0.485, "lo": 0.378, "hi": 0.61}, "brier": {"est": 0.197, "lo": 0.159, "hi": 0.236}, "cal_slope": {"est": 0.212, "lo": 0.042, "hi": 0.457}, "oe": 2.3, "sens90": {"est": 0.364, "lo": 0.253, "hi": 0.5}, "diff_vs_lr": {"est": -0.09, "lo": -0.175, "hi": -0.007}, "per_seed": [0.6725, 0.6725, 0.6725, 0.6725, 0.6725]}, "llm_zs": {"label": "Qwen3-8B 零样本", "auroc": {"est": 0.719, "lo": 0.652, "hi": 0.782}, "auprc": {"est": 0.486, "lo": 0.381, "hi": 0.603}, "brier": {"est": 0.19, "lo": 0.155, "hi": 0.225}, "cal_slope": {"est": 0.601, "lo": 0.398, "hi": 0.827}, "oe": 1.75, "sens90": {"est": 0.286, "lo": 0.176, "hi": 0.431}, "diff_vs_lr": {"est": -0.044, "lo": -0.107, "hi": 0.023}, "per_seed": [0.7186, 0.7186, 0.7186, 0.7186, 0.7186]}}}, "GD_prospective": {"n": 241, "n_events": 26, "models": {"urb65": {"label": "URB-65 评分", "auroc": {"est": 0.587, "lo": 0.479, "hi": 0.691}, "auprc": {"est": 0.137, "lo": 0.083, "hi": 0.21}, "brier": {"est": 0.105, "lo": 0.075, "hi": 0.139}, "cal_slope": {"est": 0.223, "lo": -0.086, "hi": 0.54}, "oe": 1.16, "sens90": {"est": 0.0, "lo": 0.0, "hi": 0.0}, "diff_vs_lr": {"est": -0.168, "lo": -0.28, "hi": -0.058}, "per_seed": [0.5875, 0.5875, 0.5875, 0.5875, 0.5875]}, "lr": {"label": "逻辑回归", "auroc": {"est": 0.755, "lo": 0.647, "hi": 0.847}, "auprc": {"est": 0.306, "lo": 0.176, "hi": 0.471}, "brier": {"est": 0.09, "lo": 0.064, "hi": 0.12}, "cal_slope": {"est": 0.84, "lo": 0.419, "hi": 1.342}, "oe": 0.99, "sens90": {"est": 0.346, "lo": 0.115, "hi": 0.545}, "diff_vs_lr": null, "per_seed": [0.7492, 0.7492, 0.7551, 0.7551, 0.7492]}, "lgbm": {"label": "LightGBM", "auroc": {"est": 0.713, "lo": 0.607, "hi": 0.812}, "auprc": {"est": 0.293, "lo": 0.162, "hi": 0.476}, "brier": {"est": 0.089, "lo": 0.062, "hi": 0.12}, "cal_slope": {"est": 0.922, "lo": 0.462, "hi": 1.435}, "oe": 1.18, "sens90": {"est": 0.346, "lo": 0.15, "hi": 0.545}, "diff_vs_lr": {"est": -0.043, "lo": -0.132, "hi": 0.044}, "per_seed": [0.7137, 0.7379, 0.6921, 0.6986, 0.6935]}, "tabpfn": {"label": "TabPFN v2", "auroc": {"est": 0.691, "lo": 0.582, "hi": 0.79}, "auprc": {"est": 0.211, "lo": 0.128, "hi": 0.366}, "brier": {"est": 0.095, "lo": 0.066, "hi": 0.127}, "cal_slope": {"est": 0.636, "lo": 0.264, "hi": 1.045}, "oe": 1.19, "sens90": {"est": 0.231, "lo": 0.033, "hi": 0.435}, "diff_vs_lr": {"est": -0.064, "lo": -0.134, "hi": 0.004}, "per_seed": [0.697, 0.6953, 0.6995, 0.6832, 0.6887]}, "mira_r0b": {"label": "MIRA 冻结嵌入", "auroc": {"est": 0.627, "lo": 0.5, "hi": 0.748}, "auprc": {"est": 0.197, "lo": 0.112, "hi": 0.364}, "brier": {"est": 0.102, "lo": 0.072, "hi": 0.136}, "cal_slope": {"est": 0.121, "lo": -0.126, "hi": 0.519}, "oe": 1.2, "sens90": {"est": 0.231, "lo": 0.083, "hi": 0.433}, "diff_vs_lr": {"est": -0.129, "lo": -0.27, "hi": 0.005}, "per_seed": [0.6267, 0.6267, 0.6267, 0.6267, 0.6267]}, "llm_zs": {"label": "Qwen3-8B 零样本", "auroc": {"est": 0.617, "lo": 0.508, "hi": 0.717}, "auprc": {"est": 0.159, "lo": 0.098, "hi": 0.288}, "brier": {"est": 0.114, "lo": 0.084, "hi": 0.147}, "cal_slope": {"est": 0.224, "lo": -0.105, "hi": 0.514}, "oe": 0.89, "sens90": {"est": 0.077, "lo": 0.0, "hi": 0.212}, "diff_vs_lr": {"est": -0.138, "lo": -0.213, "hi": -0.058}, "per_seed": [0.6174, 0.6174, 0.6174, 0.6174, 0.6174]}}}}, "cohort": {"primary": {"gam_n": 161, "gam_ev": 14, "gd_n": 292, "gd_ev": 77}, "prospective": {"gam_n": 147, "gam_ev": 3, "gd_n": 241, "gd_ev": 26}}}, "A1-2_e3": {"label": "A1-2 E3（再加 RF）", "models": ["urb65", "lr", "lgbm", "tabpfn", "mira_r0b", "llm_zs"], "eval": {"GD_primary": {"n": 292, "n_events": 99, "models": {"urb65": {"label": "URB-65 评分", "auroc": {"est": 0.6, "lo": 0.535, "hi": 0.663}, "auprc": {"est": 0.411, "lo": 0.336, "hi": 0.496}, "brier": {"est": 0.245, "lo": 0.209, "hi": 0.281}, "cal_slope": {"est": 0.334, "lo": 0.116, "hi": 0.567}, "oe": 1.82, "sens90": {"est": 0.071, "lo": 0.023, "hi": 0.124}, "diff_vs_lr": {"est": -0.133, "lo": -0.203, "hi": -0.064}, "per_seed": [0.6003, 0.6003, 0.6003, 0.6003, 0.6003]}, "lr": {"label": "逻辑回归", "auroc": {"est": 0.734, "lo": 0.672, "hi": 0.791}, "auprc": {"est": 0.583, "lo": 0.486, "hi": 0.684}, "brier": {"est": 0.211, "lo": 0.18, "hi": 0.244}, "cal_slope": {"est": 0.883, "lo": 0.549, "hi": 1.314}, "oe": 1.56, "sens90": {"est": 0.313, "lo": 0.194, "hi": 0.442}, "diff_vs_lr": null, "per_seed": [0.7336, 0.7336, 0.7336, 0.7336, 0.7336]}, "lgbm": {"label": "LightGBM", "auroc": {"est": 0.69, "lo": 0.627, "hi": 0.751}, "auprc": {"est": 0.524, "lo": 0.428, "hi": 0.624}, "brier": {"est": 0.224, "lo": 0.192, "hi": 0.257}, "cal_slope": {"est": 0.609, "lo": 0.401, "hi": 0.847}, "oe": 1.62, "sens90": {"est": 0.232, "lo": 0.131, "hi": 0.363}, "diff_vs_lr": {"est": -0.043, "lo": -0.085, "hi": -0.001}, "per_seed": [0.6927, 0.6816, 0.6879, 0.6896, 0.6969]}, "tabpfn": {"label": "TabPFN v2", "auroc": {"est": 0.728, "lo": 0.667, "hi": 0.786}, "auprc": {"est": 0.55, "lo": 0.457, "hi": 0.66}, "brier": {"est": 0.206, "lo": 0.177, "hi": 0.236}, "cal_slope": {"est": 0.751, "lo": 0.535, "hi": 1.005}, "oe": 1.4, "sens90": {"est": 0.283, "lo": 0.19, "hi": 0.422}, "diff_vs_lr": {"est": -0.005, "lo": -0.037, "hi": 0.027}, "per_seed": [0.729, 0.7262, 0.7299, 0.7299, 0.7265]}, "mira_r0b": {"label": "MIRA 冻结嵌入", "auroc": {"est": 0.704, "lo": 0.639, "hi": 0.767}, "auprc": {"est": 0.567, "lo": 0.472, "hi": 0.666}, "brier": {"est": 0.218, "lo": 0.184, "hi": 0.254}, "cal_slope": {"est": 0.523, "lo": 0.345, "hi": 0.751}, "oe": 1.63, "sens90": {"est": 0.273, "lo": 0.184, "hi": 0.406}, "diff_vs_lr": {"est": -0.03, "lo": -0.081, "hi": 0.02}, "per_seed": [0.7037, 0.7037, 0.7037, 0.7037, 0.7037]}, "llm_zs": {"label": "Qwen3-8B 零样本", "auroc": {"est": 0.737, "lo": 0.676, "hi": 0.794}, "auprc": {"est": 0.58, "lo": 0.481, "hi": 0.681}, "brier": {"est": 0.212, "lo": 0.18, "hi": 0.245}, "cal_slope": {"est": 0.706, "lo": 0.49, "hi": 0.955}, "oe": 1.49, "sens90": {"est": 0.273, "lo": 0.186, "hi": 0.424}, "diff_vs_lr": {"est": 0.003, "lo": -0.04, "hi": 0.047}, "per_seed": [0.7368, 0.7368, 0.7368, 0.7368, 0.7368]}}}, "GD_prospective": {"n": 205, "n_events": 12, "models": {"urb65": {"label": "URB-65 评分", "auroc": {"est": 0.499, "lo": 0.379, "hi": 0.623}, "auprc": {"est": 0.06, "lo": 0.03, "hi": 0.101}, "brier": {"est": 0.09, "lo": 0.065, "hi": 0.118}, "cal_slope": {"est": -0.02, "lo": -0.466, "hi": 0.396}, "oe": 0.36, "sens90": {"est": 0.0, "lo": 0.0, "hi": 0.0}, "diff_vs_lr": {"est": -0.067, "lo": -0.234, "hi": 0.079}, "per_seed": [0.4989, 0.4989, 0.4989, 0.4989, 0.4989]}, "lr": {"label": "逻辑回归", "auroc": {"est": 0.566, "lo": 0.455, "hi": 0.675}, "auprc": {"est": 0.067, "lo": 0.036, "hi": 0.12}, "brier": {"est": 0.085, "lo": 0.061, "hi": 0.111}, "cal_slope": {"est": -0.012, "lo": -0.5, "hi": 0.394}, "oe": 0.34, "sens90": {"est": 0.0, "lo": 0.0, "hi": 0.0}, "diff_vs_lr": null, "per_seed": [0.5661, 0.5661, 0.5661, 0.5661, 0.5661]}, "lgbm": {"label": "LightGBM", "auroc": {"est": 0.54, "lo": 0.408, "hi": 0.673}, "auprc": {"est": 0.064, "lo": 0.034, "hi": 0.122}, "brier": {"est": 0.093, "lo": 0.069, "hi": 0.12}, "cal_slope": {"est": 0.052, "lo": -0.352, "hi": 0.426}, "oe": 0.34, "sens90": {"est": 0.0, "lo": 0.0, "hi": 0.0}, "diff_vs_lr": {"est": -0.026, "lo": -0.137, "hi": 0.076}, "per_seed": [0.5548, 0.5272, 0.5272, 0.5525, 0.5462]}, "tabpfn": {"label": "TabPFN v2", "auroc": {"est": 0.554, "lo": 0.433, "hi": 0.673}, "auprc": {"est": 0.065, "lo": 0.035, "hi": 0.121}, "brier": {"est": 0.101, "lo": 0.077, "hi": 0.127}, "cal_slope": {"est": 0.102, "lo": -0.243, "hi": 0.446}, "oe": 0.31, "sens90": {"est": 0.0, "lo": 0.0, "hi": 0.111}, "diff_vs_lr": {"est": -0.012, "lo": -0.128, "hi": 0.092}, "per_seed": [0.5574, 0.5471, 0.5643, 0.5592, 0.5488]}, "mira_r0b": {"label": "MIRA 冻结嵌入", "auroc": {"est": 0.445, "lo": 0.25, "hi": 0.645}, "auprc": {"est": 0.06, "lo": 0.03, "hi": 0.122}, "brier": {"est": 0.094, "lo": 0.066, "hi": 0.123}, "cal_slope": {"est": -0.223, "lo": -0.77, "hi": 0.266}, "oe": 0.38, "sens90": {"est": 0.0, "lo": 0.0, "hi": 0.167}, "diff_vs_lr": {"est": -0.121, "lo": -0.27, "hi": 0.031}, "per_seed": [0.4452, 0.4452, 0.4452, 0.4452, 0.4452]}, "llm_zs": {"label": "Qwen3-8B 零样本", "auroc": {"est": 0.628, "lo": 0.501, "hi": 0.741}, "auprc": {"est": 0.079, "lo": 0.042, "hi": 0.142}, "brier": {"est": 0.097, "lo": 0.072, "hi": 0.124}, "cal_slope": {"est": 0.118, "lo": -0.232, "hi": 0.429}, "oe": 0.33, "sens90": {"est": 0.0, "lo": 0.0, "hi": 0.0}, "diff_vs_lr": {"est": 0.062, "lo": -0.092, "hi": 0.206}, "per_seed": [0.6278, 0.6278, 0.6278, 0.6278, 0.6278]}}}}, "cohort": {"primary": {"gam_n": 159, "gam_ev": 23, "gd_n": 292, "gd_ev": 99}, "prospective": {"gam_n": 138, "gam_ev": 5, "gd_n": 205, "gd_ev": 12}}}, "A1-3_obs2": {"label": "A1-3 观察 2 天", "models": ["urb65", "lr", "lgbm", "tabpfn", "mira_r0b", "llm_zs"], "eval": {"GD_primary": {"n": 292, "n_events": 38, "models": {"urb65": {"label": "URB-65 评分", "auroc": {"est": 0.645, "lo": 0.553, "hi": 0.734}, "auprc": {"est": 0.203, "lo": 0.13, "hi": 0.308}, "brier": {"est": 0.112, "lo": 0.082, "hi": 0.144}, "cal_slope": {"est": 0.421, "lo": 0.155, "hi": 0.71}, "oe": 1.66, "sens90": {"est": 0.132, "lo": 0.029, "hi": 0.25}, "diff_vs_lr": {"est": -0.127, "lo": -0.227, "hi": -0.03}, "per_seed": [0.6455, 0.6455, 0.6455, 0.6455, 0.6455]}, "lr": {"label": "逻辑回归", "auroc": {"est": 0.772, "lo": 0.68, "hi": 0.854}, "auprc": {"est": 0.392, "lo": 0.26, "hi": 0.563}, "brier": {"est": 0.103, "lo": 0.074, "hi": 0.133}, "cal_slope": {"est": 0.539, "lo": 0.282, "hi": 0.959}, "oe": 1.24, "sens90": {"est": 0.421, "lo": 0.242, "hi": 0.605}, "diff_vs_lr": null, "per_seed": [0.7685, 0.7685, 0.7685, 0.7763, 0.7763]}, "lgbm": {"label": "LightGBM", "auroc": {"est": 0.734, "lo": 0.645, "hi": 0.816}, "auprc": {"est": 0.341, "lo": 0.217, "hi": 0.495}, "brier": {"est": 0.109, "lo": 0.079, "hi": 0.14}, "cal_slope": {"est": 1.241, "lo": 0.748, "hi": 1.823}, "oe": 1.82, "sens90": {"est": 0.368, "lo": 0.195, "hi": 0.528}, "diff_vs_lr": {"est": -0.039, "lo": -0.098, "hi": 0.018}, "per_seed": [0.738, 0.7276, 0.7375, 0.7035, 0.7406]}, "tabpfn": {"label": "TabPFN v2", "auroc": {"est": 0.786, "lo": 0.704, "hi": 0.86}, "auprc": {"est": 0.381, "lo": 0.249, "hi": 0.545}, "brier": {"est": 0.099, "lo": 0.073, "hi": 0.126}, "cal_slope": {"est": 0.878, "lo": 0.604, "hi": 1.218}, "oe": 1.2, "sens90": {"est": 0.395, "lo": 0.237, "hi": 0.591}, "diff_vs_lr": {"est": 0.013, "lo": -0.024, "hi": 0.054}, "per_seed": [0.7829, 0.7832, 0.7929, 0.7909, 0.7783]}, "mira_r0b": {"label": "MIRA 冻结嵌入", "auroc": {"est": 0.644, "lo": 0.536, "hi": 0.746}, "auprc": {"est": 0.261, "lo": 0.16, "hi": 0.399}, "brier": {"est": 0.126, "lo": 0.089, "hi": 0.165}, "cal_slope": {"est": 0.198, "lo": 0.001, "hi": 0.412}, "oe": 27.9, "sens90": {"est": 0.211, "lo": 0.071, "hi": 0.413}, "diff_vs_lr": {"est": -0.128, "lo": -0.258, "hi": 0.001}, "per_seed": [0.6442, 0.6442, 0.6442, 0.6442, 0.6442]}, "llm_zs": {"label": "Qwen3-8B 零样本", "auroc": {"est": 0.771, "lo": 0.692, "hi": 0.843}, "auprc": {"est": 0.365, "lo": 0.239, "hi": 0.531}, "brier": {"est": 0.104, "lo": 0.078, "hi": 0.131}, "cal_slope": {"est": 0.632, "lo": 0.419, "hi": 0.879}, "oe": 1.1, "sens90": {"est": 0.368, "lo": 0.161, "hi": 0.572}, "diff_vs_lr": {"est": -0.002, "lo": -0.064, "hi": 0.065}, "per_seed": [0.7705, 0.7705, 0.7705, 0.7705, 0.7705]}}}, "GD_prospective": {"n": 259, "n_events": 5, "models": {"urb65": {"label": "URB-65 评分", "auroc": {"est": 0.622, "lo": 0.413, "hi": 0.891}, "auprc": {"est": 0.041, "lo": 0.009, "hi": 0.201}, "brier": {"est": 0.028, "lo": 0.016, "hi": 0.044}, "cal_slope": {"est": 0.422, "lo": -0.228, "hi": 1.395}, "oe": 0.27, "sens90": {"est": 0.2, "lo": 0.0, "hi": 0.667}, "diff_vs_lr": {"est": 0.057, "lo": -0.12, "hi": 0.286}, "per_seed": [0.622, 0.622, 0.622, 0.622, 0.622]}, "lr": {"label": "逻辑回归", "auroc": {"est": 0.565, "lo": 0.203, "hi": 0.914}, "auprc": {"est": 0.054, "lo": 0.008, "hi": 0.269}, "brier": {"est": 0.038, "lo": 0.021, "hi": 0.058}, "cal_slope": {"est": 0.174, "lo": -2.541, "hi": 0.819}, "oe": 0.23, "sens90": {"est": 0.2, "lo": 0.0, "hi": 0.667}, "diff_vs_lr": null, "per_seed": [0.552, 0.552, 0.552, 0.5764, 0.5764]}, "lgbm": {"label": "LightGBM", "auroc": {"est": 0.484, "lo": 0.186, "hi": 0.785}, "auprc": {"est": 0.027, "lo": 0.008, "hi": 0.104}, "brier": {"est": 0.023, "lo": 0.01, "hi": 0.04}, "cal_slope": {"est": -0.133, "lo": -4.388, "hi": 1.459}, "oe": 0.3, "sens90": {"est": 0.2, "lo": 0.0, "hi": 0.667}, "diff_vs_lr": {"est": -0.08, "lo": -0.351, "hi": 0.182}, "per_seed": [0.4929, 0.489, 0.4787, 0.4673, 0.4748]}, "tabpfn": {"label": "TabPFN v2", "auroc": {"est": 0.618, "lo": 0.296, "hi": 0.931}, "auprc": {"est": 0.05, "lo": 0.01, "hi": 0.202}, "brier": {"est": 0.034, "lo": 0.021, "hi": 0.05}, "cal_slope": {"est": 0.42, "lo": -0.937, "hi": 1.362}, "oe": 0.21, "sens90": {"est": 0.4, "lo": 0.0, "hi": 1.0}, "diff_vs_lr": {"est": 0.054, "lo": -0.066, "hi": 0.173}, "per_seed": [0.6268, 0.5937, 0.6252, 0.6315, 0.6055]}, "mira_r0b": {"label": "MIRA 冻结嵌入", "auroc": {"est": 0.608, "lo": 0.244, "hi": 0.873}, "auprc": {"est": 0.039, "lo": 0.012, "hi": 0.109}, "brier": {"est": 0.019, "lo": 0.004, "hi": 0.039}, "cal_slope": {"est": 0.015, "lo": -0.61, "hi": 0.535}, "oe": 17.46, "sens90": {"est": 0.0, "lo": 0.0, "hi": 0.375}, "diff_vs_lr": {"est": 0.043, "lo": -0.582, "hi": 0.589}, "per_seed": [0.6079, 0.6079, 0.6079, 0.6079, 0.6079]}, "llm_zs": {"label": "Qwen3-8B 零样本", "auroc": {"est": 0.673, "lo": 0.481, "hi": 0.881}, "auprc": {"est": 0.093, "lo": 0.011, "hi": 0.5}, "brier": {"est": 0.044, "lo": 0.029, "hi": 0.061}, "cal_slope": {"est": 0.303, "lo": -0.36, "hi": 1.012}, "oe": 0.2, "sens90": {"est": 0.2, "lo": 0.0, "hi": 0.667}, "diff_vs_lr": {"est": 0.109, "lo": -0.048, "hi": 0.3}, "per_seed": [0.6732, 0.6732, 0.6732, 0.6732, 0.6732]}}}}, "cohort": {"primary": {"gam_n": 163, "gam_ev": 10, "gd_n": 292, "gd_ev": 38}, "prospective": {"gam_n": 140, "gam_ev": 1, "gd_n": 259, "gd_ev": 5}}}, "A1-4_flu60": {"label": "A1-4 GAM 年龄≥60", "models": ["urb65", "lr", "lgbm", "tabpfn", "mira_r0b", "llm_zs"], "eval": {"GD_primary": {"n": 292, "n_events": 38, "models": {"urb65": {"label": "URB-65 评分", "auroc": {"est": 0.631, "lo": 0.535, "hi": 0.723}, "auprc": {"est": 0.192, "lo": 0.125, "hi": 0.291}, "brier": {"est": 0.113, "lo": 0.083, "hi": 0.143}, "cal_slope": {"est": 0.432, "lo": 0.118, "hi": 0.77}, "oe": 1.4, "sens90": {"est": 0.105, "lo": 0.023, "hi": 0.214}, "diff_vs_lr": {"est": -0.132, "lo": -0.235, "hi": -0.034}, "per_seed": [0.6311, 0.6311, 0.6311, 0.6311, 0.6311]}, "lr": {"label": "逻辑回归", "auroc": {"est": 0.763, "lo": 0.664, "hi": 0.851}, "auprc": {"est": 0.385, "lo": 0.254, "hi": 0.554}, "brier": {"est": 0.102, "lo": 0.076, "hi": 0.13}, "cal_slope": {"est": 0.738, "lo": 0.449, "hi": 1.289}, "oe": 0.97, "sens90": {"est": 0.5, "lo": 0.283, "hi": 0.674}, "diff_vs_lr": null, "per_seed": [0.7656, 0.7654, 0.7596, 0.7654, 0.7654]}, "lgbm": {"label": "LightGBM", "auroc": {"est": 0.722, "lo": 0.632, "hi": 0.804}, "auprc": {"est": 0.309, "lo": 0.196, "hi": 0.456}, "brier": {"est": 0.105, "lo": 0.079, "hi": 0.132}, "cal_slope": {"est": 1.029, "lo": 0.582, "hi": 1.544}, "oe": 1.06, "sens90": {"est": 0.395, "lo": 0.171, "hi": 0.548}, "diff_vs_lr": {"est": -0.041, "lo": -0.105, "hi": 0.027}, "per_seed": [0.7222, 0.7248, 0.7299, 0.6941, 0.7231]}, "tabpfn": {"label": "TabPFN v2", "auroc": {"est": 0.788, "lo": 0.701, "hi": 0.866}, "auprc": {"est": 0.425, "lo": 0.279, "hi": 0.59}, "brier": {"est": 0.096, "lo": 0.073, "hi": 0.12}, "cal_slope": {"est": 1.406, "lo": 0.953, "hi": 2.003}, "oe": 0.96, "sens90": {"est": 0.474, "lo": 0.281, "hi": 0.639}, "diff_vs_lr": {"est": 0.024, "lo": -0.024, "hi": 0.077}, "per_seed": [0.788, 0.7875, 0.7801, 0.7909, 0.7876]}, "mira_r0b": {"label": "MIRA 冻结嵌入", "auroc": {"est": 0.623, "lo": 0.507, "hi": 0.732}, "auprc": {"est": 0.296, "lo": 0.175, "hi": 0.454}, "brier": {"est": 0.126, "lo": 0.092, "hi": 0.161}, "cal_slope": {"est": 0.197, "lo": 0.027, "hi": 0.345}, "oe": 1.19, "sens90": {"est": 0.316, "lo": 0.162, "hi": 0.5}, "diff_vs_lr": {"est": -0.14, "lo": -0.266, "hi": -0.023}, "per_seed": [0.6235, 0.6235, 0.6235, 0.6235, 0.6235]}, "llm_zs": {"label": "Qwen3-8B 零样本", "auroc": {"est": 0.745, "lo": 0.654, "hi": 0.829}, "auprc": {"est": 0.35, "lo": 0.229, "hi": 0.515}, "brier": {"est": 0.103, "lo": 0.079, "hi": 0.129}, "cal_slope": {"est": 0.732, "lo": 0.46, "hi": 1.046}, "oe": 0.93, "sens90": {"est": 0.368, "lo": 0.171, "hi": 0.587}, "diff_vs_lr": {"est": -0.018, "lo": -0.091, "hi": 0.065}, "per_seed": [0.7452, 0.7452, 0.7452, 0.7452, 0.7452]}}}, "GD_prospective": {"n": 263, "n_events": 9, "models": {"urb65": {"label": "URB-65 评分", "auroc": {"est": 0.642, "lo": 0.433, "hi": 0.831}, "auprc": {"est": 0.058, "lo": 0.021, "hi": 0.163}, "brier": {"est": 0.042, "lo": 0.025, "hi": 0.06}, "cal_slope": {"est": 0.47, "lo": -0.239, "hi": 1.189}, "oe": 0.39, "sens90": {"est": 0.111, "lo": 0.0, "hi": 0.375}, "diff_vs_lr": {"est": -0.002, "lo": -0.117, "hi": 0.139}, "per_seed": [0.6415, 0.6415, 0.6415, 0.6415, 0.6415]}, "lr": {"label": "逻辑回归", "auroc": {"est": 0.643, "lo": 0.387, "hi": 0.868}, "auprc": {"est": 0.079, "lo": 0.029, "hi": 0.204}, "brier": {"est": 0.052, "lo": 0.033, "hi": 0.073}, "cal_slope": {"est": 0.316, "lo": -0.7, "hi": 0.854}, "oe": 0.3, "sens90": {"est": 0.333, "lo": 0.0, "hi": 0.667}, "diff_vs_lr": null, "per_seed": [0.6273, 0.6422, 0.6597, 0.6422, 0.6422]}, "lgbm": {"label": "LightGBM", "auroc": {"est": 0.574, "lo": 0.36, "hi": 0.778}, "auprc": {"est": 0.057, "lo": 0.023, "hi": 0.151}, "brier": {"est": 0.045, "lo": 0.029, "hi": 0.063}, "cal_slope": {"est": 0.28, "lo": -0.818, "hi": 1.213}, "oe": 0.3, "sens90": {"est": 0.333, "lo": 0.0, "hi": 0.667}, "diff_vs_lr": {"est": -0.069, "lo": -0.206, "hi": 0.054}, "per_seed": [0.5518, 0.5606, 0.5809, 0.5238, 0.6094]}, "tabpfn": {"label": "TabPFN v2", "auroc": {"est": 0.631, "lo": 0.384, "hi": 0.864}, "auprc": {"est": 0.095, "lo": 0.029, "hi": 0.293}, "brier": {"est": 0.044, "lo": 0.03, "hi": 0.061}, "cal_slope": {"est": 0.691, "lo": -0.497, "hi": 1.922}, "oe": 0.28, "sens90": {"est": 0.444, "lo": 0.0, "hi": 0.8}, "diff_vs_lr": {"est": -0.012, "lo": -0.142, "hi": 0.097}, "per_seed": [0.6273, 0.6378, 0.6273, 0.622, 0.6339]}, "mira_r0b": {"label": "MIRA 冻结嵌入", "auroc": {"est": 0.446, "lo": 0.234, "hi": 0.652}, "auprc": {"est": 0.034, "lo": 0.016, "hi": 0.073}, "brier": {"est": 0.07, "lo": 0.043, "hi": 0.099}, "cal_slope": {"est": -0.227, "lo": -0.595, "hi": 0.113}, "oe": 0.38, "sens90": {"est": 0.0, "lo": 0.0, "hi": 0.0}, "diff_vs_lr": {"est": -0.197, "lo": -0.546, "hi": 0.159}, "per_seed": [0.4458, 0.4458, 0.4458, 0.4458, 0.4458]}, "llm_zs": {"label": "Qwen3-8B 零样本", "auroc": {"est": 0.582, "lo": 0.355, "hi": 0.798}, "auprc": {"est": 0.083, "lo": 0.022, "hi": 0.324}, "brier": {"est": 0.057, "lo": 0.04, "hi": 0.077}, "cal_slope": {"est": 0.262, "lo": -0.617, "hi": 0.855}, "oe": 0.28, "sens90": {"est": 0.222, "lo": 0.0, "hi": 0.5}, "diff_vs_lr": {"est": -0.061, "lo": -0.208, "hi": 0.1}, "per_seed": [0.5822, 0.5822, 0.5822, 0.5822, 0.5822]}}}}, "cohort": {"primary": {"gam_n": 90, "gam_ev": 9, "gd_n": 292, "gd_ev": 38}, "prospective": {"gam_n": 83, "gam_ev": 3, "gd_n": 263, "gd_ev": 9}}}, "A1-5_comorb": {"label": "A1-5 纳入基础病", "models": ["urb65", "lr", "lgbm", "tabpfn", "mira_r0b", "llm_zs"], "eval": {"GD_primary": {"n": 292, "n_events": 38, "models": {"urb65": {"label": "URB-65 评分", "auroc": {"est": 0.631, "lo": 0.535, "hi": 0.723}, "auprc": {"est": 0.192, "lo": 0.125, "hi": 0.291}, "brier": {"est": 0.113, "lo": 0.083, "hi": 0.145}, "cal_slope": {"est": 0.414, "lo": 0.113, "hi": 0.737}, "oe": 1.72, "sens90": {"est": 0.105, "lo": 0.023, "hi": 0.214}, "diff_vs_lr": {"est": -0.075, "lo": -0.176, "hi": 0.022}, "per_seed": [0.6311, 0.6311, 0.6311, 0.6311, 0.6311]}, "lr": {"label": "逻辑回归", "auroc": {"est": 0.706, "lo": 0.598, "hi": 0.803}, "auprc": {"est": 0.329, "lo": 0.213, "hi": 0.504}, "brier": {"est": 0.105, "lo": 0.076, "hi": 0.135}, "cal_slope": {"est": 0.672, "lo": 0.354, "hi": 1.047}, "oe": 1.62, "sens90": {"est": 0.395, "lo": 0.2, "hi": 0.55}, "diff_vs_lr": null, "per_seed": [0.7029, 0.7029, 0.7029, 0.7029, 0.7156]}, "lgbm": {"label": "LightGBM", "auroc": {"est": 0.744, "lo": 0.658, "hi": 0.824}, "auprc": {"est": 0.368, "lo": 0.236, "hi": 0.518}, "brier": {"est": 0.107, "lo": 0.078, "hi": 0.138}, "cal_slope": {"est": 1.169, "lo": 0.739, "hi": 1.664}, "oe": 1.83, "sens90": {"est": 0.316, "lo": 0.14, "hi": 0.5}, "diff_vs_lr": {"est": 0.038, "lo": -0.025, "hi": 0.106}, "per_seed": [0.7436, 0.7131, 0.7444, 0.7539, 0.7276]}, "tabpfn": {"label": "TabPFN v2", "auroc": {"est": 0.711, "lo": 0.616, "hi": 0.8}, "auprc": {"est": 0.295, "lo": 0.19, "hi": 0.456}, "brier": {"est": 0.107, "lo": 0.078, "hi": 0.137}, "cal_slope": {"est": 0.723, "lo": 0.392, "hi": 1.099}, "oe": 1.51, "sens90": {"est": 0.289, "lo": 0.139, "hi": 0.478}, "diff_vs_lr": {"est": 0.005, "lo": -0.043, "hi": 0.057}, "per_seed": [0.7202, 0.7064, 0.7066, 0.7068, 0.7119]}, "mira_r0b": {"label": "MIRA 冻结嵌入", "auroc": {"est": 0.609, "lo": 0.493, "hi": 0.721}, "auprc": {"est": 0.264, "lo": 0.161, "hi": 0.426}, "brier": {"est": 0.117, "lo": 0.084, "hi": 0.152}, "cal_slope": {"est": 0.286, "lo": -0.002, "hi": 0.597}, "oe": 2.81, "sens90": {"est": 0.316, "lo": 0.138, "hi": 0.459}, "diff_vs_lr": {"est": -0.097, "lo": -0.213, "hi": 0.015}, "per_seed": [0.6091, 0.6091, 0.6091, 0.6091, 0.6091]}, "llm_zs": {"label": "Qwen3-8B 零样本", "auroc": {"est": 0.731, "lo": 0.64, "hi": 0.817}, "auprc": {"est": 0.314, "lo": 0.202, "hi": 0.467}, "brier": {"est": 0.106, "lo": 0.079, "hi": 0.134}, "cal_slope": {"est": 0.605, "lo": 0.366, "hi": 0.876}, "oe": 1.18, "sens90": {"est": 0.395, "lo": 0.212, "hi": 0.545}, "diff_vs_lr": {"est": 0.025, "lo": -0.064, "hi": 0.118}, "per_seed": [0.7309, 0.7309, 0.7309, 0.7309, 0.7309]}}}, "GD_prospective": {"n": 263, "n_events": 9, "models": {"urb65": {"label": "URB-65 评分", "auroc": {"est": 0.642, "lo": 0.433, "hi": 0.831}, "auprc": {"est": 0.058, "lo": 0.021, "hi": 0.163}, "brier": {"est": 0.039, "lo": 0.022, "hi": 0.058}, "cal_slope": {"est": 0.45, "lo": -0.229, "hi": 1.139}, "oe": 0.48, "sens90": {"est": 0.111, "lo": 0.0, "hi": 0.375}, "diff_vs_lr": {"est": 0.023, "lo": -0.106, "hi": 0.169}, "per_seed": [0.6415, 0.6415, 0.6415, 0.6415, 0.6415]}, "lr": {"label": "逻辑回归", "auroc": {"est": 0.619, "lo": 0.343, "hi": 0.877}, "auprc": {"est": 0.141, "lo": 0.029, "hi": 0.436}, "brier": {"est": 0.037, "lo": 0.021, "hi": 0.057}, "cal_slope": {"est": 0.468, "lo": -0.59, "hi": 1.265}, "oe": 0.49, "sens90": {"est": 0.333, "lo": 0.0, "hi": 0.667}, "diff_vs_lr": null, "per_seed": [0.6185, 0.6185, 0.6185, 0.6185, 0.6037]}, "lgbm": {"label": "LightGBM", "auroc": {"est": 0.625, "lo": 0.404, "hi": 0.834}, "auprc": {"est": 0.181, "lo": 0.025, "hi": 0.469}, "brier": {"est": 0.034, "lo": 0.017, "hi": 0.054}, "cal_slope": {"est": 0.699, "lo": -0.563, "hi": 1.911}, "oe": 0.53, "sens90": {"est": 0.333, "lo": 0.0, "hi": 0.667}, "diff_vs_lr": {"est": 0.006, "lo": -0.142, "hi": 0.161}, "per_seed": [0.6317, 0.5965, 0.624, 0.6468, 0.6107]}, "tabpfn": {"label": "TabPFN v2", "auroc": {"est": 0.592, "lo": 0.33, "hi": 0.84}, "auprc": {"est": 0.093, "lo": 0.025, "hi": 0.313}, "brier": {"est": 0.039, "lo": 0.022, "hi": 0.058}, "cal_slope": {"est": 0.428, "lo": -0.582, "hi": 1.307}, "oe": 0.44, "sens90": {"est": 0.333, "lo": 0.0, "hi": 0.714}, "diff_vs_lr": {"est": -0.027, "lo": -0.128, "hi": 0.053}, "per_seed": [0.6094, 0.5836, 0.5954, 0.5783, 0.6006]}, "mira_r0b": {"label": "MIRA 冻结嵌入", "auroc": {"est": 0.663, "lo": 0.387, "hi": 0.886}, "auprc": {"est": 0.102, "lo": 0.032, "hi": 0.328}, "brier": {"est": 0.037, "lo": 0.018, "hi": 0.058}, "cal_slope": {"est": 0.278, "lo": -0.454, "hi": 1.02}, "oe": 0.85, "sens90": {"est": 0.222, "lo": 0.0, "hi": 0.571}, "diff_vs_lr": {"est": 0.044, "lo": -0.285, "hi": 0.322}, "per_seed": [0.6627, 0.6627, 0.6627, 0.6627, 0.6627]}, "llm_zs": {"label": "Qwen3-8B 零样本", "auroc": {"est": 0.56, "lo": 0.327, "hi": 0.783}, "auprc": {"est": 0.066, "lo": 0.021, "hi": 0.246}, "brier": {"est": 0.052, "lo": 0.033, "hi": 0.073}, "cal_slope": {"est": 0.183, "lo": -0.671, "hi": 0.713}, "oe": 0.36, "sens90": {"est": 0.222, "lo": 0.0, "hi": 0.5}, "diff_vs_lr": {"est": -0.059, "lo": -0.236, "hi": 0.112}, "per_seed": [0.5604, 0.5604, 0.5604, 0.5604, 0.5604]}}}}, "cohort": {"primary": {"gam_n": 163, "gam_ev": 10, "gd_n": 292, "gd_ev": 38}, "prospective": {"gam_n": 153, "gam_ev": 3, "gd_n": 263, "gd_ev": 9}}}, "A1-6_last": {"label": "A1-6 末值替代首值", "models": ["urb65", "lr", "lgbm", "tabpfn", "mira_r0b", "llm_zs"], "eval": {"GD_primary": {"n": 292, "n_events": 38, "models": {"urb65": {"label": "URB-65 评分", "auroc": {"est": 0.631, "lo": 0.535, "hi": 0.723}, "auprc": {"est": 0.192, "lo": 0.125, "hi": 0.291}, "brier": {"est": 0.113, "lo": 0.083, "hi": 0.144}, "cal_slope": {"est": 0.436, "lo": 0.119, "hi": 0.778}, "oe": 1.66, "sens90": {"est": 0.105, "lo": 0.023, "hi": 0.214}, "diff_vs_lr": {"est": -0.061, "lo": -0.179, "hi": 0.056}, "per_seed": [0.6311, 0.6311, 0.6311, 0.6311, 0.6311]}, "lr": {"label": "逻辑回归", "auroc": {"est": 0.692, "lo": 0.581, "hi": 0.793}, "auprc": {"est": 0.312, "lo": 0.202, "hi": 0.481}, "brier": {"est": 0.112, "lo": 0.081, "hi": 0.145}, "cal_slope": {"est": 0.523, "lo": 0.245, "hi": 0.963}, "oe": 1.85, "sens90": {"est": 0.368, "lo": 0.222, "hi": 0.564}, "diff_vs_lr": null, "per_seed": [0.6521, 0.7031, 0.7031, 0.6521, 0.7338]}, "lgbm": {"label": "LightGBM", "auroc": {"est": 0.692, "lo": 0.594, "hi": 0.786}, "auprc": {"est": 0.324, "lo": 0.203, "hi": 0.486}, "brier": {"est": 0.109, "lo": 0.078, "hi": 0.14}, "cal_slope": {"est": 0.728, "lo": 0.385, "hi": 1.105}, "oe": 2.14, "sens90": {"est": 0.395, "lo": 0.219, "hi": 0.556}, "diff_vs_lr": {"est": 0.001, "lo": -0.052, "hi": 0.054}, "per_seed": [0.7085, 0.6757, 0.6814, 0.698, 0.7023]}, "tabpfn": {"label": "TabPFN v2", "auroc": {"est": 0.656, "lo": 0.554, "hi": 0.752}, "auprc": {"est": 0.241, "lo": 0.155, "hi": 0.382}, "brier": {"est": 0.114, "lo": 0.083, "hi": 0.146}, "cal_slope": {"est": 0.474, "lo": 0.19, "hi": 0.775}, "oe": 2.0, "sens90": {"est": 0.263, "lo": 0.125, "hi": 0.467}, "diff_vs_lr": {"est": -0.035, "lo": -0.081, "hi": 0.012}, "per_seed": [0.6548, 0.6592, 0.6524, 0.6539, 0.6588]}, "mira_r0b": {"label": "MIRA 冻结嵌入", "auroc": {"est": 0.609, "lo": 0.493, "hi": 0.721}, "auprc": {"est": 0.264, "lo": 0.161, "hi": 0.426}, "brier": {"est": 0.117, "lo": 0.084, "hi": 0.152}, "cal_slope": {"est": 0.286, "lo": -0.002, "hi": 0.597}, "oe": 2.81, "sens90": {"est": 0.316, "lo": 0.138, "hi": 0.459}, "diff_vs_lr": {"est": -0.082, "lo": -0.22, "hi": 0.049}, "per_seed": [0.6091, 0.6091, 0.6091, 0.6091, 0.6091]}, "llm_zs": {"label": "Qwen3-8B 零样本", "auroc": {"est": 0.742, "lo": 0.652, "hi": 0.826}, "auprc": {"est": 0.323, "lo": 0.21, "hi": 0.477}, "brier": {"est": 0.104, "lo": 0.077, "hi": 0.132}, "cal_slope": {"est": 0.794, "lo": 0.494, "hi": 1.14}, "oe": 1.43, "sens90": {"est": 0.421, "lo": 0.216, "hi": 0.568}, "diff_vs_lr": {"est": 0.05, "lo": -0.055, "hi": 0.162}, "per_seed": [0.7418, 0.7418, 0.7418, 0.7418, 0.7418]}}}, "GD_prospective": {"n": 263, "n_events": 9, "models": {"urb65": {"label": "URB-65 评分", "auroc": {"est": 0.642, "lo": 0.433, "hi": 0.831}, "auprc": {"est": 0.058, "lo": 0.021, "hi": 0.163}, "brier": {"est": 0.039, "lo": 0.022, "hi": 0.058}, "cal_slope": {"est": 0.474, "lo": -0.241, "hi": 1.202}, "oe": 0.47, "sens90": {"est": 0.111, "lo": 0.0, "hi": 0.375}, "diff_vs_lr": {"est": 0.027, "lo": -0.194, "hi": 0.267}, "per_seed": [0.6415, 0.6415, 0.6415, 0.6415, 0.6415]}, "lr": {"label": "逻辑回归", "auroc": {"est": 0.615, "lo": 0.36, "hi": 0.849}, "auprc": {"est": 0.091, "lo": 0.027, "hi": 0.261}, "brier": {"est": 0.043, "lo": 0.023, "hi": 0.065}, "cal_slope": {"est": 0.263, "lo": -0.788, "hi": 0.84}, "oe": 0.57, "sens90": {"est": 0.333, "lo": 0.0, "hi": 0.667}, "diff_vs_lr": null, "per_seed": [0.5809, 0.6247, 0.6247, 0.5809, 0.6505]}, "lgbm": {"label": "LightGBM", "auroc": {"est": 0.668, "lo": 0.446, "hi": 0.877}, "auprc": {"est": 0.192, "lo": 0.035, "hi": 0.529}, "brier": {"est": 0.032, "lo": 0.016, "hi": 0.051}, "cal_slope": {"est": 0.753, "lo": -0.218, "hi": 1.731}, "oe": 0.62, "sens90": {"est": 0.444, "lo": 0.111, "hi": 0.8}, "diff_vs_lr": {"est": 0.054, "lo": -0.045, "hi": 0.156}, "per_seed": [0.706, 0.6612, 0.6413, 0.6689, 0.6579]}, "tabpfn": {"label": "TabPFN v2", "auroc": {"est": 0.576, "lo": 0.332, "hi": 0.805}, "auprc": {"est": 0.065, "lo": 0.022, "hi": 0.189}, "brier": {"est": 0.039, "lo": 0.021, "hi": 0.06}, "cal_slope": {"est": 0.3, "lo": -0.603, "hi": 0.896}, "oe": 0.58, "sens90": {"est": 0.111, "lo": 0.0, "hi": 0.667}, "diff_vs_lr": {"est": -0.038, "lo": -0.094, "hi": 0.017}, "per_seed": [0.5805, 0.5809, 0.5752, 0.5757, 0.5717]}, "mira_r0b": {"label": "MIRA 冻结嵌入", "auroc": {"est": 0.663, "lo": 0.387, "hi": 0.886}, "auprc": {"est": 0.102, "lo": 0.032, "hi": 0.328}, "brier": {"est": 0.037, "lo": 0.018, "hi": 0.058}, "cal_slope": {"est": 0.278, "lo": -0.454, "hi": 1.02}, "oe": 0.85, "sens90": {"est": 0.222, "lo": 0.0, "hi": 0.571}, "diff_vs_lr": {"est": 0.048, "lo": -0.283, "hi": 0.338}, "per_seed": [0.6627, 0.6627, 0.6627, 0.6627, 0.6627]}, "llm_zs": {"label": "Qwen3-8B 零样本", "auroc": {"est": 0.561, "lo": 0.329, "hi": 0.784}, "auprc": {"est": 0.066, "lo": 0.021, "hi": 0.247}, "brier": {"est": 0.042, "lo": 0.025, "hi": 0.062}, "cal_slope": {"est": 0.23, "lo": -0.826, "hi": 0.889}, "oe": 0.43, "sens90": {"est": 0.222, "lo": 0.0, "hi": 0.5}, "diff_vs_lr": {"est": -0.053, "lo": -0.293, "hi": 0.176}, "per_seed": [0.5612, 0.5612, 0.5612, 0.5612, 0.5612]}}}}, "cohort": {"primary": {"gam_n": 163, "gam_ev": 10, "gd_n": 292, "gd_ev": 38}, "prospective": {"gam_n": 153, "gam_ev": 3, "gd_n": 263, "gd_ev": 9}}}, "A1-7_admission": {"label": "A1-7 入院索引", "models": ["urb65", "lr", "lgbm", "tabpfn", "mira_r0b", "llm_zs"], "eval": {"GD_primary": {"n": 292, "n_events": 38, "models": {"urb65": {"label": "URB-65 评分", "auroc": {"est": 0.631, "lo": 0.535, "hi": 0.723}, "auprc": {"est": 0.192, "lo": 0.125, "hi": 0.291}, "brier": {"est": 0.112, "lo": 0.086, "hi": 0.14}, "cal_slope": {"est": 0.509, "lo": 0.139, "hi": 0.907}, "oe": 0.96, "sens90": {"est": 0.105, "lo": 0.023, "hi": 0.214}, "diff_vs_lr": {"est": -0.084, "lo": -0.189, "hi": 0.018}, "per_seed": [0.6311, 0.6311, 0.6311, 0.6311, 0.6311]}, "lr": {"label": "逻辑回归", "auroc": {"est": 0.715, "lo": 0.619, "hi": 0.802}, "auprc": {"est": 0.309, "lo": 0.196, "hi": 0.461}, "brier": {"est": 0.109, "lo": 0.084, "hi": 0.135}, "cal_slope": {"est": 0.708, "lo": 0.402, "hi": 1.12}, "oe": 0.78, "sens90": {"est": 0.342, "lo": 0.152, "hi": 0.5}, "diff_vs_lr": null, "per_seed": [0.7098, 0.7098, 0.7098, 0.7352, 0.7098]}, "lgbm": {"label": "LightGBM", "auroc": {"est": 0.702, "lo": 0.617, "hi": 0.783}, "auprc": {"est": 0.237, "lo": 0.158, "hi": 0.364}, "brier": {"est": 0.11, "lo": 0.085, "hi": 0.137}, "cal_slope": {"est": 0.743, "lo": 0.406, "hi": 1.138}, "oe": 0.96, "sens90": {"est": 0.263, "lo": 0.114, "hi": 0.445}, "diff_vs_lr": {"est": -0.013, "lo": -0.093, "hi": 0.067}, "per_seed": [0.7038, 0.6931, 0.6548, 0.7145, 0.7176]}, "tabpfn": {"label": "TabPFN v2", "auroc": {"est": 0.74, "lo": 0.658, "hi": 0.815}, "auprc": {"est": 0.287, "lo": 0.187, "hi": 0.425}, "brier": {"est": 0.109, "lo": 0.084, "hi": 0.134}, "cal_slope": {"est": 0.817, "lo": 0.503, "hi": 1.204}, "oe": 0.88, "sens90": {"est": 0.263, "lo": 0.098, "hi": 0.479}, "diff_vs_lr": {"est": 0.025, "lo": -0.021, "hi": 0.072}, "per_seed": [0.7357, 0.7362, 0.7409, 0.7462, 0.7374]}, "mira_r0b": {"label": "MIRA 冻结嵌入", "auroc": {"est": 0.642, "lo": 0.541, "hi": 0.739}, "auprc": {"est": 0.212, "lo": 0.142, "hi": 0.334}, "brier": {"est": 0.116, "lo": 0.089, "hi": 0.144}, "cal_slope": {"est": 0.423, "lo": 0.106, "hi": 0.782}, "oe": 0.98, "sens90": {"est": 0.237, "lo": 0.053, "hi": 0.429}, "diff_vs_lr": {"est": -0.073, "lo": -0.161, "hi": 0.012}, "per_seed": [0.6423, 0.6423, 0.6423, 0.6423, 0.6423]}, "llm_zs": {"label": "Qwen3-8B 零样本", "auroc": {"est": 0.744, "lo": 0.654, "hi": 0.828}, "auprc": {"est": 0.34, "lo": 0.22, "hi": 0.5}, "brier": {"est": 0.111, "lo": 0.09, "hi": 0.134}, "cal_slope": {"est": 0.803, "lo": 0.5, "hi": 1.165}, "oe": 0.65, "sens90": {"est": 0.368, "lo": 0.216, "hi": 0.543}, "diff_vs_lr": {"est": 0.029, "lo": -0.046, "hi": 0.109}, "per_seed": [0.7438, 0.7438, 0.7438, 0.7438, 0.7438]}}}, "GD_prospective": {"n": 263, "n_events": 9, "models": {"urb65": {"label": "URB-65 评分", "auroc": {"est": 0.642, "lo": 0.433, "hi": 0.831}, "auprc": {"est": 0.058, "lo": 0.021, "hi": 0.163}, "brier": {"est": 0.05, "lo": 0.035, "hi": 0.068}, "cal_slope": {"est": 0.553, "lo": -0.281, "hi": 1.401}, "oe": 0.26, "sens90": {"est": 0.111, "lo": 0.0, "hi": 0.375}, "diff_vs_lr": {"est": 0.008, "lo": -0.079, "hi": 0.104}, "per_seed": [0.6415, 0.6415, 0.6415, 0.6415, 0.6415]}, "lr": {"label": "逻辑回归", "auroc": {"est": 0.634, "lo": 0.386, "hi": 0.864}, "auprc": {"est": 0.13, "lo": 0.029, "hi": 0.409}, "brier": {"est": 0.058, "lo": 0.041, "hi": 0.077}, "cal_slope": {"est": 0.574, "lo": -0.417, "hi": 1.201}, "oe": 0.22, "sens90": {"est": 0.444, "lo": 0.0, "hi": 0.8}, "diff_vs_lr": null, "per_seed": [0.6352, 0.6352, 0.6352, 0.6111, 0.6352]}, "lgbm": {"label": "LightGBM", "auroc": {"est": 0.589, "lo": 0.392, "hi": 0.787}, "auprc": {"est": 0.085, "lo": 0.021, "hi": 0.329}, "brier": {"est": 0.051, "lo": 0.035, "hi": 0.069}, "cal_slope": {"est": 0.414, "lo": -0.477, "hi": 1.214}, "oe": 0.27, "sens90": {"est": 0.222, "lo": 0.0, "hi": 0.556}, "diff_vs_lr": {"est": -0.045, "lo": -0.173, "hi": 0.083}, "per_seed": [0.5934, 0.601, 0.5101, 0.6185, 0.6181]}, "tabpfn": {"label": "TabPFN v2", "auroc": {"est": 0.648, "lo": 0.448, "hi": 0.837}, "auprc": {"est": 0.17, "lo": 0.026, "hi": 0.441}, "brier": {"est": 0.053, "lo": 0.037, "hi": 0.072}, "cal_slope": {"est": 0.603, "lo": -0.191, "hi": 1.28}, "oe": 0.25, "sens90": {"est": 0.333, "lo": 0.0, "hi": 0.667}, "diff_vs_lr": {"est": 0.014, "lo": -0.07, "hi": 0.107}, "per_seed": [0.65, 0.6426, 0.6444, 0.6619, 0.6461]}, "mira_r0b": {"label": "MIRA 冻结嵌入", "auroc": {"est": 0.666, "lo": 0.477, "hi": 0.823}, "auprc": {"est": 0.107, "lo": 0.026, "hi": 0.371}, "brier": {"est": 0.053, "lo": 0.037, "hi": 0.071}, "cal_slope": {"est": 0.521, "lo": -0.103, "hi": 1.145}, "oe": 0.27, "sens90": {"est": 0.111, "lo": 0.0, "hi": 0.375}, "diff_vs_lr": {"est": 0.032, "lo": -0.156, "hi": 0.223}, "per_seed": [0.6658, 0.6658, 0.6658, 0.6658, 0.6658]}, "llm_zs": {"label": "Qwen3-8B 零样本", "auroc": {"est": 0.539, "lo": 0.313, "hi": 0.76}, "auprc": {"est": 0.067, "lo": 0.019, "hi": 0.268}, "brier": {"est": 0.078, "lo": 0.06, "hi": 0.098}, "cal_slope": {"est": 0.17, "lo": -0.835, "hi": 0.855}, "oe": 0.19, "sens90": {"est": 0.111, "lo": 0.0, "hi": 0.429}, "diff_vs_lr": {"est": -0.095, "lo": -0.206, "hi": 0.019}, "per_seed": [0.5389, 0.5389, 0.5389, 0.5389, 0.5389]}}}}, "cohort": {"primary": {"gam_n": 173, "gam_ev": 20, "gd_n": 292, "gd_ev": 38}, "prospective": {"gam_n": 160, "gam_ev": 7, "gd_n": 263, "gd_ev": 9}}}}};
+"use strict";
+const $ = s => document.querySelector(s);
+const el = (t, a = {}, kids = []) => {
+  const n = document.createElementNS(a.ns || "http://www.w3.org/1999/xhtml", t);
+  for (const [k, v] of Object.entries(a)) {
+    if (k === "ns" || v == null) continue;
+    if (k === "text") n.textContent = v; else if (k === "html") n.innerHTML = v;
+    else n.setAttribute(k, v);
+  }
+  (Array.isArray(kids) ? kids : [kids]).forEach(c => c && n.appendChild(c));
+  return n;
+};
+const SV = (t, a = {}, kids = []) => el(t, { ...a, ns: "http://www.w3.org/2000/svg" }, kids);
+const f3 = x => x == null ? "—" : x.toFixed(3);
+const f2 = x => x == null ? "—" : x.toFixed(2);
+const pct = x => x == null ? "—" : (x * 100).toFixed(1) + "%";
+const sgn = x => x == null ? "—" : (x >= 0 ? "+" : "") + x.toFixed(3);
+const ciTxt = c => c == null ? "—" : `${f3(c.est)} <span class="ci">(${f3(c.lo)}–${f3(c.hi)})</span>`;
+const sgnCi = c => c == null ? "—" : `${sgn(c.est)} <span class="ci">(${sgn(c.lo)}–${sgn(c.hi)})</span>`;
+const SER = ["var(--series-1)", "var(--series-2)", "var(--series-3)"];
+
+/* ---- 提示浮层：所有图表共用 ---- */
+const tip = $("#tip");
+function tipShow(ev, title, rows) {
+  tip.innerHTML = "";
+  tip.appendChild(el("b", { text: title }));
+  rows.forEach(([k, v]) => tip.appendChild(el("div", { class: "r", html: `<span>${k}</span><i>${v}</i>` })));
+  tip.classList.add("on");
+  tipMove(ev);
+}
+function tipMove(ev) {
+  const r = tip.getBoundingClientRect(), pad = 14;
+  let x = ev.clientX + pad, y = ev.clientY + pad;
+  if (x + r.width > innerWidth - 8) x = ev.clientX - r.width - pad;
+  if (y + r.height > innerHeight - 8) y = ev.clientY - r.height - pad;
+  tip.style.left = Math.max(8, x) + "px";
+  tip.style.top = Math.max(8, y) + "px";
+}
+const tipHide = () => tip.classList.remove("on");
+function hoverable(node, title, rows) {
+  node.classList.add("mark");
+  node.addEventListener("mouseenter", e => tipShow(e, title, rows));
+  node.addEventListener("mousemove", tipMove);
+  node.addEventListener("mouseleave", tipHide);
+  node.setAttribute("tabindex", "0");
+  node.addEventListener("focus", e => {
+    const b = node.getBoundingClientRect();
+    tipShow({ clientX: b.left + b.width / 2, clientY: b.top }, title, rows);
+  });
+  node.addEventListener("blur", tipHide);
+  return node;
+}
+
+/* ---- 深浅色切换 ---- */
+$("#themebtn").addEventListener("click", () => {
+  const cur = document.documentElement.getAttribute("data-theme");
+  const dark = cur ? cur === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  document.documentElement.setAttribute("data-theme", dark ? "light" : "dark");
+});
+
+/* ---- 目录高亮 ---- */
+const links = [...document.querySelectorAll("nav.toc a")];
+const obs = new IntersectionObserver(es => {
+  es.forEach(e => {
+    if (!e.isIntersecting) return;
+    links.forEach(a => a.classList.toggle("on", a.getAttribute("href") === "#" + e.target.id));
+  });
+}, { rootMargin: "-20% 0px -70% 0px" });
+document.querySelectorAll("section[id]").forEach(s => obs.observe(s));
+
+/* ---- 表格填充助手 ---- */
+function fill(sel, rows) {
+  const tb = $(sel + " tbody");
+  if (!tb) return;
+  tb.innerHTML = "";
+  rows.forEach(r => {
+    const tr = el("tr", r.cls ? { class: r.cls } : {});
+    (r.cells || r).forEach((c, i) => {
+      const isNum = i > 0 && !(r.textCols || []).includes(i);
+      tr.appendChild(el(i === 0 ? "th" : "td",
+        { html: String(c), class: isNum ? "num" : null, scope: i === 0 ? "row" : null }));
+    });
+    tb.appendChild(tr);
+  });
+}
+const ST = { ok: '<span class="st ok"><span class="dot"></span>已完成</span>',
+             no: '<span class="st no"><span class="dot"></span>未完成</span>',
+             part: '<span class="st part"><span class="dot"></span>部分完成</span>',
+             na: '<span class="st na"><span class="dot"></span>不适用</span>' };
+
+$("#gen").textContent = DATA.generated_at;
+
+/* ==================== 01 任务是否完成 ==================== */
+(function () {
+  const v2p = DATA.v2.eval.GD_primary, v1p = DATA.v1.eval.GD_primary;
+  const lr = v2p.models.lr, tiles = [
+    ["GD 主评价集", `${v2p.n}`, `次住院 · ${v2p.n_events} 个事件（事件率 ${pct(v2p.n_events / v2p.n)}）`],
+    ["GAM 训练集", `${DATA.v2.cohort.primary.GAM_IP.n_included}`,
+      `次住院 · v1.0 ${DATA.v1.cohort.primary.GAM_IP.n_events} 个事件 → v2 ${DATA.v2.cohort.primary.GAM_IP.n_events} 个`],
+    ["最好的模型", "逻辑回归", `AUROC ${f3(lr.auroc.est)}（${f3(lr.auroc.lo)}–${f3(lr.auroc.hi)}）`],
+    ["完成的运行", "2 次", "v1.0 规则标签 + v2 人工裁定标签，各含冒烟检查"],
+    ["输入变量", `${DATA.v2.variables.length}`, "个数值变量 + 年龄、性别；按训练集覆盖率 ≥50% 选出"],
+    ["统计强度", "10,000", "次患者聚类 bootstrap；5 个种子 × 5 次 CV 重复"],
+  ];
+  $("#q-tiles").append(...tiles.map(([k, v, n]) =>
+    el("div", { class: "tile" }, [el("div", { class: "k", text: k }),
+      el("div", { class: "v", text: v }), el("div", { class: "n", html: n })])));
+
+  const ft = v2p.models.mira_ft, r0 = v2p.models.mira_r0b;
+  $("#q-lead").innerHTML =
+    `在 GD 主评价集上，逻辑回归 AUROC <b>${f3(lr.auroc.est)}</b>（${f3(lr.auroc.lo)}–${f3(lr.auroc.hi)}），` +
+    `高于 MIRA 微调 <b>${f3(ft.auroc.est)}</b> 和 MIRA 冻结嵌入 <b>${f3(r0.auroc.est)}</b>。` +
+    `唯一区间不含 0 的模型间差值是 MIRA 冻结嵌入相对逻辑回归的劣势 ` +
+    `<b>${sgn(r0.diff_vs_lr.est)}</b>（${sgn(r0.diff_vs_lr.lo)} 至 ${sgn(r0.diff_vs_lr.hi)}）；` +
+    `MIRA 微调与逻辑回归之差 ${sgn(ft.diff_vs_lr.est)}（${sgn(ft.diff_vs_lr.lo)} 至 ${sgn(ft.diff_vs_lr.hi)}）区间包含 0，` +
+    `方向不作结论。`;
+
+  const sup = DATA.sup;
+  fill("#q-check", [
+    ["在 GAM 上训练", ST.ok,
+      `${DATA.v2.cohort.primary.GAM_IP.n_included} 次 GAM 住院；训练源与验证源患者零重叠（代码内断言）`],
+    ["在 GD 上测试", ST.ok, `${v2p.n} 次 GD 住院、${v2p.n_events} 个事件，纯外部，不参与任何筛选或调参`],
+    ["最简单的模型", ST.ok, "URB-65（固定 4 分制评分）与逻辑回归；两次运行都包含"],
+    ["模型集与 v1.0 一致", sup ? ST.ok : ST.part,
+      sup ? `补充运行 <code>${sup.run_id}</code> 已补齐 ${sup.models.join("、")}`
+          : "v2 主运行含 4 个模型；LightGBM、TabPFN、Qwen3-8B 的补充运行正在进行"],
+    ["外部验证只评价一次", ST.no, "GD 已被 v1.0、A1、A3、A5、v2 多次评价；已不是未使用过的外部集"],
+    ["运行前锁定口径与代码", ST.ok, "27 个文件的 sha256 锁定；补充运行前重新核验全部未变"],
+    ["泄漏检查", ST.ok, "输入严格早于 t0；标签打乱冒烟后退回随机水平；禁止前缀断言"],
+    ["置信区间与配对比较", ST.ok, "10,000 次患者聚类 bootstrap，所有模型共用同一批重抽样"],
+    ["GAM 结局标签人工核查", ST.ok, "46 次住院 / 79 个判定；裁定人 1 名，无第二人复核"],
+    ["CDM v2 彻底对齐后再跑", ST.no, "对齐改造未执行；v2 只替换了训练标签。差距审计见第 06 节"],
+  ].map(r => ({ cells: r, textCols: [1, 2] })));
+})();
+
+/* ==================== 02 设计 ==================== */
+(function () {
+  const inV1 = new Set(DATA.v1.models), inV2 = new Set(DATA.v2.models);
+  const inSup = new Set(DATA.sup ? DATA.sup.models : []);
+  const kind = {
+    urb65: "固定评分（无拟合自由度）", lr: "线性模型", lgbm: "梯度提升树", tabpfn: "表格基础模型",
+    mira_r0b: "时序基础模型（冻结嵌入）", mira_ft: "时序基础模型（LoRA 微调）",
+    llm_zs: "大语言模型零样本", llm_zs_14b: "大语言模型零样本",
+  };
+  const order = ["urb65", "lr", "lgbm", "tabpfn", "mira_r0b", "mira_ft", "llm_zs", "llm_zs_14b"];
+  fill("#d-models", order.filter(m => inV1.has(m) || inV2.has(m) || inSup.has(m)).map(m => {
+    const w = [];
+    if (inV1.has(m)) w.push("v1.0");
+    if (inV2.has(m)) w.push("v2 主");
+    if (inSup.has(m)) w.push("v2 补充");
+    return { cells: [DATA.model_cn[m] || m, kind[m] || "—", w.join(" · ")], textCols: [1, 2] };
+  }));
+
+  const an = DATA.audit.A_variables;
+  $("#d-vars").innerHTML = DATA.v2.variables
+    .map(c => `<span class="tag">${an[c] ? an[c].name : c}</span>`).join(" ");
+
+  const c1 = DATA.v1.cohort, c2 = DATA.v2.cohort;
+  const g1 = c1.primary.GAM_IP, g2 = c2.primary.GAM_IP;
+  const dp = c2.primary.GD_CRF, ds = c2.prospective.GD_CRF;
+  fill("#d-cohort", [
+    ["纳入住院数", g1.n_included, g2.n_included, dp.n_included, ds.n_included],
+    ["纳入患者数", g1.n_patients_included, g2.n_patients_included, dp.n_patients_included, ds.n_patients_included],
+    ["事件数", g1.n_events, `<b>${g2.n_events}</b>`, dp.n_events, ds.n_events],
+    ["事件率", pct(g1.event_rate), `<b>${pct(g2.event_rate)}</b>`, pct(dp.event_rate), pct(ds.event_rate)],
+    ["因索引前已转重而排除", g1.excluded.event_before_index || 0, g2.excluded.event_before_index || 0,
+      dp.excluded.event_before_index || 0, ds.excluded.event_before_index || 0],
+    ["首个组成构成",
+      Object.entries(g1.events_first_component).map(([k, v]) => `${k} ${v}`).join("、"),
+      Object.entries(g2.events_first_component).map(([k, v]) => `${k} ${v}`).join("、"),
+      Object.entries(dp.events_first_component).map(([k, v]) => `${k} ${v}`).join("、"),
+      Object.entries(ds.events_first_component).map(([k, v]) => `${k} ${v}`).join("、")],
+    ["事件时间精度",
+      Object.entries(g1.events_precision).map(([k, v]) => `${k} ${v}`).join("、"),
+      Object.entries(g2.events_precision).map(([k, v]) => `${k} ${v}`).join("、"),
+      Object.entries(dp.events_precision).map(([k, v]) => `${k} ${v}`).join("、"),
+      Object.entries(ds.events_precision).map(([k, v]) => `${k} ${v}`).join("、")],
+  ].map(r => ({ cells: r, textCols: r[0].includes("构成") || r[0].includes("精度") ? [1, 2, 3, 4] : [] })));
+})();
+
+/* ==================== 通用图表：带误差条的横向点图 ====================
+   形式选择依据：比较的是若干模型在同一指标上的位置与不确定度，
+   横向点图 + 误差条比条形图更合适——条形暗示「从 0 累积的量」，
+   而 AUROC 的参考点是 0.5（随机），不是 0。每个点都直接标数值（浅色模式对比度补偿）。 */
+function dotChart(mount, items, opt) {
+  const o = { x0: 0.4, x1: 0.95, ref: 0.5, refLab: "0.5 随机", w: 720, rowH: 26, padL: 176, padR: 62,
+    padT: 8, padB: 34, ...opt };
+  const h = o.padT + items.length * o.rowH + o.padB;
+  const X = v => o.padL + (v - o.x0) / (o.x1 - o.x0) * (o.w - o.padL - o.padR);
+  const svg = SV("svg", { viewBox: `0 0 ${o.w} ${h}`, width: o.w, role: "img",
+    "aria-label": o.aria || "带 95% 置信区间的模型比较点图" });
+
+  const ticks = [];
+  for (let v = Math.ceil(o.x0 * 20) / 20; v <= o.x1 + 1e-9; v += 0.05) ticks.push(+v.toFixed(2));
+  ticks.forEach(t => {
+    svg.appendChild(SV("line", { class: "gridline", x1: X(t), x2: X(t), y1: o.padT, y2: h - o.padB }));
+    svg.appendChild(SV("text", { class: "axlab", x: X(t), y: h - o.padB + 15, "text-anchor": "middle",
+      text: t.toFixed(2) }));
+  });
+  svg.appendChild(SV("line", { class: "axis", x1: X(o.ref), x2: X(o.ref), y1: o.padT, y2: h - o.padB,
+    "stroke-dasharray": "3 3", stroke: "var(--text-muted)" }));
+  svg.appendChild(SV("text", { class: "axlab", x: X(o.ref), y: o.padT - 0, "text-anchor": "middle",
+    text: "" }));
+  svg.appendChild(SV("text", { class: "axlab", x: o.padL, y: h - 4, text: o.xlab || "AUROC（越高越好）" }));
+  svg.appendChild(SV("text", { class: "axlab", x: X(o.ref), y: h - 4, "text-anchor": "middle",
+    text: o.refLab, fill: "var(--text-muted)" }));
+
+  items.forEach((it, i) => {
+    const y = o.padT + i * o.rowH + o.rowH / 2, col = it.color || SER[0];
+    const g = SV("g");
+    g.appendChild(SV("text", { class: "axlab", x: o.padL - 12, y: y + 4, "text-anchor": "end",
+      text: it.label, fill: "var(--text-secondary)" }));
+    if (it.lo != null && it.hi != null) {
+      g.appendChild(SV("line", { x1: X(it.lo), x2: X(it.hi), y1: y, y2: y, stroke: col,
+        "stroke-width": 2, "stroke-linecap": "round", opacity: .5 }));
+      [it.lo, it.hi].forEach(v => g.appendChild(SV("line", { x1: X(v), x2: X(v), y1: y - 4, y2: y + 4,
+        stroke: col, "stroke-width": 2, "stroke-linecap": "round", opacity: .5 })));
+    }
+    // 2px 表面色描边：与误差条重叠处保持可读
+    g.appendChild(SV("circle", { cx: X(it.est), cy: y, r: 5.5, fill: col,
+      stroke: "var(--surface-1)", "stroke-width": 2 }));
+    g.appendChild(SV("text", { class: "vallab", x: X(o.x1) + 8, y: y + 4, text: f3(it.est) }));
+    hoverable(g, it.label, it.rows || [["AUROC", f3(it.est)],
+      ["95% CI", `${f3(it.lo)} – ${f3(it.hi)}`]]);
+    svg.appendChild(g);
+  });
+  mount.innerHTML = "";
+  mount.appendChild(svg);
+}
+
+/* ==================== 03 主结果 ==================== */
+(function () {
+  const v2p = DATA.v2.eval.GD_primary, v1p = DATA.v1.eval.GD_primary;
+  const lr = v2p.models.lr;
+  $("#m-hero").appendChild(el("div", { class: "hero" }, [
+    el("div", { class: "v", text: f3(lr.auroc.est) }),
+    el("div", { class: "k", html:
+      `<b>逻辑回归</b>在 GD 主评价集上的 AUROC（95% CI ${f3(lr.auroc.lo)}–${f3(lr.auroc.hi)}）。` +
+      `两次运行、7 个敏感性口径里，它都是最好或接近最好的模型。` }),
+  ]));
+
+  // 图 1：v2 与 v1.0 的模型并列
+  const rows = [];
+  const order2 = ["lr", "mira_ft", "urb65", "mira_r0b"];
+  order2.forEach(m => {
+    const v = v2p.models[m]; if (!v) return;
+    rows.push({ label: `${v.label}（v2）`, est: v.auroc.est, lo: v.auroc.lo, hi: v.auroc.hi, color: SER[0],
+      rows: [["AUROC", f3(v.auroc.est)], ["95% CI", `${f3(v.auroc.lo)} – ${f3(v.auroc.hi)}`],
+             ["相对逻辑回归", v.diff_vs_lr ? sgn(v.diff_vs_lr.est) : "参照"],
+             ["运行", "v2（裁定标签）"]] });
+  });
+  ["lgbm", "tabpfn", "llm_zs"].forEach(m => {
+    const v = v1p.models[m]; if (!v) return;
+    rows.push({ label: `${v.label}（仅 v1.0）`, est: v.auroc.est, lo: v.auroc.lo, hi: v.auroc.hi, color: SER[1],
+      rows: [["AUROC", f3(v.auroc.est)], ["95% CI", `${f3(v.auroc.lo)} – ${f3(v.auroc.hi)}`],
+             ["运行", "v1.0（规则标签）"]] });
+  });
+  if (DATA.sup) {
+    ["lgbm", "tabpfn", "llm_zs"].forEach(m => {
+      const v = DATA.sup.eval.GD_primary.models[m]; if (!v) return;
+      rows.push({ label: `${v.label}（v2 补充）`, est: v.auroc.est, lo: v.auroc.lo, hi: v.auroc.hi, color: SER[2],
+        rows: [["AUROC", f3(v.auroc.est)], ["95% CI", `${f3(v.auroc.lo)} – ${f3(v.auroc.hi)}`],
+               ["运行", "v2 补充（裁定标签）"]] });
+    });
+  }
+  const leg = [["v2（GAM 结局人工裁定标签）", SER[0]], ["v1.0（规则标签）", SER[1]]];
+  if (DATA.sup) leg.push(["v2 补充运行", SER[2]]);
+  $("#m-legend").append(...leg.map(([t, c]) => el("span", {}, [
+    el("span", { class: "swatch", style: `background:${c}` }), el("span", { text: t })])));
+  dotChart($("#chart-main"), rows, { x0: 0.4, x1: 0.85 });
+
+  // 图 2：前瞻子集
+  const pr = DATA.v2.eval.GD_prospective;
+  dotChart($("#chart-prosp"), DATA.v2.models.map(m => {
+    const v = pr.models[m]; if (!v) return null;
+    return { label: v.label, est: v.auroc.est, lo: v.auroc.lo, hi: v.auroc.hi, color: SER[0],
+      rows: [["AUROC", f3(v.auroc.est)], ["95% CI", `${f3(v.auroc.lo)} – ${f3(v.auroc.hi)}`],
+             ["区间宽度", f3(v.auroc.hi - v.auroc.lo)], ["事件数", pr.n_events]] };
+  }).filter(Boolean), { x0: 0.15, x1: 0.95, aria: "前瞻子集 AUROC，区间极宽" });
+
+  // 完整指标表（两个评价集 × 两次运行）
+  const box = $("#m-tables");
+  const sets = [["GD_primary", "GD 主评价集"], ["GD_prospective", "GD 前瞻子集"]];
+  const runs = [["v2", DATA.v2, "v2（裁定标签）"], ["v1", DATA.v1, "v1.0（规则标签）"]];
+  if (DATA.sup) runs.splice(1, 0, ["sup", DATA.sup, "v2 补充运行"]);
+  sets.forEach(([es, esn]) => runs.forEach(([, run, rn]) => {
+    const blk = run.eval[es]; if (!blk) return;
+    box.appendChild(el("h4", { text: `${esn} · ${rn}　n=${blk.n}，事件 ${blk.n_events}` }));
+    const t = el("table"), thead = el("thead");
+    thead.appendChild(el("tr", {}, ["模型", "AUROC", "AUPRC", "Brier", "校准斜率", "O/E", "敏感度@特异度90%", "相对 LR 的 AUROC 差"]
+      .map((h, i) => el("th", { text: h, class: i ? "num" : null }))));
+    t.appendChild(thead);
+    const tb = el("tbody");
+    run.models.forEach(m => {
+      const v = blk.models[m]; if (!v) return;
+      const tr = el("tr", m === "lr" ? { class: "hi" } : {});
+      [v.label, ciTxt(v.auroc), ciTxt(v.auprc), ciTxt(v.brier), ciTxt(v.cal_slope), f2(v.oe),
+       ciTxt(v.sens90), m === "lr" ? "参照" : sgnCi(v.diff_vs_lr)]
+        .forEach((c, i) => tr.appendChild(el(i ? "td" : "th", { html: String(c), class: i ? "num" : null })));
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb);
+    box.appendChild(el("div", { class: "tablewrap" }, [t]));
+  }));
+
+  // 内部 CV vs 外部
+  fill("#m-internal", DATA.v2.models.map(m => {
+    const iv = DATA.compare.internal_cv_vs_gd[m]; if (!iv) return null;
+    const fitted = iv.auroc_has_fitted_dof;
+    const tag = iv.internal_much_higher_than_gd ? '<span class="tag crit">过拟合 / 迁移失败</span>'
+      : (!fitted ? '<span class="tag">无拟合自由度</span>'
+        : (iv.gap_internal_minus_gd_primary < 0 ? '<span class="tag warn">内部低于外部（欠拟合）</span>'
+          : '<span class="tag good">无证据</span>'));
+    return { cells: [DATA.model_cn[m] || m, `${f3(iv.internal_cv_auroc_mean)} ± ${f3(iv.internal_cv_auroc_sd)}`,
+      f3(iv.gd_primary_auroc), sgn(iv.gap_internal_minus_gd_primary), tag + " " + iv.reading],
+      textCols: [4] };
+  }).filter(Boolean));
+
+  // 冒烟
+  fill("#m-smoke", DATA.v2.models.map(m => {
+    const real = DATA.v2.eval.GD_primary.models[m], sm = DATA.smoke.eval.GD_primary[m];
+    if (!real || !sm) return null;
+    return [DATA.model_cn[m] || m, ciTxt(real.auroc), ciTxt(sm)];
+  }).filter(Boolean));
+})();
+
+/* ==================== 04 v2 vs v1.0 ==================== */
+(function () {
+  const C = DATA.compare, prim = C.v2_vs_v1.GD_primary;
+  const lrd = prim.lr.auroc, ftd = DATA.v2.eval.GD_primary.models.mira_ft.diff_vs_lr;
+  $("#c-lead").innerHTML =
+    `逻辑回归在 GD 主评价集的 AUROC 只变化 <b>${sgn(lrd.est)}</b>（${sgn(lrd.lo)} 至 ${sgn(lrd.hi)}），` +
+    `区间包含 0。所有模型的 v2−v1.0 差值区间都包含 0。` +
+    `「基础模型相对逻辑回归没有稳定优势」这个结论在两套标签下都成立。` +
+    `训练标签的改动只涉及 ${DATA.v2.cohort.primary.GAM_IP.n_events - DATA.v1.cohort.primary.GAM_IP.n_events} 个事件量级，` +
+    `这也解释了为什么差值都这么小。`;
+
+  // 差值图：零线居中的横向点图
+  const items = Object.keys(prim).map(m => {
+    const d = prim[m].auroc;
+    return { label: DATA.model_cn[m] || m, est: d.est, lo: d.lo, hi: d.hi,
+      color: Math.abs(d.est) < 1e-9 ? SER[2] : SER[0],
+      rows: [["ΔAUROC", sgn(d.est)], ["95% CI", `${sgn(d.lo)} – ${sgn(d.hi)}`],
+             ["v1.0 AUROC", f3(C.v2_vs_v1.GD_primary[m].v1_auroc)],
+             ["v2 AUROC", f3(C.v2_vs_v1.GD_primary[m].v2_auroc)],
+             ["区间是否含 0", d.lo <= 0 && d.hi >= 0 ? "是（方向不确定）" : "否"]] };
+  });
+  dotChart($("#chart-diff"), items,
+    { x0: -0.2, x1: 0.2, ref: 0, refLab: "0 无变化", xlab: "v2 − v1.0 的 AUROC 差（配对）", padL: 150 });
+  $("#c-diffcap").innerHTML =
+    `四个模型的差值都很小且区间包含 0。URB-65 的差值恰为 0.000（区间也是 0.000–0.000）——` +
+    `它的预测是固定评分的单调变换，换标签只改标定不改排序，所以 AUROC 必然不变。` +
+    `这条性质可作为配对流程的自检。`;
+
+  const adj = C.runs && C.runs.adjudication ? C.runs.adjudication : null;
+  fill("#c-adj", [
+    ["送裁定的住院数", "46"],
+    ["裁定判定条数", "79"],
+    ["GAM 训练集事件：v1.0 → v2",
+      `${DATA.v1.cohort.primary.GAM_IP.n_events} → <b>${DATA.v2.cohort.primary.GAM_IP.n_events}</b>`],
+    ["标签由 0 改为 1 的住院数", "3"],
+    ["标签由 1 改为 0 的住院数", "0"],
+    ["裁定人数", '1 <span class="tag crit">无第二人复核</span>'],
+  ].map(r => ({ cells: r, textCols: r[0].includes("裁定人数") ? [1] : [] })));
+
+  // 配对差值完整表
+  const box = $("#c-tables");
+  box.appendChild(el("h4", { text: "v2 内部：模型之间的 AUROC 差（同一批 GD 住院，配对 bootstrap）" }));
+  const mk = (head, rows) => {
+    const t = el("table"), th = el("thead");
+    th.appendChild(el("tr", {}, head.map((h, i) => el("th", { text: h, class: i ? "num" : null }))));
+    t.appendChild(th);
+    const tb = el("tbody");
+    rows.forEach(r => {
+      const tr = el("tr");
+      r.forEach((c, i) => tr.appendChild(el(i ? "td" : "th", { html: String(c), class: i ? "num" : null })));
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb);
+    box.appendChild(el("div", { class: "tablewrap" }, [t]));
+  };
+  const wi = C.v2_within;
+  mk(["比较", "GD 主评价集 ΔAUROC", "GD 前瞻子集 ΔAUROC", "主评价集区间是否含 0"],
+    Object.keys(wi.GD_primary.diffs).map(k => {
+      const a = wi.GD_primary.diffs[k].auroc, b = wi.GD_prospective.diffs[k].auroc;
+      const nm = k.replace("_minus_", " − ").replace(/\b(lr|urb65|mira_ft|mira_r0b|llm_zs)\b/g,
+        s => DATA.model_cn[s] || s);
+      return [nm, sgnCi(a), sgnCi(b), a.lo <= 0 && a.hi >= 0 ? "是" : "<b>否</b>"];
+    }));
+  box.appendChild(el("h4", { text: "v2 与 v1.0：同一模型的 AUROC 差（GD 标签完全相同，逐住院配对）" }));
+  mk(["模型", "v1.0 AUROC", "v2 AUROC", "主评价集 ΔAUROC", "前瞻子集 ΔAUROC"],
+    Object.keys(prim).map(m => [DATA.model_cn[m] || m, f3(prim[m].v1_auroc), f3(prim[m].v2_auroc),
+      sgnCi(prim[m].auroc), sgnCi(C.v2_vs_v1.GD_prospective[m].auroc)]));
+
+  // mira_ft 种子离散度
+  fill("#c-seed", [["GD_primary", "GD 主评价集"], ["GD_prospective", "GD 前瞻子集"]].map(([k, n]) => {
+    const s = C.auroc_per_seed[k].mira_ft;
+    return [n, s.seeds.map(x => f3(x)).join("、"), f3(s.mean), f3(s.sd), f3(s.range)];
+  }));
+})();
+
+/* ==================== 05 A1 敏感性：热力图 ==================== */
+(function () {
+  const A = DATA.a1, keys = Object.keys(A);
+  if (!keys.length) return;
+  const models = A[keys[0]].models;
+  const vals = [];
+  keys.forEach(k => models.forEach(m => {
+    const v = A[k].eval.GD_primary.models[m];
+    if (v) vals.push(v.auroc.est);
+  }));
+  const lo = Math.min(...vals), hi = Math.max(...vals);
+  // 单色序列：浅 → 深，五级；符合「sequential = 一个色相」
+  const RAMP = ["var(--seq-100)", "var(--seq-250)", "var(--seq-400)", "var(--seq-550)", "var(--seq-700)"];
+  const INK = ["var(--text-primary)", "var(--text-primary)", "#ffffff", "#ffffff", "#ffffff"];
+  const bin = v => Math.min(4, Math.max(0, Math.floor((v - lo) / ((hi - lo) || 1) * 5)));
+
+  const cw = 92, ch = 34, padL = 168, padT = 58;
+  const w = padL + models.length * cw + 12, h = padT + keys.length * ch + 40;
+  const svg = SV("svg", { viewBox: `0 0 ${w} ${h}`, width: w, role: "img",
+    "aria-label": "7 个敏感性口径 × 6 个模型的 AUROC 热力图，数值直接标注" });
+  models.forEach((m, j) => {
+    const x = padL + j * cw + cw / 2;
+    const t = SV("text", { class: "axlab", x, y: padT - 12, "text-anchor": "end",
+      transform: `rotate(-32 ${x} ${padT - 12})`, text: DATA.model_cn[m] || m });
+    svg.appendChild(t);
+  });
+  keys.forEach((k, i) => {
+    const y = padT + i * ch;
+    const co = A[k].cohort.primary;
+    svg.appendChild(SV("text", { class: "axlab", x: padL - 10, y: y + ch / 2 + 4, "text-anchor": "end",
+      text: A[k].label, fill: "var(--text-secondary)" }));
+    models.forEach((m, j) => {
+      const v = A[k].eval.GD_primary.models[m];
+      if (!v) return;
+      const b = bin(v.auroc.est), x = padL + j * cw;
+      const g = SV("g");
+      // 2px 表面色间隙：相邻格之间保持分隔
+      g.appendChild(SV("rect", { x: x + 1, y: y + 1, width: cw - 3, height: ch - 3, rx: 4,
+        fill: RAMP[b] }));
+      g.appendChild(SV("text", { class: "vallab", x: x + cw / 2 - 1, y: y + ch / 2 + 4,
+        "text-anchor": "middle", text: f3(v.auroc.est), fill: INK[b] }));
+      hoverable(g, `${A[k].label} · ${DATA.model_cn[m] || m}`,
+        [["AUROC", f3(v.auroc.est)], ["95% CI", `${f3(v.auroc.lo)} – ${f3(v.auroc.hi)}`],
+         ["相对逻辑回归", m === "lr" ? "参照" : sgn(v.diff_vs_lr ? v.diff_vs_lr.est : null)],
+         ["GD 住院 / 事件", `${A[k].eval.GD_primary.n} / ${A[k].eval.GD_primary.n_events}`],
+         ["GAM 训练 / 事件", `${co.gam_n} / ${co.gam_ev}`]]);
+      svg.appendChild(g);
+    });
+  });
+  // 图例：五级色阶 + 端点数值
+  const lx = padL, ly = h - 22;
+  RAMP.forEach((c, i) => {
+    svg.appendChild(SV("rect", { x: lx + i * 30, y: ly, width: 28, height: 10, rx: 2, fill: c }));
+  });
+  svg.appendChild(SV("text", { class: "axlab", x: lx - 8, y: ly + 9, "text-anchor": "end", text: f3(lo) }));
+  svg.appendChild(SV("text", { class: "axlab", x: lx + 5 * 30 + 4, y: ly + 9, text: f3(hi) + "　AUROC" }));
+  const mount = $("#chart-a1");
+  mount.innerHTML = "";
+  mount.appendChild(svg);
+
+  // A1 完整表
+  const box = $("#a1-tables");
+  [["GD_primary", "GD 主评价集"], ["GD_prospective", "GD 前瞻子集"]].forEach(([es, esn]) => {
+    box.appendChild(el("h4", { text: esn + "（AUROC，95% CI）" }));
+    const t = el("table"), th = el("thead");
+    th.appendChild(el("tr", {}, ["口径", "GD n / 事件", ...models.map(m => DATA.model_cn[m] || m)]
+      .map((x, i) => el("th", { text: x, class: i ? "num" : null }))));
+    t.appendChild(th);
+    const tb = el("tbody");
+    keys.forEach(k => {
+      const blk = A[k].eval[es]; if (!blk) return;
+      const tr = el("tr");
+      tr.appendChild(el("th", { text: A[k].label, scope: "row" }));
+      tr.appendChild(el("td", { class: "num", text: `${blk.n} / ${blk.n_events}` }));
+      models.forEach(m => {
+        const v = blk.models[m];
+        tr.appendChild(el("td", { class: "num", html: v ? ciTxt(v.auroc) : "—" }));
+      });
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb);
+    box.appendChild(el("div", { class: "tablewrap" }, [t]));
+  });
+})();
+
+/* ==================== 06 对齐差距审计 ==================== */
+(function () {
+  const AU = DATA.audit, AV = AU.A_variables, sel = AU.selected_variables.codes;
+  const shift = AU.D_institution_shift, tri = AU.E_tri_state_and_duplicates.tri_state;
+
+  // 磁贴
+  const gdP = AU.B_anchor.GD_primary, prec = { day: 0, minute: 0, note: 0 };
+  sel.forEach(c => Object.entries(AV[c].GD_primary.time_precision || {})
+    .forEach(([k, v]) => prec[k] = (prec[k] || 0) + v));
+  const smds = sel.map(c => AV[c].smd_gam_minus_gd).filter(x => x != null);
+  const nBig = smds.filter(x => Math.abs(x) > 0.1).length;
+  $("#al-tiles").append(...[
+    ["结构对齐", "已完成", "表结构、变量编码、单位统一；15 个变量两院都有"],
+    ["分布差异", `${nBig} / ${smds.length}`, "个变量 |SMD| &gt; 0.1，分布有实质差异"],
+    ["机构判别 AUROC", f3(shift.auroc_mean),
+      `± ${f3(shift.auroc_sd)}　仅用输入特征就能判断来自哪家医院`],
+    ["GD 时间精度", `${prec.day || 0}`, `个观测仅日期精度（分钟精度 ${prec.minute || 0} 个）`],
+    ["GD 时序长度", "99.4%", "变量序列只有 1 个时间点，没有时间序列"],
+    ["症状字段缺失率", "GAM 0%", "病历没写就记 0；GD 有真正空白"],
+  ].map(([k, v, n]) => el("div", { class: "tile" }, [el("div", { class: "k", text: k }),
+    el("div", { class: "v", text: v }), el("div", { class: "n", html: n })])));
+
+  // A：SMD 图（诊断意义上的偏差，用发散配色的两极：负=蓝，正=橙）
+  const sm = sel.map(c => ({ code: c, name: AV[c].name, smd: AV[c].smd_gam_minus_gd,
+    ratio: AV[c].gam_over_gd_median_ratio, gc: AV[c].GAM_train.coverage, dc: AV[c].GD_primary.coverage }))
+    .filter(x => x.smd != null).sort((a, b) => Math.abs(b.smd) - Math.abs(a.smd));
+  (function () {
+    const w = 720, rowH = 24, padL = 172, padR = 54, padT = 8, padB = 34;
+    const lim = Math.max(0.75, Math.ceil(Math.max(...sm.map(x => Math.abs(x.smd))) * 10) / 10);
+    const h = padT + sm.length * rowH + padB;
+    const X = v => padL + (v + lim) / (2 * lim) * (w - padL - padR);
+    const svg = SV("svg", { viewBox: `0 0 ${w} ${h}`, width: w, role: "img",
+      "aria-label": "15 个变量的标准化均值差条形图" });
+    [-lim, -0.5, -0.1, 0, 0.1, 0.5, lim].filter(t => Math.abs(t) <= lim).forEach(t => {
+      svg.appendChild(SV("line", { class: "gridline", x1: X(t), x2: X(t), y1: padT, y2: h - padB,
+        "stroke-dasharray": Math.abs(t) === 0.1 ? "2 3" : null }));
+      svg.appendChild(SV("text", { class: "axlab", x: X(t), y: h - padB + 15, "text-anchor": "middle",
+        text: t.toFixed(1) }));
+    });
+    svg.appendChild(SV("line", { class: "axis", x1: X(0), x2: X(0), y1: padT, y2: h - padB,
+      stroke: "var(--text-muted)" }));
+    svg.appendChild(SV("text", { class: "axlab", x: padL, y: h - 4, text: "SMD（GAM − GD）" }));
+    svg.appendChild(SV("text", { class: "axlab", x: X(0.1) + 4, y: padT + 10,
+      text: "±0.1 实质差异阈值", fill: "var(--text-muted)" }));
+    sm.forEach((it, i) => {
+      const y = padT + i * rowH + 3, bh = rowH - 9;
+      const neg = it.smd < 0, col = neg ? "var(--series-1)" : "var(--series-2)";
+      const x0 = neg ? X(it.smd) : X(0), bw = Math.abs(X(it.smd) - X(0));
+      const g = SV("g");
+      g.appendChild(SV("text", { class: "axlab", x: padL - 12, y: y + bh / 2 + 4, "text-anchor": "end",
+        text: it.name, fill: "var(--text-secondary)" }));
+      // 数据末端 4px 圆角、贴基线一侧为方角
+      g.appendChild(SV("path", { fill: col, d: neg
+        ? `M${x0 + bw},${y} h${-bw + 4} a4,4 0 0 0 -4,4 v${bh - 8} a4,4 0 0 0 4,4 h${bw - 4} z`
+        : `M${x0},${y} h${bw - 4} a4,4 0 0 1 4,4 v${bh - 8} a4,4 0 0 1 -4,4 h${-bw + 4} z` }));
+      g.appendChild(SV("text", { class: "vallab", x: neg ? x0 - 6 : x0 + bw + 6, y: y + bh / 2 + 4,
+        "text-anchor": neg ? "end" : "start", text: sgn(it.smd) }));
+      hoverable(g, it.name, [["SMD（GAM−GD）", sgn(it.smd)],
+        ["中位数比 GAM/GD", f3(it.ratio)], ["GAM 覆盖率", pct(it.gc)], ["GD 覆盖率", pct(it.dc)],
+        ["是否实质差异", Math.abs(it.smd) > 0.1 ? "是（|SMD| > 0.1）" : "否"]]);
+      svg.appendChild(g);
+    });
+    const m = $("#chart-smd"); m.innerHTML = ""; m.appendChild(svg);
+  })();
+  const worst = sm[0];
+  $("#al-smdcap").innerHTML =
+    `${nBig} 个变量的 |SMD| 超过 0.1。差异最大的是<b>${worst.name}</b>（SMD ${sgn(worst.smd)}，` +
+    `GAM 中位数是 GD 的 ${f3(worst.ratio)} 倍）。生命体征的差异大于实验室检验，` +
+    `符合「体征由人工记录、受记录习惯影响，检验由仪器出值」的预期。` +
+    `<b>这类差异无法靠单位换算消除</b>，它反映的是测量与记录方式、以及人群构成的真实不同。`;
+
+  // A 明细表
+  fill("#al-vars", sel.map(c => {
+    const v = AV[c], g = v.GAM_train, d = v.GD_primary;
+    return [v.name, pct(g.coverage), pct(d.coverage),
+      f2(g.obs_per_encounter_distinct_times.median), f2(d.obs_per_encounter_distinct_times.median),
+      f3(v.gam_over_gd_median_ratio), sgn(v.smd_gam_minus_gd),
+      g.heaping.last_digit_0_or_5_share == null ? "—" : pct(g.heaping.last_digit_0_or_5_share),
+      d.heaping.last_digit_0_or_5_share == null ? "—" : pct(d.heaping.last_digit_0_or_5_share)];
+  }));
+
+  // C 结局层
+  const bs = AU.C_outcomes.by_source_component;
+  const srcCN = { GAM_ip_order: "住院医嘱", GAM_note_rule: "病历规则", GAM_op_rx: "门诊处方",
+    "GAM_ward+note_rule": "病区+病历规则", GD_CRF: "CRF 人工填写" };
+  const comps = ["IMV", "ICU", "ECMO", "DEATH", "NIV", "RF"];
+  const gamKeys = Object.keys(bs).filter(k => k.startsWith("GAM"));
+  fill("#al-outcome", comps.map(cp => {
+    const gs = gamKeys.filter(k => bs[k][cp]);
+    const gsrc = gs.map(k => srcCN[k] || k).join(" + ") || "—";
+    const gp = gs.length ? Object.entries(gs.reduce((a, k) => {
+      Object.entries(bs[k][cp].precision).forEach(([p, n]) => a[p] = (a[p] || 0) + n); return a;
+    }, {})).map(([p, n]) => `${p} ${n}`).join("、") : "—";
+    const d = bs.GD_CRF && bs.GD_CRF[cp];
+    return { cells: [cp, gsrc, gp, d ? (srcCN.GD_CRF) : "—",
+      d ? Object.entries(d.precision).map(([p, n]) => `${p} ${n}`).join("、") : "—"],
+      textCols: [1, 2, 3, 4] };
+  }));
+  const e1 = AU.C_outcomes.e1_positive;
+  fill("#al-e1", Object.keys(e1).map(k => ({
+    cells: [k === "train" ? "GAM 训练集" : "GD 主评价集",
+      `${e1[k].n_events} / ${e1[k].n_included}`,
+      Object.entries(e1[k].first_component).map(([a, b]) => `${a} ${b}`).join("、"),
+      Object.entries(e1[k].precision_of_first).map(([a, b]) => `${a} ${b}`).join("、"),
+      e1[k].n_event_without_any_time], textCols: [1, 2, 3] })));
+
+  // D 协变量偏移
+  $("#al-shift").appendChild(el("div", { class: "verdict part" }, [
+    el("span", { class: "ico", text: "!" }),
+    el("div", {}, [el("b", { text: `机构判别 AUROC ${f3(shift.auroc_mean)} ± ${f3(shift.auroc_sd)}` }),
+      el("p", { html: `只用 15 个输入变量、不看标签，就能以 ${f3(shift.auroc_mean)} 的 AUROC 判断一次住院来自哪家医院。` +
+        `1.0 意味着两院数据完全可分，0.5 意味着无法区分。<b>这个值说明存在明确但不极端的协变量偏移</b>：` +
+        `在 GAM 上训练的模型迁移到 GD 时，一部分性能损失来自这里，而不是模型本身的问题。` }),
+      el("p", { html: `<small>${shift.reading || ""}</small>` })])]));
+  (function () {
+    const top = shift.permutation_importance_top.slice(0, 8);
+    const w = 720, rowH = 26, padL = 172, padR = 62, padT = 8, padB = 30;
+    const mx = Math.max(...top.map(t => t.auroc_drop_mean), 0.01);
+    const h = padT + top.length * rowH + padB;
+    const X = v => padL + v / (mx * 1.12) * (w - padL - padR);
+    const svg = SV("svg", { viewBox: `0 0 ${w} ${h}`, width: w, role: "img",
+      "aria-label": "变量对机构判别的置换重要性条形图" });
+    svg.appendChild(SV("line", { class: "axis", x1: padL, x2: padL, y1: padT, y2: h - padB }));
+    svg.appendChild(SV("text", { class: "axlab", x: padL, y: h - 4, text: "打乱该变量后判别 AUROC 的下降" }));
+    top.forEach((t, i) => {
+      const y = padT + i * rowH + 4, bh = rowH - 11, bw = Math.max(2, X(t.auroc_drop_mean) - padL);
+      const g = SV("g");
+      g.appendChild(SV("text", { class: "axlab", x: padL - 12, y: y + bh / 2 + 4, "text-anchor": "end",
+        text: t.name, fill: "var(--text-secondary)" }));
+      g.appendChild(SV("path", { fill: "var(--series-1)",
+        d: `M${padL},${y} h${bw - 4} a4,4 0 0 1 4,4 v${bh - 8} a4,4 0 0 1 -4,4 h${-bw + 4} z` }));
+      g.appendChild(SV("text", { class: "vallab", x: padL + bw + 7, y: y + bh / 2 + 4,
+        text: sgn(t.auroc_drop_mean) }));
+      const av = AV[t.code];
+      hoverable(g, t.name, [["置换重要性", sgn(t.auroc_drop_mean)],
+        ["SMD（GAM−GD）", av ? sgn(av.smd_gam_minus_gd) : "—"],
+        ["GAM 覆盖率", av ? pct(av.GAM_train.coverage) : "—"],
+        ["GD 覆盖率", av ? pct(av.GD_primary.coverage) : "—"]]);
+      svg.appendChild(g);
+    });
+    const m = $("#chart-shift"); m.innerHTML = ""; m.appendChild(svg);
+  })();
+  const t0 = shift.permutation_importance_top[0];
+  $("#al-shiftcap").innerHTML =
+    `<b>${t0.name}</b>贡献最大（${sgn(t0.auroc_drop_mean)}），它同时也是 SMD 最大的变量。` +
+    `这说明两院的偏移主要集中在生命体征的记录方式上，而不是分散在所有变量里——` +
+    `这是个好消息：<b>偏移来源可定位</b>，后续可以针对性地检查体征的采集与录入口径。`;
+
+  // E 三态：症状
+  const symCodes = Object.keys(tri.symptoms).filter(k => tri.symptoms[k].present_in_cdm);
+  const syms = symCodes.map(c => ({ ...tri.symptoms[c], code: c }))
+    .sort((a, b) => b.GD_primary.positive_share - a.GD_primary.positive_share);
+  const cough = syms.find(s => s.name === "咳嗽");
+  if (cough) $("#al-cough").innerHTML =
+    `咳嗽在 GAM 的阳性率只有 ${pct(cough.train.positive_share)}，在 GD 是 ${pct(cough.GD_primary.positive_share)}，` +
+    `相差 ${pct(Math.abs(cough.positive_share_gam_minus_gd))}。流感住院患者的咳嗽率不应只有五成——` +
+    `差额主要是「病历未提及」被当成了「没有该症状」。`;
+  $("#al-symlegend").append(...[["GAM（病历文本规则抽取）", SER[0]], ["GD（CRF 人工填写）", SER[1]]]
+    .map(([t, c]) => el("span", {}, [el("span", { class: "swatch", style: `background:${c}` }),
+      el("span", { text: t })])));
+  (function () {
+    // 成对条形：同一症状两院并列。2px 间隙，数值直接标注
+    const w = 720, grpH = 40, padL = 108, padR = 56, padT = 8, padB = 32;
+    const h = padT + syms.length * grpH + padB;
+    const X = v => padL + v * (w - padL - padR);
+    const svg = SV("svg", { viewBox: `0 0 ${w} ${h}`, width: w, role: "img",
+      "aria-label": "入院症状阳性率，两院成对条形图" });
+    [0, .2, .4, .6, .8, 1].forEach(t => {
+      svg.appendChild(SV("line", { class: "gridline", x1: X(t), x2: X(t), y1: padT, y2: h - padB }));
+      svg.appendChild(SV("text", { class: "axlab", x: X(t), y: h - padB + 15, "text-anchor": "middle",
+        text: (t * 100) + "%" }));
+    });
+    svg.appendChild(SV("line", { class: "axis", x1: padL, x2: padL, y1: padT, y2: h - padB }));
+    svg.appendChild(SV("text", { class: "axlab", x: padL, y: h - 3, text: "阳性率" }));
+    syms.forEach((s, i) => {
+      const gy = padT + i * grpH;
+      svg.appendChild(SV("text", { class: "axlab", x: padL - 10, y: gy + grpH / 2 + 3, "text-anchor": "end",
+        text: s.name, fill: "var(--text-secondary)" }));
+      [["train", SER[0], "GAM"], ["GD_primary", SER[1], "GD"]].forEach(([k, col, nm], j) => {
+        const v = s[k].positive_share, bh = 13, y = gy + 4 + j * (bh + 2);
+        const bw = Math.max(2, X(v) - padL);
+        const g = SV("g");
+        g.appendChild(SV("path", { fill: col,
+          d: `M${padL},${y} h${bw - 4} a4,4 0 0 1 4,4 v${bh - 8} a4,4 0 0 1 -4,4 h${-bw + 4} z` }));
+        g.appendChild(SV("text", { class: "vallab", x: padL + bw + 6, y: y + bh / 2 + 4, text: pct(v) }));
+        hoverable(g, `${s.name} · ${nm}`, [["阳性率", pct(v)],
+          ["阳性 / 总数", `${s[k].n_1} / ${s[k].n}`], ["缺失率", pct(s[k].missing_share)],
+          ["两院差（GAM−GD）", sgn(s.positive_share_gam_minus_gd)]]);
+        svg.appendChild(g);
+      });
+    });
+    const m = $("#chart-sym"); m.innerHTML = ""; m.appendChild(svg);
+  })();
+
+  // 基础病表
+  const coms = Object.keys(tri.comorbidities).filter(k => tri.comorbidities[k].present_in_cdm)
+    .map(c => tri.comorbidities[c])
+    .sort((a, b) => Math.abs(b.positive_share_gam_minus_gd) - Math.abs(a.positive_share_gam_minus_gd));
+  fill("#al-com", coms.map(c => [c.name, pct(c.train.positive_share), pct(c.GD_primary.positive_share),
+    sgn(c.positive_share_gam_minus_gd), pct(c.train.missing_share), pct(c.GD_primary.missing_share)]));
+
+  // F 重复行
+  const dup = AU.E_tri_state_and_duplicates.duplicate_rows;
+  fill("#al-dup", Object.keys(dup).filter(k => !k.startsWith("_")).map(k => ({
+    cells: [k, dup[k].n_rows, dup[k].n_duplicate_rows_all_columns,
+      Object.entries(dup[k].by_source || {}).map(([a, b]) => `${a} ${b}`).join("、") || "—"],
+    textCols: [3] })));
+  $("#al-dupnote").textContent = dup._impact_on_v1_experiments || "";
+
+  // 汇总
+  fill("#al-summary", [
+    ["结局标签来源与时间精度不同",
+      "GAM 的 ICU / 有创通气全部是病历书写时间（note 精度）；GD 全部是 CRF 的日期精度",
+      ST.part, "v2 已做人工裁定（46 次住院 / 79 判定）。时间精度仍需数据方补充"],
+    ["GD 没有真实测量时刻",
+      `窗口内 ${prec.day || 0} 个观测仅日期精度；提前量四分位全为 24.0 小时（由锚点推算）`,
+      ST.no, "CDM v2 新增 <code>time_kind</code> 显式标注；真实时刻需数据方补充（A6）"],
+    ["「未提及」被当成「阴性」",
+      cough ? `GAM 症状缺失率 0%；咳嗽 ${pct(cough.train.positive_share)} vs GD ${pct(cough.GD_primary.positive_share)}` : "—",
+      ST.no, "CDM v2 改为三态 <code>assertion</code>；症状仅作次要分析，另抽 30–50 条人工核查"],
+    ["人群与测量习惯不同",
+      `机构判别 AUROC ${f3(shift.auroc_mean)}；${nBig}/${smds.length} 个变量 |SMD| > 0.1`,
+      ST.na, "无法靠对齐消除，属真实的外部验证难度。报告时按变量说明，不做分布对齐"],
+    ["对齐层存在重复行",
+      `events 表 ${dup.events.n_duplicate_rows_all_columns} 行整行重复（GD 侧为 0）`,
+      ST.part, "对已有结果无影响（特征构造前已按时刻折叠）。CDM v2 去重属数据卫生改进"],
+  ].map(r => ({ cells: r, textCols: [1, 2, 3] })));
+})();
+
+/* ==================== 07 / 08 ==================== */
+(function () {
+  fill("#l-next", [
+    ["为 v2 补齐 Qwen3-14B 零样本", "待显存",
+      "代码、配置与锁定已就绪（<code>experiments/rw_gam2gd_v2_sup/</code>）。14B bf16 需约 29 GB，" +
+      "当前两块 L40 被其他训练占用，剩余显存不足，等空闲即可执行"],
+    ["CDM v2 对齐改造（P2）", "需研究者确认",
+      "去重、<code>time_kind</code>、三态 <code>assertion</code>、<code>outcome_components</code> 表、锚点标记。" +
+      "本页第 06 节已给出全部差距的量化依据"],
+    ["向数据方补充数据（A6）", "需研究者联系",
+      "GD 的真实入院时间与事件发生时刻、多时点测量值。这是解决「索引当天事件占比过半」和" +
+      "「没有时间序列」两个根本限制的唯一途径"],
+    ["第二名裁定人独立复核", "需研究者安排",
+      "现有裁定只有 1 人，且 LLM 结论对裁定人可见。独立复核才能给出真正的人际一致性"],
+    ["A2 反向迁移、完整 A4", "排期",
+      "GD 训练 → GAM 测试；桥接实验的标签与时间追溯"],
+  ].map(r => ({ cells: r, textCols: [1, 2] })));
+
+  const runs = [["v1.0 主运行", DATA.v1, "logs/2026-09-27/rw_gam2gd/" + DATA.v1.run_id + "/metrics.json"],
+    ["v2 主运行（裁定标签）", DATA.v2, "logs/2026-09-28/rw_gam2gd/" + DATA.v2.run_id + "/metrics.json"]];
+  if (DATA.sup) runs.push(["v2 补充运行", DATA.sup, "logs/2026-09-29/rw_gam2gd/" + DATA.sup.run_id + "/metrics.json"]);
+  const extra = [["v2 冒烟（标签打乱）", null, "logs/2026-09-28/rw_gam2gd/" + DATA.smoke.run_id + "/metrics.json"],
+    ["A1 正式版 7 项", null, "logs/2026-09-28/rw_gam2gd/A1-*_formal_v2_20260928/metrics.json"],
+    ["v2 vs v1.0 配对对比", null, "logs/2026-09-28/v2_pipeline/v2_vs_v1_compare.json"],
+    ["CDM 对齐差距审计", null, "logs/2026-09-29/cdm_v2/gap_audit.json"]];
+  fill("#r-runs", [...runs.map(([n, r, p]) =>
+    ({ cells: [n, r.models.map(m => DATA.model_cn[m] || m).join("、"), `<code>${p}</code>`, r.generated_at],
+      textCols: [1, 2, 3] })),
+    ...extra.map(([n, , p]) => ({ cells: [n, "—", `<code>${p}</code>`, "—"], textCols: [1, 2, 3] }))]);
+
+  fill("#r-cmds", [
+    ["v2 主运行",
+      "<code>.venv/bin/python -m experiments.rw_gam2gd_v2.run --adjudications derived/review/gam_outcomes_20260927/adjudications.csv --config experiments/rw_gam2gd_v2/configs/v2_main_e1.json --run-id V2_main_e1_20260928</code>"],
+    ["v2 补充运行（补齐模型集）",
+      "<code>.venv/bin/python -m experiments.rw_gam2gd_v2_sup.run --adjudications derived/review/gam_outcomes_20260927/adjudications.csv --config experiments/rw_gam2gd_v2_sup/configs/v2_sup_e1.json --run-id V2_sup_e1_20260929</code>"],
+    ["Qwen3-14B 补充（待显存）",
+      "<code>.venv/bin/python -m experiments.rw_gam2gd_v2_sup.run --adjudications derived/review/gam_outcomes_20260927/adjudications.csv --config experiments/rw_gam2gd_v2_sup/configs/v2_sup_qwen14b_e1.json --run-id V2_sup_qwen14b_e1_20260929</code>"],
+    ["v2 与 v1.0 配对对比", "<code>.venv/bin/python scripts/v2_compare_20260928.py</code>"],
+    ["CDM 对齐差距审计", "<code>.venv/bin/python scripts/data_audit/cdm_v2_gap_audit.py</code>"],
+    ["生成本页", "<code>.venv/bin/python scripts/build_week01_report_html.py</code>"],
+    ["隐私扫描", "<code>.venv/bin/python scripts/data_audit/scan_code_identifiers.py</code>"],
+    ["测试", "<code>.venv/bin/python -m pytest tests/ -q</code>"],
+  ].map(r => ({ cells: r, textCols: [1] })));
+})();
+</script>
+</body>
+</html>

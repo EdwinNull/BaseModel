@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>两中心数据与对齐</title>
+<meta name="description" content="老年流感转重预测：理想数据形态、GAM 与 GD 的差异、已完成的对齐工作（只含聚合量）">
+<style>
+/* ===== 设计变量：浅色为默认，深色随系统或手动切换 ===== */
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --panel2:#f0f2f5; --ink:#1d2330; --muted:#5b6475; --line:#dfe3ea;
+  --gd:#0f8b8d; --gd-soft:#d6efef; --gam:#d9822b; --gam-soft:#f8e6d3; --ideal:#4c5fd5; --ideal-soft:#e2e6fb;
+  --ok:#2e8b57; --ok-soft:#dcf1e4; --warn:#c28a00; --warn-soft:#f8eecd; --bad:#c0392b; --bad-soft:#f6dcd9;
+  --shadow:0 1px 2px rgba(20,30,50,.06),0 4px 14px rgba(20,30,50,.05);
+  --radius:12px; --mono:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12151b; --panel:#1a1f28; --panel2:#222834; --ink:#e7eaf0; --muted:#9aa3b5; --line:#2e3542;
+    --gd:#35b8ba; --gd-soft:#163a3b; --gam:#f0a050; --gam-soft:#3d2a16; --ideal:#8b9bff; --ideal-soft:#262c50;
+    --ok:#5cc98a; --ok-soft:#173726; --warn:#e3b53c; --warn-soft:#3a3115; --bad:#ef7a6c; --bad-soft:#401f1c;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12151b; --panel:#1a1f28; --panel2:#222834; --ink:#e7eaf0; --muted:#9aa3b5; --line:#2e3542;
+  --gd:#35b8ba; --gd-soft:#163a3b; --gam:#f0a050; --gam-soft:#3d2a16; --ideal:#8b9bff; --ideal-soft:#262c50;
+  --ok:#5cc98a; --ok-soft:#173726; --warn:#e3b53c; --warn-soft:#3a3115; --bad:#ef7a6c; --bad-soft:#401f1c;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.65 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+a{color:var(--ideal)}
+code,.mono{font-family:var(--mono);font-size:.88em}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+
+/* ===== 顶栏与导航 ===== */
+header.top{background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+.top-inner{display:flex;align-items:center;gap:12px;padding:10px 0;flex-wrap:wrap}
+.brand{font-weight:700;font-size:16px;margin-right:auto}
+.brand small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+nav.tabs{display:flex;gap:6px;flex-wrap:wrap}
+nav.tabs button{border:1px solid var(--line);background:var(--panel2);color:var(--ink);padding:6px 12px;border-radius:999px;cursor:pointer;font:inherit;font-size:14px}
+nav.tabs button[aria-selected="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.theme-btn{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:8px;padding:5px 9px;cursor:pointer;font:inherit;font-size:13px}
+
+/* ===== 通用块 ===== */
+main{padding:22px 0 60px}
+section.page{display:none}
+section.page.active{display:block}
+.hero{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px;box-shadow:var(--shadow);margin-bottom:18px}
+.hero h1{margin:0 0 6px;font-size:23px}
+.hero p{margin:4px 0;color:var(--muted)}
+.answer{border-left:4px solid var(--ideal);background:var(--ideal-soft);padding:10px 14px;border-radius:0 8px 8px 0;margin-top:12px;color:var(--ink)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);margin-bottom:16px}
+.card h2{margin:0 0 4px;font-size:18px}
+.card h3{margin:14px 0 6px;font-size:15.5px}
+.sub{color:var(--muted);font-size:13.5px;margin:0 0 12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media (max-width:860px){.grid2,.grid3{grid-template-columns:1fr}}
+.kpi{background:var(--panel2);border-radius:10px;padding:12px 14px}
+.kpi b{display:block;font-size:22px;line-height:1.2}
+.kpi span{color:var(--muted);font-size:13px}
+.tag{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted);margin-right:4px;white-space:nowrap}
+.tag.gd{background:var(--gd-soft);color:var(--gd);border-color:transparent}
+.tag.gam{background:var(--gam-soft);color:var(--gam);border-color:transparent}
+.tag.ideal{background:var(--ideal-soft);color:var(--ideal);border-color:transparent}
+.st{display:inline-block;font-size:12px;font-weight:600;padding:1px 8px;border-radius:6px;white-space:nowrap}
+.st.ok{background:var(--ok-soft);color:var(--ok)} .st.part{background:var(--warn-soft);color:var(--warn)} .st.no{background:var(--bad-soft);color:var(--bad)}
+.note{font-size:13px;color:var(--muted)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin:6px 0}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{border-bottom:1px solid var(--line);padding:7px 8px;text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:13px;background:var(--panel2)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.tbl-wrap{overflow-x:auto}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 12px}
+.chips button{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:4px 11px;border-radius:999px;cursor:pointer;font:inherit;font-size:13px}
+.chips button.on{background:var(--ideal);border-color:var(--ideal);color:#fff}
+details{border:1px solid var(--line);border-radius:10px;margin:8px 0;background:var(--panel)}
+details>summary{cursor:pointer;padding:10px 14px;font-weight:600;list-style:none;display:flex;gap:10px;align-items:center}
+details>summary::-webkit-details-marker{display:none}
+details>summary::before{content:"▸";color:var(--muted);transition:transform .15s}
+details[open]>summary::before{transform:rotate(90deg)}
+details .body{padding:0 16px 12px}
+svg text{fill:var(--ink);font-family:inherit}
+svg .muted{fill:var(--muted)}
+.chart{width:100%;overflow-x:auto}
+.pre{background:var(--panel2);border-radius:8px;padding:10px 12px;font-family:var(--mono);font-size:12.5px;white-space:pre-wrap;word-break:break-all;margin:0}
+.btn{border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:8px;padding:5px 10px;cursor:pointer;font:inherit;font-size:13px}
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
+.flow .step{flex:1 1 150px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;position:relative}
+.flow .step.on{border-color:var(--ideal);box-shadow:0 0 0 2px var(--ideal-soft)}
+.flow .step b{display:block;font-size:14px}
+.flow .step span{font-size:12.5px;color:var(--muted)}
+.flow .arrow{align-self:center;color:var(--muted)}
+.detail-box{margin-top:10px;background:var(--ideal-soft);border-radius:10px;padding:12px 14px;min-height:60px}
+.timeline{position:relative;margin:6px 0 0 6px;padding-left:22px;border-left:2px solid var(--line)}
+.tl-item{position:relative;margin:0 0 14px}
+.tl-item::before{content:"";position:absolute;left:-29px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--ideal);border:2px solid var(--panel)}
+.tl-item .d{font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+.search{width:100%;max-width:340px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:inherit}
+#issueList{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+@media (max-width:860px){#issueList{grid-template-columns:1fr}}
+.issue{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--panel)}
+.issue .h{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.issue .h b{font-size:14.5px}
+.issue p{margin:4px 0;font-size:13.5px}
+.hidden{display:none !important}
+footer{color:var(--muted);font-size:12.5px;padding:20px 0 40px;border-top:1px solid var(--line)}
+.arch-node{cursor:pointer}
+.arch-node rect{transition:stroke-width .1s}
+.arch-node:hover rect,.arch-node.on rect{stroke-width:3}
+/* ===== 第 4 页：真实格式示例 ===== */
+.caveat{border-left:4px solid var(--warn);background:var(--warn-soft);padding:10px 14px;border-radius:0 8px 8px 0;margin-top:12px;font-size:14px}
+table.xl{border-collapse:collapse;font-size:12.5px;white-space:nowrap;width:auto}
+table.xl th,table.xl td{border:1px solid var(--line);padding:4px 8px;vertical-align:middle}
+table.xl th.col{background:var(--panel2);color:var(--muted);font-weight:500;text-align:center;font-size:11.5px}
+table.xl td.rn{background:var(--panel2);color:var(--muted);text-align:right;font-size:11.5px}
+table.xl td.mod{background:var(--gd-soft);color:var(--gd);font-weight:600;text-align:center}
+table.xl.gam td.mod{background:var(--gam-soft);color:var(--gam)}
+table.xl td.fld{background:var(--panel2);font-weight:600}
+table.xl td.kind{color:var(--muted);font-size:11.5px}
+table.xl td.hl{background:var(--warn-soft);outline:2px solid var(--warn);outline-offset:-2px}
+table.xl tbody tr.click{cursor:pointer}
+table.xl tbody tr.click:hover td,table.xl tbody tr.on td{background:var(--ideal-soft)}
+.fake{display:inline-block;font-size:11.5px;padding:0 7px;border-radius:999px;background:var(--warn-soft);color:var(--warn);font-weight:600;vertical-align:1px}
+.notebox{background:var(--panel2);border-radius:8px;padding:12px 14px;font-size:14px;line-height:2;white-space:pre-wrap}
+.sp{border-radius:4px;padding:1px 2px;cursor:pointer}
+.sp:focus{outline:2px solid var(--ideal)}
+.sp.pos{background:var(--ok-soft);border-bottom:2px solid var(--ok)}
+.sp.neg{background:var(--bad-soft);border-bottom:2px solid var(--bad)}
+.sp.hypo,.sp.periop{background:var(--panel);border-bottom:2px dashed var(--muted)}
+.sp.skip{background:var(--warn-soft);border-bottom:2px solid var(--warn)}
+.sp.miss{border:1.5px dashed var(--bad)}
+.sp.pseudo{background:var(--panel);border-bottom:2px dotted var(--ok)}
+.sp.time,.sp.info{background:var(--ideal-soft);border-bottom:2px solid var(--ideal)}
+.sp.priv{background:var(--ink);color:var(--panel)}
+.sp.on{box-shadow:0 0 0 2px var(--ideal)}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-inner">
+    <div class="brand">老年流感"转重"预测 · 数据与对齐<small>GAM（广安门医院）↔ GD（广东省中医院）｜截至 2026-10-05｜只含聚合量</small></div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-page="p1" aria-selected="true">① 理想数据</button>
+      <button role="tab" data-page="p2" aria-selected="false">② GAM 与 GD 的差异</button>
+      <button role="tab" data-page="p3" aria-selected="false">③ 已做的对齐工作</button>
+      <button role="tab" data-page="p5" aria-selected="false">④ 真实格式示例</button>
+      <button role="tab" data-page="p4" aria-selected="false">依据与出处</button>
+    </nav>
+    <button class="theme-btn" id="themeBtn" title="切换深浅色">◐ 主题</button>
+  </div>
+</header>
+
+<main class="wrap">
+
+<!-- =====================================================================
+     第 1 页：理想数据
+     ===================================================================== -->
+<section class="page active" id="p1">
+  <div class="hero">
+    <h1>问题 1：对这个项目来说，什么样的数据最理想？</h1>
+    <p>目标架构是"不规则时序编码器（MIRA 一类）+ 大语言模型（Qwen3 一类）"。模型需要从体征、检验的时间序列和临床文本中，预测老年流感住院患者是否会转重。</p>
+    <div class="answer"><b>一句话回答：</b>每个观测都带<b>真实测量时间</b>、住院期间<b>多次</b>测量、结局带<b>发生时间</b>、文本带<b>书写时间</b>、"未知"与"阴性"<b>分开编码</b>、单位与检测方法<b>有字典</b>，并且来自<b>多个中心</b>的<b>足够事件数</b>（外部验证建议至少 100 个事件）。目前 GD 和 GAM 在"测量时间"和"事件数"两项上差距最大。</div>
+  </div>
+
+  <div class="card">
+    <h2>1.1 目标架构：数据从哪里进、喂给谁</h2>
+    <p class="sub">点击图中任一方框，查看这个环节需要的数据，以及现有数据是否满足。</p>
+    <div class="chart" id="archChart"></div>
+    <div class="detail-box" id="archDetail">← 点击上图的方框。</div>
+  </div>
+
+  <div class="card">
+    <h2>1.2 同一位病人，三种数据形态</h2>
+    <p class="sub">下面是一位<b>虚构</b>病人住院前 5 天的心率记录，用来示意三种数据形态。切换后比较 MIRA 能"看到"的序列有多大差别。</p>
+    <div class="chips" id="tlChips">
+      <button data-v="ideal" class="on">理想（逐小时，真实测量时间）</button>
+      <button data-v="gam">类似 GAM（每天 1–3 次，时间来自病历书写）</button>
+      <button data-v="gd">类似 GD（整次住院 1–2 次，部分只有日期）</button>
+    </div>
+    <div class="chart" id="tlChart"></div>
+    <div class="grid3" id="tlStats" style="margin-top:10px"></div>
+    <p class="note">示意图，数值为虚构。GD、GAM 每次住院的时间点数取自 week01 质量报告 §5.1：GD 体征中位数 2 个，GAM 7–9 个。</p>
+  </div>
+
+  <div class="card">
+    <h2>1.3 理想数据要素清单（对照现状与实验证据）</h2>
+    <p class="sub">按类别筛选。"证据"一列是我们自己的实验结果或文献建议，说明这一项为什么重要。</p>
+    <div class="chips" id="reqChips"></div>
+    <div class="tbl-wrap">
+      <table id="reqTable">
+        <thead><tr><th style="width:21%">要素（理想状态）</th><th style="width:15%">GD 现状</th><th style="width:15%">GAM 现状</th><th>为什么重要（证据）</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="legend" style="margin-top:8px"><span><span class="st ok">满足</span> 基本满足</span><span><span class="st part">部分</span> 部分满足或有替代</span><span><span class="st no">缺</span> 缺失或不可恢复</span></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>1.4 理想的一条样本长什么样</h2>
+      <p class="sub">MIRA 官方的输入格式是每行一条序列，含 <code>sequence</code>、<code>time</code>、<code>mask</code>。LLM 侧需要带时间的文本，标签需要组件和发生时间。下面的数值全部虚构。</p>
+      <div class="chips" id="sampleChips">
+        <button data-v="ts" class="on">时序（MIRA 输入）</button>
+        <button data-v="txt">文本（LLM 输入）</button>
+        <button data-v="lab">标签</button>
+      </div>
+      <pre class="pre" id="samplePre"></pre>
+    </div>
+    <div class="card">
+      <h2>1.5 可以向数据方提出的需求（按优先级）</h2>
+      <p class="sub">P0 不补齐，时序模型在医院数据上基本无法发挥作用；P1 决定标签与可比性；P2 提升上限。</p>
+      <ol id="askList" style="margin:0;padding-left:20px;font-size:14px"></ol>
+      <button class="btn" id="copyAsk" style="margin-top:8px">复制为纯文本</button>
+      <span class="note" id="copyMsg"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>1.6 公开数据给出的"密度—收益"证据</h2>
+    <p class="sub">F3 实验在 MIMIC-IV 上人为降低观测密度（L0 原始逐小时 → L4 每变量只留 1 个值），看时序基础模型相对 LR 的优势如何变化（≥65 岁验证集，AUPRC）。</p>
+    <div class="chart" id="f3Chart"></div>
+    <p class="note">数据：week02 F3 文档 §2（验证集，描述性）。L3 模拟"每天一个值、只有日期精度"，接近 GAM；L4 接近 GD。测试集上，TabPFN v2 在 L4 仍比 LR 高 0.037（CI 不含 0），见 F3 文档 §6。</p>
+  </div>
+</section>
+
+<!-- =====================================================================
+     第 2 页：GAM 与 GD 的差异
+     ===================================================================== -->
+<section class="page" id="p2">
+  <div class="hero">
+    <h1>问题 2：GAM 和 GD 的数据差异体现在哪些方面？</h1>
+    <p>两家医院、两种采集方式：GAM 是 EHR 多表导出，GD 是人工整理的 CRF 宽表。两边患者交集为 0，只能在变量与定义层面对齐。</p>
+    <div class="answer"><b>一句话回答：</b>差异分 7 个层面：人群与纳入、数据形态、<b>时间精度</b>、<b>观测密度</b>、变量范围、取值与记录习惯、<b>结局与并发症的判定方式</b>。仅凭"时间精度"一项就能 100% 区分两家医院；数值分布的差异有一部分来自"在哪个时点取值"，改用流感索引时点后明显缩小。</div>
+  </div>
+
+  <div class="grid3" style="margin-bottom:16px">
+    <div class="kpi"><span class="tag gd">GD</span><b>297 次 / 295 人</b><span>2021-11 至 2026-06；年龄 60–97，中位数 68；CRF 宽表</span></div>
+    <div class="kpi"><span class="tag gam">GAM 住院</span><b>173 次 / 168 人</b><span>2024-11 至 2026-03；年龄中位数 70，&lt;60 岁 44 次；EHR 6 张表</span></div>
+    <div class="kpi"><span class="tag gam">GAM 门诊</span><b>1166 次 / 1136 人</b><span>辅助判断"入院前已流感阳性"（18 次住院）</span></div>
+  </div>
+
+  <div class="card">
+    <h2>2.1 七个层面的差异</h2>
+    <p class="sub">点开每一层查看细节。右侧标签说明这一层差异的性质：<span class="tag">真实人群</span><span class="tag">记录方式</span><span class="tag">判定口径</span>。</p>
+    <div id="diffAcc"></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>2.2 观测密度：每次住院的时间点数</h2>
+      <p class="sub">每个变量在一次住院中出现的不同时间点数（中位数）。</p>
+      <div class="legend"><span><i style="background:var(--gd)"></i>GD</span><span><i style="background:var(--gam)"></i>GAM 住院</span></div>
+      <div class="chart" id="densChart"></div>
+      <p class="note">来源：week01 质量报告 §5.1（CDM 20260927 版）。灰色"—"表示该中心没有收集这个变量。</p>
+    </div>
+    <div class="card">
+      <h2>2.3 变量覆盖率（有该变量的住院占比）</h2>
+      <p class="sub">GD 覆盖面广但每个变量只有 1–2 个点；GAM 多了电解质、血气、肌钙蛋白、乳酸等。</p>
+      <div class="legend"><span><i style="background:var(--gd)"></i>GD</span><span><i style="background:var(--gam)"></i>GAM 住院</span></div>
+      <div class="chart" id="covChart"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>2.4 数值分布：差异有多少来自"取值时点"</h2>
+    <p class="sub">GAM 有 63% 的住院是入院 48 小时后才首次流感阳性（多为院内发病）。如果都取"入院值"，比较的是不同病程阶段。切换 GAM 的取值口径，看检验值的中位数比值（GD / GAM，1 表示一致）如何变化。</p>
+    <div class="chips" id="ratioChips">
+      <button data-i="0" class="on">GAM 全部住院 · 入院值</button>
+      <button data-i="1">GAM 流感 ≥60 岁 · 入院值</button>
+      <button data-i="2">GAM 流感 ≥60 岁 · 流感索引值</button>
+      <button data-i="3">GAM 社区发病（≤48h）</button>
+    </div>
+    <div class="chart" id="ratioChart"></div>
+    <p class="note">来源：week01 质量报告 §5.5。只列检验值。体征另见 2.1 的"取值与记录习惯"：心率、呼吸在所有口径下 GD 都更高，属于记录习惯差异。</p>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>2.5 哪类信息"暴露"医院身份</h2>
+      <p class="sub">AL1：用特征预测"来自哪家医院"，AUROC 越接近 1 越容易分辨（按患者 5 折 × 5 次重复）。</p>
+      <div class="legend"><span><i style="background:var(--ideal)"></i>LR（线性）</span><span><i style="background:var(--muted)"></i>LightGBM（非线性）</span></div>
+      <div class="chart" id="domChart"></div>
+      <p class="note">V：15 个首日数值；D：年龄性别；M：测量过程（次数、缺失、尾数）；T：时间精度。</p>
+    </div>
+    <div class="card">
+      <h2>2.6 结局与并发症：判定方式不同</h2>
+      <p class="sub">阳性率（%）。GD 来自 CRF 人工判定，GAM 来自诊断关键词或规则。点击行可高亮。</p>
+      <div class="tbl-wrap">
+      <table id="outTable">
+        <thead><tr><th>变量</th><th class="num">GD</th><th class="num">GAM 全部</th><th class="num">GAM 流感≥60</th><th>解读</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>2.7 结局事件数（直接决定能做什么实验）</h2>
+    <p class="sub">v1.0 口径：流感索引，观察 1 天，索引前回看 24 小时。stay 为住院期内任意时间发生，前瞻为 t0 之后才发生。</p>
+    <div class="chips" id="evChips">
+      <button data-v="stay" class="on">住院期（stay）</button>
+      <button data-v="pro">前瞻（prospective）</button>
+    </div>
+    <div class="chart" id="evChart"></div>
+    <p class="note">来源：week01 质量报告"CDM v3.1"节。E1 = 有创通气 / ICU / ECMO / 死亡；重症 = E1 或无创通气或 I/II 型呼吸衰竭（SEV_B 口径）。GAM 的 E1 另有人工裁定版（stay 14，前瞻 6）。约 2/3 的事件发生在索引当天，所以前瞻事件极少。</p>
+  </div>
+</section>
+
+<!-- =====================================================================
+     第 3 页：已做的对齐工作
+     ===================================================================== -->
+<section class="page" id="p3">
+  <div class="hero">
+    <h1>问题 3：目前做了哪些工作来对齐两个中心的数据？</h1>
+    <p>思路：不做患者层面的合并，而是把"相同的临床概念"放进同一套统一数据模型（CDM），保留全部原始值和来源，再用实验检验对齐的效果。</p>
+    <div class="answer"><b>一句话回答：</b>完成了 4 类工作。① <b>结构对齐</b>：8 张表的 CDM，三个版本迭代到 v3.1。② <b>语义与时间对齐</b>：统一编码、单位、锚点、流感索引时点、三态编码，逐一处理了 22 个问题（其中 9 个仍需研究者定口径）。③ <b>标签对齐</b>：结局组件表、重症规则 SEV_B，在 GD 上与人工判定 κ = 0.917。④ <b>对齐效果的检验</b>：AL1 发现线性偏移可以消除、非线性指纹消除不了，并给出预处理建议。</div>
+  </div>
+
+  <div class="card">
+    <h2>3.1 时间线</h2>
+    <div class="timeline" id="tl"></div>
+  </div>
+
+  <div class="card">
+    <h2>3.2 对齐流水线（点击每一步看做法）</h2>
+    <div class="flow" id="flow"></div>
+    <div class="detail-box" id="flowDetail">← 点击上面的步骤。</div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>3.3 CDM 的 8 张表</h2>
+      <p class="sub">行数为 20260927 版（GAM 住院 events 在 v3 中去重后为 26,083 行）。</p>
+      <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>表</th><th>粒度</th><th class="num">GD</th><th class="num">GAM 住院</th><th class="num">GAM 门诊</th></tr></thead>
+        <tbody id="cdmBody"></tbody>
+      </table>
+      </div>
+      <p class="note">编码沿用 GD 的 CRF：VS 体征、LAB 检验、SYM 症状、COM 基础病、TRT 治疗、OUT 结局、CLP 并发症；GAM 独有检验用 <code>EXT_</code> 前缀。每条记录保留 <code>raw_value</code>、<code>time_raw</code>、<code>time_precision</code>、<code>origin</code>，修正只打标记、不覆盖原值。</p>
+    </div>
+    <div class="card">
+      <h2>3.4 对齐质量的验证</h2>
+      <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>检查</th><th>结果</th></tr></thead>
+        <tbody>
+          <tr><td>重症规则 SEV_B vs GD 人工判定 OUT002</td><td><b>κ = 0.917</b>（293 次，漏判 0，多判 10）</td></tr>
+          <tr><td>肝损伤规则（&gt;3×ULN）vs CRF</td><td>κ = 0.774</td></tr>
+          <tr><td>AKI：肌酐 &gt;133 且无 CKD vs CRF</td><td>κ = 0.662（KDIGO 只有 0.347）</td></tr>
+          <tr><td>两院是否有重复患者</td><td>同日三项血常规完全相同：<b>0 组</b></td></tr>
+          <tr><td>可复现性</td><td>同一输入构建两次，28 个产物 sha256 全部一致</td></tr>
+          <tr><td>隐私审计</td><td>产物与代码扫描 0 命中；化名表跨版本稳定</td></tr>
+          <tr><td>单元测试</td><td>27 项（v1）→ 70 项（v3），医院线全部通过</td></tr>
+          <tr><td>标签版本等价</td><td>E1 阳性对在三个 CDM 版本上一致（264 对，不一致 0）</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>3.5 遇到的 22 个问题与处理</h2>
+    <p class="sub">可按类别筛选，或搜索关键词。标 <span class="st part">A 档</span> 的是需要研究者决定的口径。</p>
+    <div class="chips" id="issueChips"></div>
+    <input class="search" id="issueSearch" placeholder="搜索，例如：时间、单位、插管…">
+    <div id="issueList"></div>
+  </div>
+
+  <div class="card">
+    <h2>3.6 协调方法的效果（AL1，折内协调）</h2>
+    <p class="sub">协调后再做"医院分类"，AUROC 越接近 0.5 说明差异消除得越多。切换特征组。</p>
+    <div class="chips" id="harmChips">
+      <button data-v="V" class="on">V：15 个数值</button>
+      <button data-v="VD">V + 年龄性别</button>
+    </div>
+    <div class="legend"><span><i style="background:var(--ideal)"></i>LR</span><span><i style="background:var(--muted)"></i>LightGBM</span><span>虚线 = 0.5（分不出）</span></div>
+    <div class="chart" id="harmChart"></div>
+    <div class="answer" style="margin-top:10px">
+      <b>结论与建议：</b>
+      <ul style="margin:4px 0 0;padding-left:18px">
+        <li>线性层面的偏移可以消除：LR 从 0.73 降到 0.53–0.54。</li>
+        <li>非线性可分性消除不了：z 分数和 ComBat 反而让 LightGBM 升到 0.95–0.98。原因是整数取值经过仿射变换后，在两家医院落在错开的网格上，形成"取值网格指纹"。</li>
+        <li>需要协调时优先用<b>分位数映射</b>；外部验证以"不协调"的结果为主。</li>
+        <li><b>时间精度类特征不能进入模型</b>：它一项就能 100% 分出医院。</li>
+        <li>阈值类评分（如 URB-65）不能在协调后的数据上计算：ComBat 会使"体温 ≥38"的判断翻转 4.6–4.8%。</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>3.7 对齐之后：GAM 训练 → GD 外部验证（v1.0）</h2>
+      <p class="sub">E1 终点，GD 292 次住院 / 38 个事件，AUROC 与 95% CI。</p>
+      <div class="chart" id="v1Chart"></div>
+      <p class="note">GAM 训练集只有 10 个事件。所有模型都低估风险（O/E 1.18–2.81）。MIRA 在每个变量只有 1–2 个点的 GD 上明显落后，与 1.6 节 F3 的"密度—收益"规律一致。</p>
+    </div>
+    <div class="card">
+      <h2>3.8 还没解决的</h2>
+      <ul style="padding-left:18px;margin:0;font-size:14px">
+        <li><b>人工裁定停摆</b>（10-04 起）：GAM 结局的双人盲裁（S2）暂停，GAM 的重症与 E1 标签仍以规则为主。</li>
+        <li><b>A 档口径待定</b>：索引时点、窗口、可比子集、并发症定义、围术期插管、症状缺失编码、用药时间、不完整病例等（week01 报告 §6）。重症中"呼吸机"的定义、空格按阴性、stay 口径已于 10-01 决定。</li>
+        <li><b>需数据方确认</b>：GD 入院时间；D-二聚体（FEU/DDU）、IL-6、铁蛋白的单位与检测方法；OUT003 与 TRT006/007 的关系；AKI 判定标准。</li>
+        <li><b>不可恢复的</b>：GD 的小时级轨迹。每个变量只有 1–2 个点，检验又只有日期，不能还原成真实的测量序列。</li>
+        <li><b>跨库对齐</b>：公开数据（MIMIC-IV、eICU）已建逐小时视图；与医院共享的日级视图还没有建。AL3（公开 → 医院桥接）等待标签版本确认。</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     第 4 页：真实格式示例（结构来自真实数据与对齐代码，数值虚构）
+     ===================================================================== -->
+<section class="page" id="p5">
+  <div class="hero">
+    <h1>看得见的例子：原始数据长什么样，对齐后变成什么</h1>
+    <p>这一页是给临床同事看的。每个例子分三步看：原始记录长什么样，我们怎样把它变成统一格式，这对模型意味着什么。</p>
+    <div class="caveat"><b>关于示例：</b>表头、列位置、字段名、单位写法、病历措辞和处理规则，都来自两家医院真实数据的结构和对齐代码，包括代码的单元测试。<b>姓名、病案号、日期和数值全部是虚构的</b>（标 <span class="fake">虚构</span>）。各类问题出现的次数用服务器上的真实聚合计数，少于 11 的写作“&lt;11”。<br>
+    为什么不放真实病例：医院数据含可识别信息，项目规则要求逐例数据只留在服务器上。</div>
+  </div>
+
+  <div class="card">
+    <h2>4.1 GD：一张人工整理的 CRF 宽表 <span class="fake">虚构</span></h2>
+    <p class="sub">下面是 GD 汇总表 Sheet1 的样子。列字母与真实表一致，中间省略的列用“…”表示。第 1 行是模块名，第 2 行是字段名（真实表头以编码开头，中文名为示意）。<b>点下面的按钮</b>，表中会标出对应的问题。</p>
+    <div class="chips" id="crfChips"></div>
+    <div class="tbl-wrap"><table class="xl" id="crfGrid"></table></div>
+    <div class="detail-box" id="crfExplain">← 点击上面的按钮。</div>
+  </div>
+
+  <div>
+    <div class="card">
+      <h2>4.2 GD：对齐之后变成什么</h2>
+      <p class="sub">上表中“示例甲”的 3 行，被拆成按时间点排列的记录（CDM 的 events 表，只列 4 条）。</p>
+      <div class="tbl-wrap">
+      <table style="font-size:13px">
+        <thead><tr><th>变量</th><th>原值</th><th>数值</th><th>原时间 → 采用时间</th><th>标记</th></tr></thead>
+        <tbody>
+          <tr><td>VS001 体温</td><td class="mono">38.6</td><td>38.6</td><td class="mono">2024-01-03 10:30</td><td>精度 minute</td></tr>
+          <tr><td>LAB001 WBC</td><td class="mono">15.8</td><td>15.8</td><td class="mono">2023-01-06 → 2024-01-06</td><td><b>year+1</b>，精度 day</td></tr>
+          <tr><td>LAB007 PCT</td><td class="mono">&lt;0.05</td><td>0.05</td><td class="mono">2024-01-08</td><td><b>删失 “&lt;”</b>，精度 day</td></tr>
+          <tr><td>SYM007 呼吸困难</td><td class="mono">1</td><td>1</td><td class="mono">2024-01-06</td><td>精度 day</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="note">住院表（encounters）的对应一行：锚点 2024-01-03 10:30（规则 = 首个有效体征时间），年龄 78，性别 M（CRF 编码 1 = 男），住院 9 天。姓名和病案号不进入产物，改用随机化名编号。每条记录保留原值、原时间和来源（origin = GD_CRF_vs_row / lab_row / sym_row），修正只打标记、不覆盖原值。</p>
+    </div>
+    <div class="card">
+      <h2>4.3 GD：合并症表 <span class="fake">虚构</span></h2>
+      <p class="sub">第二个 sheet。每个并发症占一组列：标志、诊断时间、判定依据（部分还有严重程度、SOFA 等）。</p>
+      <div class="tbl-wrap">
+      <table class="xl">
+        <tbody>
+          <tr><td class="fld">病案号</td><td class="fld">姓名</td><td class="fld">CLP003 Ⅰ型呼衰</td><td class="fld">诊断时间</td><td class="fld">判定依据</td><td class="fld">CLP014 AKI</td><td class="fld">诊断时间</td><td class="fld">…</td><td class="fld">CLP021 低钾</td></tr>
+          <tr><td class="hl">99001</td><td>示例甲</td><td>1</td><td>2024-01-05</td><td>3 血气 PaO2 55mmHg</td><td></td><td class="hl">2024-01-06</td><td>…</td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td>2 胸部CT示双肺渗出</td><td></td><td></td><td>…</td><td></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <ul style="font-size:13.5px;padding-left:18px;margin:10px 0 0">
+        <li><b>病案号丢了前导零</b>：主表是 0099001，这里是 99001（被 Excel 存成数字）。统一去空白、去前导零、去“.0”后再挂接，292 组全部挂上。</li>
+        <li><b>没有病案号的行</b>是上一位患者的补充依据，并入同一组。同一病案号两次住院的，按出现顺序对应，再用诊断时间核对。</li>
+        <li><b>CLP003</b>：标志 1 → 阳性，时间 2024-01-05，依据编码“2+3”。编码含义是推断的（1 诊断 / 2 影像 / 3 检验 / 4 评分或治疗），待数据方字典确认。</li>
+        <li><b>CLP014</b>：标志空着，却写了诊断时间 → 含义不明，记<b>缺失</b>，交数据方核实。</li>
+        <li><b>CLP021</b>：整组空着、没有任何依据 → 记<b>阴性</b>（研究者 10-01 决定“空着按阴性”）。</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>4.4 GAM：EHR 导出的检验表 <span class="fake">虚构</span></h2>
+    <p class="sub">GAM 住院工作簿有 6 个 sheet（住院诊断、西成药医嘱、草药处方、检验、检查、住院病历），门诊工作簿有 5 个。下面是“检验”sheet，列名与真实表一致，检验项目名称为示意，子项名是真实写法。<b>点击任意一行</b>看它被怎样处理。</p>
+    <div class="tbl-wrap"><table class="xl gam" id="labGrid"></table></div>
+    <div class="detail-box" id="labExplain">← 点击表中的一行。</div>
+    <h3>表头错位的例子：“检查”sheet</h3>
+    <div class="tbl-wrap">
+    <table class="xl gam">
+      <tbody>
+        <tr><td class="fld">关联字段</td><td class="fld">病人ID</td><td class="fld hl">项目名称</td><td class="fld hl">检查单号</td><td class="fld">时间</td><td class="fld">结果</td><td class="fld">结果</td></tr>
+        <tr><td>900001-2</td><td>900001</td><td class="hl">7700123456</td><td class="hl">胸部CT平扫</td><td>2024-01-03 16:20</td><td>双肺下叶见斑片状磨玻璃影……</td><td>双肺炎症，请结合临床</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="note">“项目名称”列里放的其实是检查单号（丢弃，它能回溯到个人），“检查单号”列里才是项目名称；两个同名“结果”列分别是所见和结论。门诊“病历信息”sheet 也有类似错位：“处方号”列里放的是就诊类型（急诊 / 普通门诊）。这些都在读入时按内容核对后改名，并校验必需列，表结构一变就报错。</p>
+  </div>
+
+  <div class="card">
+    <h2>4.5 GAM：病历文本 → 结构化数据 <span class="fake">虚构</span></h2>
+    <p class="sub">GAM 没有体征表，也没有呼吸机、ICU 的结构化字段，这些都要从病历文字里抽取。下面是按真实病历格式写的虚构记录，用到的句式都在单元测试里。<b>点击高亮的文字</b>看规则怎样判断。</p>
+    <div class="chips" id="noteChips"></div>
+    <div class="legend">
+      <span><span class="sp pos">采用</span></span><span><span class="sp neg">否定</span></span><span><span class="sp pseudo">伪否定</span></span>
+      <span><span class="sp hypo">假设 / 围术期</span>：不算发生</span><span><span class="sp skip">不是当时测的</span></span>
+      <span><span class="sp miss">漏抽</span></span><span><span class="sp time">时间 / 说明</span></span><span><span class="sp priv">隐私字段</span></span>
+    </div>
+    <div class="grid2" style="margin-top:8px">
+      <div><div class="notebox" id="noteText"></div>
+        <div class="detail-box" id="noteExplain">← 点击左侧高亮的文字。</div></div>
+      <div>
+        <h3 style="margin-top:0">抽取结果</h3>
+        <div class="tbl-wrap"><table style="font-size:13px"><thead><tr><th>编码</th><th>含义</th><th>取值</th><th>时间与来源</th></tr></thead><tbody id="noteOut"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>4.6 合起来：这位虚构病人被抽成的时间序列 <span class="fake">虚构</span></h2>
+    <p class="sub">把 4.5 的 4 份 GAM 记录（入院、两份日常病程、抢救）抽出的 SpO2 和事件放到同一条时间轴上，这就是模型能“看到”的全部。</p>
+    <div class="chart" id="exTL"></div>
+    <p class="note">空心虚线圈是病历里写了、但规则漏抽的值。所有时间都是病历<b>书写</b>时间，不是测量时间。理想数据里，这条线应当是监护或护理记录的逐次测量，并同时记录吸氧方式与流量。</p>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>4.7 时间写到什么精度（真实计数）</h2>
+      <p class="sub">CDM v3.1 的 events 表，按来源和变量类别统计记录条数。</p>
+      <div class="tbl-wrap">
+      <table style="font-size:13px">
+        <thead><tr><th>来源</th><th>体征</th><th>检验</th><th>症状</th></tr></thead>
+        <tbody>
+          <tr><td><span class="tag gd">GD</span></td><td>到分钟 2,423<br>只有日期 484</td><td>只有日期 6,170</td><td>只有日期 4,347</td></tr>
+          <tr><td><span class="tag gam">GAM 住院</span></td><td>病历书写时间 8,112</td><td>到分钟 16,760</td><td>入院时间 1,211</td></tr>
+          <tr><td><span class="tag gam">GAM 门诊</span></td><td>就诊时间 165</td><td>到分钟 9,053</td><td>就诊时间 8,162</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="note">GD 的时间有年份笔误：+1 年 59 条、−1 年 32 条、+2 年 14 条已修正，41 条修不了（保留并标出）。GAM 门诊没有年龄、性别，入院前 0–14 天的就诊挂接到对应住院后借用。</p>
+    </div>
+    <div class="card">
+      <h2>4.8 单位与数值的写法（真实写法）</h2>
+      <div class="tbl-wrap">
+      <table style="font-size:13px">
+        <thead><tr><th>原表写法</th><th>处理</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">umol/L</td><td>= μmol/L（肌酐、总胆红素）</td></tr>
+          <tr><td class="mono">ng/ml · ug/L · S</td><td>= ng/mL（PCT）· ng/mL（铁蛋白，数值相同）· s（PT）</td></tr>
+          <tr><td class="mono">Mmol/L</td><td>= mmol/L，只是大小写不同（钾、乳酸各 788 条）</td></tr>
+          <tr><td class="mono">mg/l FEU</td><td>GAM D-二聚体写明 FEU；<b>GD 表头没写 FEU 还是 DDU</b>，两者差约 2 倍，需数据方确认</td></tr>
+          <tr><td class="mono">（无单位）</td><td>GD 只有表头单位，IL-6 没写，按 pg/mL 处理并用分布比对</td></tr>
+          <tr><td class="mono">&lt;0.05 · ＞1000</td><td>记界值 + 删失标记。GAM 中 PCT 有 101 条“&lt;”，肌钙蛋白 I 64 条，CRP 53 条；GD 各项都 &lt;11 条（ALT 11 条）</td></tr>
+          <tr><td class="mono">H / L</td><td>GAM 检验的异常标记列（H 5,253 条，L 5,090 条）；GD 没有</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>4.9 落到需求上：同一件事，理想的记录 vs 现在的记录</h2>
+    <p class="sub">这张表把上面的例子和第 1 页的数据需求对应起来，可以直接拿来和数据方讨论。</p>
+    <div class="tbl-wrap">
+    <table style="font-size:13.5px">
+      <thead><tr><th>信息</th><th><span class="tag ideal">理想</span></th><th><span class="tag gd">GD 现在</span></th><th><span class="tag gam">GAM 现在</span></th></tr></thead>
+      <tbody>
+        <tr><td><b>入院时间</b></td><td>入院登记时间</td><td>没有，用首个有效体征时间代替</td><td>入院记录里的“入院时间”</td></tr>
+        <tr><td><b>体温、心率、SpO2</b></td><td>护理或监护的每次测量 + 测量时间 + 吸氧方式与流量</td><td>CRF 摘录，每个变量每次住院 1–2 次</td><td>从病历文字抽，时间是书写时间；写法不规范就漏（4.5 抢救记录）</td></tr>
+        <tr><td><b>检验</b></td><td>采样时间 + 报告时间 + 单位 + 方法</td><td>只有日期；只有表头单位</td><td>到分钟，有单位、参考范围、异常标记；尿和血的同名项目要区分</td></tr>
+        <tr><td><b>流感检测</b></td><td>采样时间、方法、结果</td><td>没有检测时间</td><td>检验表有时间</td></tr>
+        <tr><td><b>呼吸支持</b></td><td>开始 / 结束时间、方式、参数</td><td>CRF 勾选 + 日期</td><td>从文字推断，要排除“必要时”“家属拒绝”“术后”等语境</td></tr>
+        <tr><td><b>用药</b></td><td>医嘱开始 / 停止时间</td><td>CRF 开始 / 结束日期</td><td>医嘱表没有时间，用病程里首次提及的时间近似（奥司他韦：109 次住院中 93 次能找到）</td></tr>
+        <tr><td><b>并发症</b></td><td>诊断时间 + 依据</td><td>人工判定 + 诊断时间 + 依据编码</td><td>诊断表关键词；入院后补充的诊断有医师签名时间</td></tr>
+        <tr><td><b>症状</b></td><td>结构化的“有 / 无 / 未问”</td><td>CRF 0/1 + 记录日期</td><td>文字三态：肯定 / 否定 / 未提及（未提及记缺失）</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     第 4 页：依据
+     ===================================================================== -->
+<section class="page" id="p4">
+  <div class="card">
+    <h2>依据与出处</h2>
+    <p class="sub">本页所有数字都是聚合量，来自服务器 <code>W/docs/basemodel/result/</code> 下的报告。逐例数据没有离开服务器。</p>
+    <table>
+      <thead><tr><th>内容</th><th>出处</th></tr></thead>
+      <tbody>
+        <tr><td>两院规模、覆盖率、时间点数、单位、分布比较、规则一致性、22 个问题</td><td><code>week01/02_alignment/数据对齐与质量报告.md</code> §1–§5</td></tr>
+        <tr><td>CDM v3 / v3.1、事件数、结局组件</td><td>同上文末"CDM v3""CDM v3.1"两节；<code>week01/01_reports/GAM_GD标签扩展与对齐_20260929.md</code></td></tr>
+        <tr><td>域可分性、协调方法、SMD</td><td><code>week02/AL1_GAM-GD分布偏移与协调_20261004.md</code>。<b>注意</b>：该文 §2.4 的 SMD 方向于 2026-10-05 更正为"GAM − GD"</td></tr>
+        <tr><td>观测密度与时序模型优势</td><td><code>week02/F3_观测密度压力测试_验证集_20261004.md</code> §2、§6</td></tr>
+        <tr><td>v1.0 外部验证</td><td><code>docs/数据对齐.md</code>（本机）；<code>week01/01_reports/医院实验结果.md</code></td></tr>
+        <tr><td>MIRA 输入格式与结构（CT-RoPE、频率专家混合、神经 ODE；预训练 4,540 亿个时间点）</td><td>microsoft/MIRA 官方 README（NeurIPS 2025，arXiv 2506.07584），服务器副本 <code>basemodel/vendor/mira_main_20261005</code></td></tr>
+        <tr><td>外部验证样本量建议（至少 100 个事件，最好 200 个）</td><td>Collins GS 等，Stat Med 2016，外部验证样本量的重抽样研究（这里只引用其结论，未逐页核对）</td></tr>
+        <tr><td>时序 + LLM 的接法（文本序列化、软提示）</td><td>week02 规划 §6 AL5；OpenTSLM（S031）、ChatTS（N23）</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+</main>
+
+<footer class="wrap">生成于 2026-10-05。本页为研究材料，不含经验证的临床模型。所有病人级示例均为虚构。</footer>
+
+<script>
+/* =====================================================================
+   工具函数：主题、页签、SVG 绘图
+   ===================================================================== */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs = {}, text) {               // 创建一个 SVG 元素
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+function svgBox(w, h) { return el("svg", { viewBox: `0 0 ${w} ${h}`, width: "100%", role: "img", style: `max-width:${w}px;display:block` }); }
+
+/* 主题切换：记住用户选择（浏览器存储失败时忽略） */
+(function () {
+  let t = null;
+  try { t = localStorage.getItem("theme"); } catch (e) {}
+  if (t) document.documentElement.setAttribute("data-theme", t);
+  $("#themeBtn").onclick = () => {
+    const cur = document.documentElement.getAttribute("data-theme")
+      || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    const nxt = cur === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", nxt);
+    try { localStorage.setItem("theme", nxt); } catch (e) {}
+    redrawAll();
+  };
+  matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", redrawAll);
+})();
+
+/* 页签 */
+$$("nav.tabs button").forEach(b => b.onclick = () => {
+  $$("nav.tabs button").forEach(x => x.setAttribute("aria-selected", x === b));
+  $$("section.page").forEach(p => p.classList.toggle("active", p.id === b.dataset.page));
+  window.scrollTo({ top: 0 });
+  redrawAll();
+});
+
+/* 一组互斥按钮（chips）的通用绑定 */
+function chipGroup(sel, onPick) {
+  const btns = $$(sel + " button");
+  btns.forEach(b => b.onclick = () => { btns.forEach(x => x.classList.toggle("on", x === b)); onPick(b); });
+}
+
+/* 横向条形图：rows = [{label, values:[...], text:[...]}]，可分组（多系列） */
+function hbar(container, rows, opt) {
+  const { series, max, labelW = 120, rowH = 26, w = 560, fmt = v => v, ref } = opt;
+  const gap = 8, barH = (rowH - 6) / series.length;
+  const h = rows.length * (rowH + gap) + 26;
+  const s = svgBox(w, h), x0 = labelW, x1 = w - 60;
+  const X = v => x0 + (x1 - x0) * Math.max(0, v) / max;
+  if (ref !== undefined) {                          // 参照线（例如 0.5 或 1）
+    s.append(el("line", { x1: X(ref), x2: X(ref), y1: 0, y2: h - 22, stroke: css("--muted"), "stroke-dasharray": "4 4" }));
+  }
+  rows.forEach((r, i) => {
+    const y = i * (rowH + gap);
+    s.append(el("text", { x: x0 - 8, y: y + rowH / 2 + 4, "text-anchor": "end", "font-size": 13 }, r.label));
+    series.forEach((se, j) => {
+      const v = r.values[j], yy = y + j * barH + 2;
+      if (v === null || v === undefined) {
+        s.append(el("text", { x: x0 + 4, y: yy + barH - 2, "font-size": 11, class: "muted" }, "—"));
+        return;
+      }
+      s.append(el("rect", { x: x0, y: yy, width: Math.max(1, X(v) - x0), height: barH - 2, rx: 3, fill: css(se.color) }));
+      s.append(el("text", { x: X(v) + 4, y: yy + barH - 3, "font-size": 11, class: "muted" }, r.text ? r.text[j] : fmt(v)));
+    });
+  });
+  // 坐标轴刻度
+  const ticks = opt.ticks || [0, max / 2, max];
+  ticks.forEach(t => {
+    s.append(el("line", { x1: X(t), x2: X(t), y1: h - 22, y2: h - 18, stroke: css("--muted") }));
+    s.append(el("text", { x: X(t), y: h - 4, "text-anchor": "middle", "font-size": 11, class: "muted" }, fmt(t)));
+  });
+  container.replaceChildren(s);
+}
+
+/* =====================================================================
+   第 1 页
+   ===================================================================== */
+
+/* 1.1 架构图：每个节点附带说明（需要的数据、现状） */
+const ARCH = [
+  { id: "vit", x: 10, y: 14, w: 150, h: 60, c: "--gd", t: "体征 / 检验时间序列", s: "每变量：值 + 时间 + 掩码",
+    d: "<b>需要：</b>每个变量一条序列，每个点都有<b>真实测量时间</b>（最好到分钟），以及是否观测到的掩码。MIRA 用 CT-RoPE 编码不规则时间戳，时间越真实，模型越能利用间隔信息。<br><b>现状：</b>GD 每个变量每次住院 1–2 个点，检验只有日期，体征 83% 记到分钟；GAM 检验到分钟，体征时间取自病历书写时间，每次住院 7–9 个点。" },
+  { id: "txt", x: 10, y: 110, w: 150, h: 56, c: "--gam", t: "临床文本", s: "入院记录、病程、影像报告",
+    d: "<b>需要：</b>带<b>书写时间</b>的文本，只取 t0 之前已经写好的部分（避免泄漏），并去除直接标识符。<br><b>现状：</b>GAM 有病历文书 2,802 份、检查报告 1,110 份（已清洗）；GD 的 CRF 文本字段只有 1 条非空，影像报告 374 份。" },
+  { id: "stat", x: 10, y: 186, w: 150, h: 56, c: "--ideal", t: "静态信息", s: "年龄、性别、基础病、用药",
+    d: "<b>需要：</b>人口学、基础病（三态：有 / 无 / 未知）、治疗及其<b>开始时间</b>（奥司他韦、氧疗、通气）。<br><b>现状：</b>两院都有人口学和基础病；GAM 的医嘱没有时间，用病程中首次提及的时间近似（奥司他韦 109 次中找到 93 次）。" },
+  { id: "mira", x: 190, y: 14, w: 160, h: 60, c: "--gd", t: "时序编码器（MIRA）", s: "CT-RoPE · 专家混合 · ODE",
+    d: "<b>MIRA</b>（NeurIPS 2025）：在 4,540 亿个医疗时间点上预训练，用连续时间旋转位置编码处理任意时间戳，用神经 ODE 外推到任意未来时刻。<br><b>对数据的要求：</b>每个变量要有足够多的点，才有“轨迹”可编码。医院 v1.0 中，GD 每个变量只有 1–2 个点，MIRA 冻结嵌入的 AUROC 只有 0.609，明显低于 LR 的 0.733。" },
+  { id: "proj", x: 380, y: 14, w: 160, h: 60, c: "--ideal", t: "投影 / 文本序列化", s: "时序嵌入 → LLM 输入",
+    d: "两种接法（week02 规划 AL5）：<br>① <b>文本序列化</b>：把数值写成文字，交给 LLM；最简单，但长序列会占满上下文。<br>② <b>软提示</b>：时序编码器输出经投影层，变成 LLM 的嵌入向量（OpenTSLM、ChatTS 的思路）。<br>两种都需要<b>时序与文本在同一时间轴上对齐</b>：同一个 t0，同一个回看窗口。" },
+  { id: "llm", x: 580, y: 56, w: 160, h: 100, c: "--gam", t: "大语言模型（Qwen3）", s: "读时序与文本，输出风险",
+    d: "<b>需要：</b>同一位病人在 t0 时刻可以看到的全部信息（时序、文本、静态信息），以及用于监督或强化学习的标签。<br><b>现状：</b>Qwen3-8B 零样本在 GD 上 AUROC 0.731，与 LR 相当，但只用了结构化数值，没有用文本。" },
+  { id: "out", x: 780, y: 14, w: 170, h: 60, c: "--ok", t: "风险概率 + 理由", s: "24/48/72 小时内转重",
+    d: "<b>需要：</b>结局<b>组件</b>（有创通气、无创通气、ICU、ECMO、死亡、呼衰）各自的<b>发生时间</b>，才能区分“t0 时已经发生”和“t0 之后才发生”。<br><b>现状：</b>两院约 2/3 的事件发生在索引当天；前瞻口径下 GAM 只有 3 个 E1 事件，GD 只有 9 个。GD 的呼衰诊断大多没有日期。" },
+  { id: "rew", x: 780, y: 120, w: 170, h: 66, c: "--warn", t: "奖惩 / 后训练", s: "未来观测 · 结局事件 · 证据",
+    d: "<b>需要：</b><br>· 预测类奖励（P1）：t0 之后的<b>真实观测</b>，不需要标签。我们在公开数据上验证了能量分奖励有效，点误差奖励会使分布塌缩。<br>· 风险类奖励（P3）：带时间的结局标签，并且<b>事件数足够</b>，否则强化学习必然过拟合。<br><b>现状：</b>医院数据的 t0 之后观测很少，事件也少，后训练只能在公开数据上做，医院数据用于外部验证。" },
+];
+const ARCH_EDGES = [            // [起点 x, y, 终点 x, y, 是否虚线]
+  [160, 44, 190, 44], [350, 44, 380, 44], [540, 44, 580, 80],
+  [160, 138, 580, 112], [160, 214, 580, 140],
+  [740, 90, 780, 44], [865, 74, 865, 120], [780, 166, 740, 146, true],
+];
+function drawArch() {
+  const s = svgBox(960, 252);
+  const defs = el("defs");
+  const mk = el("marker", { id: "arr", viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto-start-reverse" });
+  mk.append(el("path", { d: "M0,0 L10,5 L0,10 z", fill: css("--muted") }));
+  defs.append(mk); s.append(defs);
+  ARCH_EDGES.forEach(([x1, y1, x2, y2, dash]) => {   // 水平方向用平滑曲线，竖直方向用直线
+    const mx = (x1 + x2) / 2;
+    const d = Math.abs(x1 - x2) < 4 ? `M${x1},${y1} L${x2},${y2}` : `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
+    s.append(el("path", { d, fill: "none", stroke: css("--muted"), "stroke-width": 1.4, "marker-end": "url(#arr)", "stroke-dasharray": dash ? "5 4" : "" }));
+  });
+  ARCH.forEach(n => {
+    const g = el("g", { class: "arch-node", tabindex: 0 });
+    g.append(el("rect", { x: n.x, y: n.y, width: n.w, height: n.h, rx: 10, fill: css("--panel2"), stroke: css(n.c), "stroke-width": 1.6 }));
+    g.append(el("text", { x: n.x + 10, y: n.y + 22, "font-size": 13.5, "font-weight": 700 }, n.t));
+    g.append(el("text", { x: n.x + 10, y: n.y + 40, "font-size": 11, class: "muted" }, n.s));
+    const pick = () => { $$(".arch-node", s).forEach(x => x.classList.remove("on")); g.classList.add("on"); $("#archDetail").innerHTML = `<b>${n.t}</b><br>${n.d}`; };
+    g.addEventListener("click", pick); g.addEventListener("keydown", e => { if (e.key === "Enter") pick(); });
+    s.append(g);
+  });
+  s.append(el("text", { x: 780, y: 206, "font-size": 11, class: "muted" }, "虚线：强化学习的奖惩回传"));
+  $("#archChart").replaceChildren(s);
+}
+
+/* 1.2 三种数据形态的示意时间线（虚构数值，固定种子保证每次一样） */
+function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
+const TL = (() => {
+  const r = rng(42), hours = 120, hr = [];
+  for (let h = 0; h <= hours; h++) {                   // 虚构心率：第 2 天起逐渐升高，第 3.5 天出现事件
+    const trend = 84 + (h > 40 ? (h - 40) * 0.35 : 0) - (h > 90 ? (h - 90) * 0.6 : 0);
+    hr.push(trend + 6 * Math.sin(h / 3.8) + (r() - 0.5) * 8);
+  }
+  const ideal = hr.map((v, h) => ({ h, v })).filter(() => r() > 0.08);
+  const gamH = [3, 10, 20, 30, 44, 54, 68, 78, 92, 104, 116];
+  const gam = gamH.map(h => ({ h, v: hr[h], note: h % 4 !== 0 }));
+  const gd = [{ h: 6, v: hr[6] }, { day: 3, v: hr[80] }];   // 第 1 个点有分钟时间，第 2 个点只有日期（GD 体征 17% 如此）
+  return { hr, ideal, gam, gd, hours, t0: 24, ev: 84 };
+})();
+let tlView = "ideal";
+function drawTL() {
+  const w = 860, h = 230, x0 = 46, x1 = w - 16, y0 = 18, y1 = h - 40;
+  const X = t => x0 + (x1 - x0) * t / TL.hours, Y = v => y1 - (y1 - y0) * (v - 60) / 70;
+  const s = svgBox(w, h);
+  for (let d = 0; d <= 5; d++) {                       // 日分隔线
+    s.append(el("line", { x1: X(d * 24), x2: X(d * 24), y1: y0, y2: y1, stroke: css("--line") }));
+    if (d < 5) s.append(el("text", { x: X(d * 24 + 12), y: h - 22, "text-anchor": "middle", "font-size": 11.5, class: "muted" }, `第 ${d + 1} 天`));
+  }
+  [60, 80, 100, 120].forEach(v => s.append(el("text", { x: x0 - 6, y: Y(v) + 4, "text-anchor": "end", "font-size": 11, class: "muted" }, v)));
+  s.append(el("text", { x: 6, y: 12, "font-size": 11, class: "muted" }, "心率（次/分）"));
+  // t0 与事件
+  s.append(el("line", { x1: X(TL.t0), x2: X(TL.t0), y1: y0, y2: y1, stroke: css("--ideal"), "stroke-width": 2, "stroke-dasharray": "5 4" }));
+  s.append(el("text", { x: X(TL.t0) + 4, y: y0 + 10, "font-size": 11.5, fill: css("--ideal") }, "t0（流感索引时点）"));
+  s.append(el("line", { x1: X(TL.ev), x2: X(TL.ev), y1: y0, y2: y1, stroke: css("--bad"), "stroke-width": 2 }));
+  s.append(el("text", { x: X(TL.ev) + 4, y: y0 + 10, "font-size": 11.5, fill: css("--bad") }, "转重事件（有创通气）"));
+  let n = 0, prec = "", before = 0;
+  if (tlView === "ideal") {
+    s.append(el("path", { d: TL.ideal.map((p, i) => `${i ? "L" : "M"}${X(p.h)},${Y(p.v)}`).join(" "), fill: "none", stroke: css("--ideal"), "stroke-width": 1.6 }));
+    TL.ideal.forEach(p => s.append(el("circle", { cx: X(p.h), cy: Y(p.v), r: 2.2, fill: css("--ideal") })));
+    n = TL.ideal.length; prec = "分钟（测量时间）"; before = TL.ideal.filter(p => p.h < TL.t0).length;
+  } else if (tlView === "gam") {
+    s.append(el("path", { d: TL.gam.map((p, i) => `${i ? "L" : "M"}${X(p.h)},${Y(p.v)}`).join(" "), fill: "none", stroke: css("--gam"), "stroke-width": 1.4, "stroke-dasharray": "3 3" }));
+    TL.gam.forEach(p => s.append(el("circle", { cx: X(p.h), cy: Y(p.v), r: 4.5, fill: p.note ? css("--panel") : css("--gam"), stroke: css("--gam"), "stroke-width": 2 })));
+    s.append(el("text", { x: x1, y: h - 6, "text-anchor": "end", "font-size": 11, class: "muted" }, "实心：护理记录时间；空心：时间取自病历书写时间"));
+    n = TL.gam.length; prec = "分钟，但部分为书写时间"; before = TL.gam.filter(p => p.h < TL.t0).length;
+  } else {
+    TL.gd.forEach(p => {
+      if (p.day === undefined) {                      // 有分钟时间：画成一个点
+        s.append(el("circle", { cx: X(p.h), cy: Y(p.v), r: 4.5, fill: css("--gd") }));
+        return;
+      }
+      // 只有日期：画成横跨全天的不确定区间
+      s.append(el("rect", { x: X(p.day * 24), y: Y(p.v) - 5, width: X(24) - X(0), height: 10, rx: 5, fill: css("--gd-soft"), stroke: css("--gd") }));
+      s.append(el("circle", { cx: X(p.day * 24 + 12), cy: Y(p.v), r: 4.5, fill: css("--gd") }));
+    });
+    s.append(el("text", { x: x1, y: h - 6, "text-anchor": "end", "font-size": 11, class: "muted" }, "圆点：有分钟时间；横条：只知道日期（GD 检验全部如此）"));
+    n = TL.gd.length; prec = "体征多到分钟，检验只到日"; before = 1;
+  }
+  $("#tlChart").replaceChildren(s);
+  const what = { ideal: "可以看到 t0 前的上升趋势和波动", gam: "能看到大致趋势，但间隔不均、部分时间不准", gd: "只有两个点，看不出趋势；t0 前是否有观测取决于日期" }[tlView];
+  $("#tlStats").innerHTML = `<div class="kpi"><b>${n}</b><span>5 天内的观测点数</span></div>
+    <div class="kpi"><b style="font-size:16px">${prec}</b><span>时间精度</span></div>
+    <div class="kpi"><b style="font-size:16px">${before} 个</b><span>t0 之前可用的点；${what}</span></div>`;
+}
+chipGroup("#tlChips", b => { tlView = b.dataset.v; drawTL(); });
+
+/* 1.3 要素清单 */
+const REQ = [
+  { cat: "时间", item: "每个观测有<b>真实测量时间</b>（到分钟），检验另有<b>结果可用时间</b>",
+    gd: ["part", "体征 83% 到分钟，检验、症状只有日期；无入院时间，用首个体征时间作锚点（292/297）"], gam: ["part", "检验到分钟；体征多取自病历书写时间（精度标为 note）"],
+    why: "MIRA 的 CT-RoPE 直接编码时间戳。AL1：仅“时间精度”一类特征就能 100% 分出两家医院（AUROC 1.000），说明它是最强的中心指纹。" },
+  { cat: "时间", item: "明确的<b>索引时点 t0</b>：症状起病、首次流感阳性、入院时间",
+    gd: ["part", "纳入即流感住院；无入院时间与检测时间"], gam: ["part", "全部有病原学阳性时间；63% 在入院 48 小时后才首次阳性"],
+    why: "改用流感索引时点后，CRP 的中位数比值从 5.26 降到 1.41，WBC 从 1.15 降到 1.03。t0 选错，两院比较的是不同的病程阶段。" },
+  { cat: "密度", item: "住院期间<b>每个变量多次测量</b>（体征每天 ≥ 数次，检验每 1–2 天）",
+    gd: ["no", "每次住院每个变量 1–2 个点"], gam: ["part", "体征 7–9 个点，肝肾功能 7 个点"],
+    why: "F3：观测稀疏到每变量 1 个值时，时序基础模型相对 LR 的优势从 +0.050 降到 +0.003。医院 v1.0 中 MIRA 在 GD 上 AUROC 0.609，LR 0.733。" },
+  { cat: "密度", item: "训练与部署时<b>采样密度一致</b>",
+    gd: ["part", "比 GAM 稀疏得多"], gam: ["part", "比 GD 密"],
+    why: "F3 错配情形：用密集数据训练、在稀疏数据上评价，L3 时 LightGBM 的 AUPRC 从 0.241 降到 0.194。" },
+  { cat: "密度", item: "测量过程特征（次数、频率）<b>口径统一</b>，或不进入模型",
+    gd: ["part", "每变量 1–2 次，取整习惯不同"], gam: ["part", "时间点约为 GD 的 3–7 倍，部分为书写时间"],
+    why: "AL1：测量过程特征区分医院的 AUROC 为 0.968。F2：eICU 的 5 分钟体征使观测次数放大约 10 倍，所有 LR 在迁移时崩塌，改为“有观测的小时数”后部分恢复。" },
+  { cat: "标签", item: "结局拆成<b>组件</b>（有创 / 无创通气、ICU、ECMO、死亡、呼衰），各自带<b>发生时间</b>",
+    gd: ["part", "有 CRF 勾选；呼衰诊断大多无日期"], gam: ["part", "从文本规则抽取，需人工裁定；裁定停摆"],
+    why: "约 2/3 的事件发生在索引当天。前瞻口径下 E1 事件：GAM 3 个，GD 9 个，无法做前瞻建模。" },
+  { cat: "标签", item: "“未知”与“阴性”<b>分开编码</b>（三态）",
+    gd: ["part", "合并症空格（10-01 决定按阴性）"], gam: ["part", "症状“未提及”曾被记为 0"],
+    why: "CDM v3 把 GAM 症状改为三态后，咳嗽阳性率在有记录者中为 87/98，原先“GAM 49% vs GD 81%”的差距主要是编码造成的。" },
+  { cat: "标签", item: "<b>足够的事件数</b>：开发与外部验证各 ≥100 个事件（最好 200）",
+    gd: ["no", "E1 38 个；重症 88 个"], gam: ["no", "E1 10 个（裁定版 14）；重症 23 个"],
+    why: "外部验证样本量的文献建议（Collins 等，2016）。10 个事件训练的模型，O/E 为 1.18–2.81，普遍低估风险；后训练必然过拟合。" },
+  { cat: "语义", item: "统一的<b>单位与检测方法字典</b>",
+    gd: ["part", "只有表头单位；IL-6 未写单位；D-二聚体未注明 FEU/DDU"], gam: ["ok", "30 项检验单位逐项核对，基本一致"],
+    why: "D-二聚体 FEU 与 DDU 相差约 2 倍。按中位数比值无法判断，需要数据方确认。" },
+  { cat: "语义", item: "治疗带<b>开始 / 结束时间</b>（抗病毒、氧疗、通气）",
+    gd: ["ok", "CRF 有开始 / 结束时间与剂量"], gam: ["part", "医嘱无时间，用病程首次提及近似（93/109）"],
+    why: "治疗会改变生命体征轨迹，也决定“转重”是否被提前干预；需要放进输入或作为协变量。" },
+  { cat: "文本", item: "带<b>书写时间</b>的文本：入院记录、病程、影像报告",
+    gd: ["no", "CRF 文本字段只有 1 条非空；影像报告 374 份"], gam: ["ok", "病历文书 2,802 份、检查报告 1,110 份，已清洗"],
+    why: "LLM 的优势在文本。v1.0 中 Qwen3-8B 只用结构化数值，AUROC 0.731，与 LR 相当；没有文本，LLM 的价值无从体现。" },
+  { cat: "规模", item: "<b>多中心</b>、同一口径；变量集合尽量一致",
+    gd: ["part", "1 家"], gam: ["part", "1 家"],
+    why: "AL4：跨中心偏移中有可以用无标签数据对齐的成分（DSAN、DIRT 使 AUPRC +0.04）。只有两家医院时，无法区分“医院差异”和“人群差异”。" },
+  { cat: "规模", item: "人群：≥60 岁、病原学确认的流感，社区发病为主",
+    gd: ["ok", "60–97 岁，流感住院（发病场所未记录）"], gam: ["part", "25.4% &lt;60 岁；院内发病多"],
+    why: "AL1：年龄性别用 LightGBM 区分医院的 AUROC 为 0.787，来自纳入标准差异，不应通过协调去消除，而应在队列定义上统一。" },
+];
+let reqCat = "全部";
+function drawReq() {
+  const cats = ["全部", ...new Set(REQ.map(r => r.cat))];
+  const names = { 时间: "时间", 密度: "观测密度", 标签: "标签", 语义: "语义与单位", 文本: "文本", 规模: "规模与人群" };
+  $("#reqChips").innerHTML = cats.map(c => `<button data-c="${c}" class="${c === reqCat ? "on" : ""}">${c === "全部" ? "全部" : names[c]}</button>`).join("");
+  chipGroup("#reqChips", b => { reqCat = b.dataset.c; drawReq(); });
+  const st = s => `<span class="st ${s[0]}">${{ ok: "满足", part: "部分", no: "缺" }[s[0]]}</span> ${s[1]}`;
+  $("#reqTable tbody").innerHTML = REQ.filter(r => reqCat === "全部" || r.cat === reqCat).map(r =>
+    `<tr><td><span class="tag">${names[r.cat]}</span><br>${r.item}</td><td>${st(r.gd)}</td><td>${st(r.gam)}</td><td>${r.why}</td></tr>`).join("");
+}
+
+/* 1.4 理想样本（虚构） */
+const SAMPLE = {
+  ts: `// MIRA 输入：每行一个"病人 × 变量"，time 为相对 t0 的小时（可为负，可不等间隔）
+{"pid":"P-0001","var":"VS002_心率","unit":"次/分",
+ "sequence":[88,92,95,101,104,108],
+ "time":[-20.5,-14.0,-8.25,-3.0,-1.5,-0.2],
+ "mask":[1,1,1,1,1,1],
+ "time_precision":"minute","time_kind":"measured"}
+{"pid":"P-0001","var":"LAB006_CRP","unit":"mg/L",
+ "sequence":[18.4,42.0],
+ "time":[-22.0,-2.0],
+ "available_time":[-20.8,-0.9],   // 结果出来的时间，只有 ≤0 的才能进入模型
+ "mask":[1,1]}`,
+  txt: `// LLM 输入：只取 t0 之前已写好的文本，带书写时间；直接标识符已去除
+[入院记录 | -21.0h] 发热 2 天，最高 39.1℃，咳嗽、咳黄痰，近 1 日活动后气促……
+[首次病程 | -18.5h] 流感抗原阳性（甲型），予奥司他韦 75mg bid……
+[胸部 CT  | -16.0h] 双下肺斑片状磨玻璃影，考虑病毒性肺炎……
+[病程记录 | -1.0h ] 夜间气促加重，鼻导管 3L/min 下 SpO2 91%……
+// 结构化摘要（与时序同一时间轴）
+年龄 78；COPD 有；糖尿病 无；免疫抑制 未知`,
+  lab: `// 标签：组件 + 发生时间（相对 t0），三态：1 有 / 0 无 / null 未知
+{"pid":"P-0001","t0_rule":"首次流感阳性",
+ "components":{
+   "IMV":   {"status":1,"time_h":60.5,"source":"护理记录"},
+   "NIV":   {"status":1,"time_h":20.0},
+   "ICU":   {"status":1,"time_h":58.0},
+   "ECMO":  {"status":0},
+   "DEATH": {"status":0},
+   "RF_I":  {"status":1,"time_h":18.0,"basis":"血气 PaO2 55"}},
+ "E1_72h":1, "E1_already_at_t0":0}`,
+};
+chipGroup("#sampleChips", b => $("#samplePre").textContent = SAMPLE[b.dataset.v]);
+$("#samplePre").textContent = SAMPLE.ts;
+
+/* 1.5 向数据方的需求 */
+const ASK = [
+  ["P0", "GD：每次住院的<b>入院时间</b>，以及每条体征、检验的<b>测量时间</b>（至少到小时）"],
+  ["P0", "GD / GAM：住院期间<b>全部</b>体征与检验记录，而不是 CRF 只摘录的 1–2 次"],
+  ["P0", "结局组件的<b>发生时间</b>：开始有创 / 无创通气、转入 ICU、ECMO、死亡、呼衰诊断"],
+  ["P1", "D-二聚体（FEU / DDU）、IL-6、铁蛋白的<b>单位与检测方法</b>"],
+  ["P1", "GD：OUT003（呼吸机）与 TRT006/007（无创 / 有创通气）的关系；AKI 的判定标准"],
+  ["P1", "GAM：医嘱的<b>执行时间</b>（抗病毒、氧疗、激素）"],
+  ["P1", "流感<b>检测时间与类型</b>（抗原 / 核酸）、症状起病日期"],
+  ["P2", "GD：带书写时间的病历文本（入院记录、病程、影像报告），按约定脱敏"],
+  ["P2", "更多中心或更多年份的同口径数据，使每个中心的事件数达到 100 以上"],
+];
+$("#askList").innerHTML = ASK.map(a => `<li><span class="st ${a[0] === "P0" ? "no" : a[0] === "P1" ? "part" : "ok"}">${a[0]}</span> ${a[1]}</li>`).join("");
+$("#copyAsk").onclick = () => {
+  const t = ASK.map((a, i) => `${i + 1}. [${a[0]}] ${a[1].replace(/<[^>]+>/g, "")}`).join("\n");
+  (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(
+    () => $("#copyMsg").textContent = " 已复制", () => $("#copyMsg").textContent = " 复制失败，请手动选择文本");
+};
+
+/* 1.6 F3 密度—收益（验证集，≥65 岁 AUPRC） */
+function drawF3() {
+  const lv = ["L0 原始", "L1 每4h", "L2 每8h", "L3 每日", "L4 单值"];
+  const S = [
+    { n: "LR（手工）", c: "--muted", v: [0.247, 0.225, 0.196, 0.198, 0.162] },
+    { n: "LightGBM（手工）", c: "--gam", v: [0.311, 0.276, 0.261, 0.241, 0.160] },
+    { n: "Chronos-Bolt-base 嵌入 + LGBM", c: "--gd", v: [0.297, 0.257, 0.234, 0.244, 0.165] },
+    { n: "TabPFN v2（手工）", c: "--ideal", v: [0.267, 0.245, 0.214, 0.263, 0.186] },
+  ];
+  const w = 860, h = 260, x0 = 50, x1 = 640, y0 = 16, y1 = h - 36;
+  const X = i => x0 + (x1 - x0) * i / 4, Y = v => y1 - (y1 - y0) * (v - 0.14) / 0.19;
+  const s = svgBox(w, h);
+  [0.15, 0.2, 0.25, 0.3].forEach(v => {
+    s.append(el("line", { x1: x0, x2: x1, y1: Y(v), y2: Y(v), stroke: css("--line") }));
+    s.append(el("text", { x: x0 - 6, y: Y(v) + 4, "text-anchor": "end", "font-size": 11, class: "muted" }, v.toFixed(2)));
+  });
+  lv.forEach((l, i) => s.append(el("text", { x: X(i), y: h - 16, "text-anchor": "middle", "font-size": 11.5, class: "muted" }, l)));
+  s.append(el("rect", { x: X(2.6), y: y0, width: X(4) + 18 - X(2.6), height: y1 - y0, fill: css("--warn-soft"), opacity: .55 }));
+  s.append(el("text", { x: X(3.3), y: y0 + 14, "text-anchor": "middle", "font-size": 11.5, fill: css("--warn") }, "医院数据所在区间"));
+  S.forEach((se, k) => {
+    s.append(el("path", { d: se.v.map((v, i) => `${i ? "L" : "M"}${X(i)},${Y(v)}`).join(" "), fill: "none", stroke: css(se.c), "stroke-width": 2.2 }));
+    se.v.forEach((v, i) => {
+      const c = el("circle", { cx: X(i), cy: Y(v), r: 4, fill: css(se.c) });
+      c.append(el("title", {}, `${se.n} · ${lv[i]}：${v.toFixed(3)}`));
+      s.append(c);
+    });
+    s.append(el("rect", { x: 690, y: 30 + k * 26, width: 14, height: 4, fill: css(se.c) }));
+    s.append(el("text", { x: 710, y: 36 + k * 26, "font-size": 12 }, se.n));
+  });
+  s.append(el("text", { x: 690, y: 150, "font-size": 11.5, class: "muted" }, "随机水平 ≈ 0.086"));
+  s.append(el("text", { x: 690, y: 168, "font-size": 11.5, class: "muted" }, "鼠标悬停看数值"));
+  $("#f3Chart").replaceChildren(s);
+}
+
+/* =====================================================================
+   第 2 页
+   ===================================================================== */
+
+/* 2.1 七个层面 */
+const DIFF = [
+  { t: "人群与纳入", k: ["真实人群"], b: `
+    <table><tr><th></th><th>GD</th><th>GAM 住院</th></tr>
+    <tr><td>纳入方式</td><td>老年流感住院患者 CRF 登记（≥60 岁）</td><td>全院提取的流感病原学阳性住院（含外科、风湿、针灸）</td></tr>
+    <tr><td>年龄</td><td>60–97，中位数 68（IQR 64–70）</td><td>中位数 70（IQR 59–78）；&lt;60 岁 44 次（25.4%）</td></tr>
+    <tr><td>发病场所</td><td>CRF 未记录流感检测时间，无法判断</td><td><b>63%（109/173）入院 48 小时后才首次阳性</b>，院内发病多</td></tr>
+    <tr><td>基础病（示例）</td><td>冠心病 21.1%，脑卒中 18.4%，免疫抑制 13.3%</td><td>冠心病 31.8%，脑卒中 28.3%，免疫抑制 5.2%</td></tr>
+    <tr><td>入院时间</td><td>2021-11 至 2026-06</td><td>2024-11 至 2026-03</td></tr></table>
+    <p class="note">这一层是真实的人群差异，不应该用"协调"去消除，而应在队列定义上统一（例如可比子集"流感 ≥60 岁"）。</p>` },
+  { t: "数据形态", k: ["记录方式"], b: `
+    <ul><li><span class="tag gd">GD</span> 人工整理的 CRF 宽表：Sheet1 共 663 行，每次住院占多行，续行病案号为空或被 Excel 下拉递增；另有一张合并症表。</li>
+    <li><span class="tag gam">GAM</span> EHR 导出 6 张表：诊断、西成药医嘱、草药医嘱、检验、病历文书、检查。<b>没有体征表</b>，体征要从入院记录与病程文本中抽取。</li>
+    <li>GD 是"研究者已经摘录好的变量"；GAM 是"原始记录，需要我们自己摘录"。两者的错误类型完全不同：GD 有年份笔误、表头编码重复；GAM 有表头错位、尿肌酐混入血肌酐、文本否定语境。</li></ul>` },
+  { t: "时间精度", k: ["记录方式"], b: `
+    <ul><li><span class="tag gd">GD</span> <b>检验和症状只有日期</b>；体征 83% 记到分钟（2,423/2,907 条）；没有入院时间。锚点用"首个有效体征时间"替代；事件表有 105 条年份笔误被修正，41 条仍在窗外。78/297 次住院有早于锚点日期的记录。</li>
+    <li><span class="tag gam">GAM</span> 检验到分钟；入院时间来自入院记录；体征时间来自病历<b>书写</b>时间（精度标为 note），不等于测量时间。病历时间解析成功率 90.6%。</li>
+    <li>后果：AL1 中仅"时间精度"一类特征就能 <b>100%</b> 区分两家医院。任何把时间精度信息带进输入的模型都会学到"医院身份"。</li></ul>` },
+  { t: "观测密度与变量范围", k: ["记录方式"], b: `
+    <ul><li>GD 覆盖面广（体征、血常规、肝肾功能、CRP 覆盖 &gt;92%），但每个变量每次住院只有 <b>1–2 个点</b>。</li>
+    <li>GAM 体征 7–9 个点，肝肾功能 7 个点，另有电解质、白蛋白、血气、肌钙蛋白、CK、乳酸、凝血（GD 都没有收集）。</li>
+    <li>SpO2：GD 34.3%，GAM 12.7%（GAM 的血气 SaO2 是动脉血，不与指脉氧合并）。</li>
+    <li>见下方 2.2、2.3 两张图。</li></ul>` },
+  { t: "取值与记录习惯", k: ["记录方式", "真实人群"], b: `
+    <ul><li><b>取值时点</b>：GAM 院内发病多，"入院值"不代表流感发病状态。改用流感索引时点后，CRP、WBC、中性粒细胞、肌酐的差异明显缩小（见 2.4）。旧数据在索引时点的淋巴细胞比入院时低（1.08 → 0.81），符合流感常见的淋巴细胞减少，说明索引时点抓对了。</li>
+    <li><b>记录习惯</b>：心率（GD 90 对 GAM 79）、呼吸（20 对 18）在所有取值口径下都不变，并有明显的取整堆积（GD 呼吸多记 20，GAM 多记 18）。</li>
+    <li><b>取值网格</b>：化验值的取值重合度很低，例如 GD 的白细胞取值在 GAM 中出现过的只有 7.8%。</li>
+    <li><b>症状</b>：GAM 只能从入院现病史抽取，"未提及"曾被记成 0；改三态后，有记录者中咳嗽阳性 87/98，与 GD（243/294）接近。</li></ul>` },
+  { t: "单位与检测方法", k: ["记录方式"], b: `
+    <ul><li>GAM 30 项检验单位逐项核对，与统一单位一致，只是写法不同（如 "Mmol/L"、"ng/ml"）；D-二聚体明确为 mg/L FEU。</li>
+    <li>GD 只有表头单位；IL-6 未写单位；D-二聚体未注明 FEU 或 DDU。</li>
+    <li>中位数比值（GD/GAM）：D-二聚体 0.46–0.83、IL-6 2.2–9.1、铁蛋白 2.4–4.6，随口径变化很大，<b>靠分布定不下来</b>。确认前不作为共同特征。</li></ul>` },
+  { t: "结局与并发症的判定", k: ["判定口径"], b: `
+    <ul><li>GD：CRF 人工判定，有 OUT002"重症"；脓毒症附 SOFA 评分；AKI 的判定更接近"肌酐超阈值"而不是 KDIGO。</li>
+    <li>GAM：<b>没有重症标签</b>，结局与并发症来自诊断关键词与文本规则；诊断表对"可由检验定义"的并发症记录不全（心肌损伤：检验规则阳性 31 次，诊断只写了 1 次）。</li>
+    <li>结果：并发症患病率差异很大（脓毒症 21.2% 对 1.2%，新发心律失常 4.1% 对 25.4%），但在可比子集中，重症候选 SEV_B 几乎相同（30.4% 对 31.2%）。见 2.6。</li></ul>` },
+];
+$("#diffAcc").innerHTML = DIFF.map((d, i) =>
+  `<details ${i === 2 ? "open" : ""}><summary>${i + 1}. ${d.t} <span style="margin-left:auto">${d.k.map(x => `<span class="tag">${x}</span>`).join("")}</span></summary><div class="body">${d.b}</div></details>`).join("");
+
+/* 2.2 / 2.3 密度与覆盖 */
+const VARS = [
+  ["体温", 99.0, 2, 100, 9], ["心率", 99.0, 2, 100, 9], ["呼吸", 98.7, 2, 100, 8], ["血压", 99.0, 2, 100, 7],
+  ["SpO2（指脉氧）", 34.3, 1, 12.7, 2], ["血常规", 98.5, 2, 99.4, 3], ["CRP", 91.6, 2, 99.4, 3], ["PCT", 87.5, 1, 72.3, 2],
+  ["ALT / AST", 94.1, 1, 96.0, 7], ["肌酐 / 尿素", 98.3, 2, 96.0, 7], ["LDH", 86.9, 1, 81.5, 4], ["D-二聚体", 85.9, 1, 89.0, 2],
+  ["IL-6", 14.5, 1, 21.4, 1], ["铁蛋白", 5.7, 1, 30.1, 1], ["电解质 / 白蛋白", null, null, 96.0, 7], ["肌钙蛋白 I", null, null, 90.2, 5],
+  ["血气", null, null, 46.5, 1], ["乳酸", null, null, 53.8, 6],
+];
+function drawDens() {
+  hbar($("#densChart"), VARS.map(v => ({ label: v[0], values: [v[2], v[4]] })),
+    { series: [{ color: "--gd" }, { color: "--gam" }], max: 10, labelW: 112, rowH: 24, w: 520, fmt: v => String(Math.round(v)), ticks: [0, 5, 10] });
+  hbar($("#covChart"), VARS.map(v => ({ label: v[0], values: [v[1], v[3]] })),
+    { series: [{ color: "--gd" }, { color: "--gam" }], max: 100, labelW: 112, rowH: 24, w: 520, fmt: v => Math.round(v) + "%", ticks: [0, 50, 100] });
+}
+
+/* 2.4 检验中位数比值（GD/GAM），四种 GAM 取值口径 */
+const RATIO = [   // [变量, 全部·入院, 流感≥60·入院, 流感≥60·索引, 社区发病]
+  ["CRP", 5.26, 4.59, 1.41, 1.10], ["PCT", 1.86, 1.63, 1.63, 1.37], ["LDH", 1.31, 1.29, 1.18, 1.18], ["肌酐", 1.27, 1.20, 1.06, 1.29],
+  ["中性粒细胞", 1.22, 1.21, 0.97, 1.03], ["AST", 1.16, 1.16, 0.96, 0.89], ["WBC", 1.15, 1.22, 1.03, 1.05], ["尿素", 1.13, 1.10, 0.95, 1.05],
+  ["血小板", 1.02, 1.05, 1.14, 1.15], ["血红蛋白", 1.02, 1.02, 1.07, 1.00], ["ALT", 1.03, 1.06, 1.03, 0.98], ["淋巴细胞", 0.90, 0.92, 1.23, 1.13],
+];
+let ratioIdx = 0;
+function drawRatio() {
+  // 用 log2 比值画"偏离 1 的程度"，左侧 GD 低、右侧 GD 高
+  const w = 860, rowH = 24, h = RATIO.length * rowH + 40, x0 = 110, x1 = w - 70;
+  const L = v => Math.log2(v), lim = 2.6, X = v => x0 + (x1 - x0) * (L(v) + lim) / (2 * lim);
+  const s = svgBox(w, h);
+  [0.25, 0.5, 1, 2, 4].forEach(t => {
+    s.append(el("line", { x1: X(t), x2: X(t), y1: 4, y2: h - 30, stroke: t === 1 ? css("--muted") : css("--line"), "stroke-dasharray": t === 1 ? "" : "3 3" }));
+    s.append(el("text", { x: X(t), y: h - 14, "text-anchor": "middle", "font-size": 11, class: "muted" }, t === 1 ? "1（一致）" : "×" + t));
+  });
+  s.append(el("text", { x: X(0.3), y: h - 1, "font-size": 11, class: "muted" }, "← GD 更低"));
+  s.append(el("text", { x: X(3.2), y: h - 1, "font-size": 11, class: "muted", "text-anchor": "end" }, "GD 更高 →"));
+  RATIO.forEach((r, i) => {
+    const y = 8 + i * rowH, v = r[1 + ratioIdx], base = r[1];
+    s.append(el("text", { x: x0 - 8, y: y + 12, "text-anchor": "end", "font-size": 12.5 }, r[0]));
+    if (ratioIdx !== 0) s.append(el("circle", { cx: X(base), cy: y + 8, r: 4, fill: "none", stroke: css("--muted") }));
+    s.append(el("line", { x1: X(1), x2: X(v), y1: y + 8, y2: y + 8, stroke: css(Math.abs(L(v)) > 0.4 ? "--bad" : "--gd"), "stroke-width": 5, "stroke-linecap": "round" }));
+    s.append(el("text", { x: X(v) + (v >= 1 ? 8 : -8), y: y + 12, "text-anchor": v >= 1 ? "start" : "end", "font-size": 11.5 }, v.toFixed(2)));
+  });
+  $("#ratioChart").replaceChildren(s);
+}
+chipGroup("#ratioChips", b => { ratioIdx = +b.dataset.i; drawRatio(); });
+
+/* 2.5 域可分性 */
+function drawDom() {
+  const D = [["V 数值", .732, .846], ["D 年龄性别", .509, .787], ["V + D", .726, .921], ["M 测量过程", .968, .962], ["T 时间精度", 1.0, 1.0], ["V + M", .984, .986], ["全部", 1.0, 1.0]];
+  hbar($("#domChart"), D.map(d => ({ label: d[0], values: [d[1], d[2]] })),
+    { series: [{ color: "--ideal" }, { color: "--muted" }], max: 1, labelW: 96, rowH: 26, w: 520, fmt: v => v.toFixed(2), ticks: [0, 0.5, 1], ref: 0.5 });
+}
+
+/* 2.6 结局与并发症阳性率 */
+const OUT = [
+  ["重症候选 SEV_B", 30.4, 21.4, 31.2, "可比子集中几乎相同"],
+  ["ICU", 11.9, 7.5, 9.4, ""],
+  ["有创通气", 5.8, 9.2, 12.5, ""],
+  ["无创通气", 20.1, 6.9, 9.4, "GD 明显更多"],
+  ["死亡", 1.7, 2.3, 3.1, ""],
+  ["病毒性肺炎", 59.7, 15.0, 16.7, "GAM 另有未分型肺炎 26.6%"],
+  ["I 型呼衰", 28.3, 8.7, 12.5, "GAM 血气规则阳性 20/81"],
+  ["脓毒症", 21.2, 1.2, 1.0, "GD 判定附 SOFA 评分"],
+  ["新发心律失常", 4.1, 25.4, 29.2, "GAM 诊断分不出是否新发"],
+  ["低钠血症", 34.2, 11.6, 12.5, "GAM 按检验规则为 28.3%"],
+];
+$("#outTable tbody").innerHTML = OUT.map(o => {
+  const big = Math.max(o[1], o[2]) / Math.max(0.1, Math.min(o[1], o[2])) > 2.5;
+  return `<tr style="cursor:pointer"><td>${o[0]}</td><td class="num">${o[1]}</td><td class="num">${o[2]}</td><td class="num">${o[3]}</td><td class="note">${big ? '<span class="st no">差异大</span> ' : ""}${o[4]}</td></tr>`;
+}).join("");
+$$("#outTable tbody tr").forEach(tr => tr.onclick = () => tr.style.background = tr.style.background ? "" : "var(--ideal-soft)");
+
+/* 2.7 事件数 */
+const EV = { stay: [["E1", 163, 10, 292, 38], ["E2（v3 定义）", 161, 14, 291, 66], ["重症 SEVERE", 159, 23, 292, 88]],
+             pro: [["E1", 153, 3, 263, 9], ["E2（v3 定义）", 147, 3, 246, 21], ["重症 SEVERE", 138, 5, 212, 8]] };
+let evView = "stay";
+function drawEv() {
+  const rows = EV[evView].map(r => ({ label: r[0], values: [r[4], r[2]], text: [`GD ${r[4]} / ${r[3]}`, `GAM ${r[2]} / ${r[1]}`] }));
+  hbar($("#evChart"), rows, { series: [{ color: "--gd" }, { color: "--gam" }], max: 120, labelW: 110, rowH: 34, w: 860, ref: 100,
+    fmt: v => String(Math.round(v)), ticks: [0, 50, 100] });
+  const s = $("#evChart svg");
+  s.append(el("text", { x: 110 + (860 - 60 - 110) * 100 / 120 + 4, y: 12, "font-size": 11, fill: css("--bad") }, "建议 ≥100 个事件"));
+}
+chipGroup("#evChips", b => { evView = b.dataset.v; drawEv(); });
+
+/* =====================================================================
+   第 3 页
+   ===================================================================== */
+const TLINE = [
+  ["2026-09-27", "CDM v1 建成", "8 张表；GD 297 次、GAM 住院 173 次、门诊 1166 次；27 个单元测试；隐私审计 0 命中；同输入两次构建 sha256 一致。完成 GAM → GD 外部验证 v1.0。"],
+  ["2026-09-28", "整合与公开数据盘点", "医院与公开数据（MIMIC-IV+ED、eICU、MC-MED）统一状态表；列出公开数据侧必须修复的问题。"],
+  ["2026-09-29", "结局组件表", "新增 outcome_components：IMV、NIV、ICU、ECMO、I/II 型呼衰、死亡、出院去向，每行三态 + 最早时间 + 来源。"],
+  ["2026-10-01", "CDM v3", "修复 4 类缺陷：GAM 症状三态、出院去向互斥、组件与队列共用入口、交叉验证折内处理；新增与 GD OUT002 对齐的重症 SEVERE（κ = 0.913）；GAM 完全重复观测去重 23,489 行。"],
+  ["2026-10-01", "CDM v3.1（研究者决策后）", "“呼吸机”含有创与无创；GD 合并症空格按阴性；重症主分析用住院期口径。重症 κ = 0.917。"],
+  ["2026-10-04", "AL1 分布偏移诊断", "域分类 + 4 种协调方法（z 分数、分位数映射、ComBat、统一精度），给出预处理建议。"],
+  ["2026-10-04 起", "人工裁定停摆；转向公开数据", "GAM 结局双人盲裁暂停。改在 MIMIC-IV / eICU 上研究对齐方法：F3 观测密度、AL4 无监督域适应（跨中心有效、跨年龄无效）。"],
+];
+$("#tl").innerHTML = TLINE.map(t => `<div class="tl-item"><div class="d">${t[0]}</div><b>${t[1]}</b><div class="note" style="color:var(--ink)">${t[2]}</div></div>`).join("");
+
+const FLOW = [
+  ["读入", "只读、全字符串", "原始 xlsx 只在服务器 <code>data/real_world/</code> 只读使用。全部按字符串读入，避免前导零丢失、长号码变成科学计数法；CRF 表头逐列校验，列顺序一变就报错。"],
+  ["识别就诊", "续行分组、再入院、挂接", "GD：“年龄非空的行开始一次新住院”，分出 297 组，与“共 297 例”一致；同一病案号出现两次视为再入院；合并症表病案号规范化（去前导零、去 .0）后 292 组全部挂接。GAM：门诊在入院前 0–14 天的挂接到住院（22 次门诊），用于标记“入院前已流感阳性”。"],
+  ["化名", "随机顺序号", "患者与就诊都换成随机化名，对照表单独存放（700/600），跨版本稳定：重跑新增 0 条。"],
+  ["变量映射", "统一编码 + 文本抽取", "编码沿用 GD 的 CRF（VS / LAB / SYM / COM / TRT / OUT / CLP），GAM 独有检验加 EXT_ 前缀，附 LOINC 参考编码。GAM 的体征、症状、通气从文本中抽取：规则 + NegEx 式否定检测，处理“必要时插管”“全麻下插管”等语境；围术期插管单列。每条规则都有单元测试。"],
+  ["时间", "锚点、笔误、精度", "GD 无入院时间，用首个有效体征时间作锚点（292 次）；窗外时间尝试 ±1/±2 年修正（105 条）；混合日期格式逐值解析（找回 13 个值）；每条记录标注 time_precision：minute / day / note。"],
+  ["单位与范围", "统一单位、删失、合理范围", "统一单位列 unit_cdm，原单位保留；“&lt;0.05”记为 0.05 并标删失；超生理范围置空并标记、原值保留；过滤非血标本（肌酐不合理值 40 → 1）。"],
+  ["衍生候选", "不是最终标签", "入院值 adm_、流感索引值 idx_、检验规则并发症 lab_、重症候选 SEV_A–E、发病时点分类、可比子集 cmp_。全部是候选列，由研究者选定口径。"],
+  ["写盘与审计", "700/600、隐私 0 命中", "parquet + csv；目录 700、文件 600。写盘后隐私审计，命中不为 0 则退出、不写 QC。代码另用 scan_code_identifiers.py 自查。"],
+  ["QC 汇总", "覆盖度、一致性、版本", "覆盖度、单位、分布比较、规则与人工判定一致性、时间质量；记录输入与代码的 sha256。"],
+];
+$("#flow").innerHTML = FLOW.map((f, i) => `${i ? '<span class="arrow">→</span>' : ""}<div class="step" data-i="${i}"><b>${i + 1}. ${f[0]}</b><span>${f[1]}</span></div>`).join("");
+$$("#flow .step").forEach(st => st.onclick = () => {
+  $$("#flow .step").forEach(x => x.classList.toggle("on", x === st));
+  const f = FLOW[+st.dataset.i]; $("#flowDetail").innerHTML = `<b>${f[0]}</b>：${f[2]}`;
+});
+
+$("#cdmBody").innerHTML = [
+  ["encounters", "每次就诊一行", 297, 173, 1166], ["events", "每个观测一行", 13424, 49572, 30715], ["treatments", "就诊 × 治疗", 2927, 1730, 967],
+  ["complications", "就诊 × 并发症", 6716, 4325, "—"], ["complications_lab_rules", "就诊 × 规则候选", "✓", "✓", "—"],
+  ["imaging", "每次检查一行", 374, 1110, "—"], ["notes", "每份文本一行", 375, 3912, 1699], ["crf_view", "与 CRF 同构的宽表", 297, 173, "—"],
+].map(r => `<tr><td><code>${r[0]}</code></td><td>${r[1]}</td>${r.slice(2).map(v => `<td class="num">${typeof v === "number" ? v.toLocaleString() : v}</td>`).join("")}</tr>`).join("");
+
+const ISSUES = [
+  ["识别", "两家医院没有共同患者", "无法按患者合并", "在变量层面建 CDM；用指纹检查确认无重复患者", ""],
+  ["识别", "GD 一次住院占多行，续行病案号为空或被下拉递增", "会把一人拆成多人或多人并成一人", "按“年龄非空的行开始新住院”分组，297 组与总数一致", "请数据方每行都填病案号"],
+  ["识别", "同一病案号出现两次", "容易被误删", "视为再入院，保留两次；合并症按顺序分配并用时间窗复核", ""],
+  ["识别", "合并症表病案号丢前导零或成浮点", "挂接不上", "统一规范化，292 组全部挂接", ""],
+  ["时间", "GD 没有入院时间", "“入院值”无从定义", "以首个有效体征时间为锚点（292/297），记录锚点取法", "请数据方补入院时间"],
+  ["时间", "GD 时间有年份笔误", "时间顺序错乱", "窗内尝试 ±1/±2 年修正并打标记；修不了的保留并标 in_window=0", ""],
+  ["时间", "混合日期格式被 pandas 静默置空", "悄悄丢数据", "逐值解析（format=“mixed”），找回 13 个值，加单元测试", ""],
+  ["语义", "CRF 表头 TRT009 编码重复", "ECMO 与“其他治疗”混淆", "统一 TRT008 ICU、TRT009 ECMO、TRT010 其他；逐列校验表头", "请数据方确认"],
+  ["语义", "GAM 表头错位", "字段读错", "按内容核对后重命名，校验必需列", ""],
+  ["文本", "GAM 没有体征表", "体征缺失", "从入院记录体格检查段和病程/查房记录抽取，排除 Tmax 等非当前值；精度标 note", "门诊体征仍很稀疏（≤4.4%）"],
+  ["时间", "GAM 用药医嘱没有时间", "不知何时开始用药", "用病程首次肯定提及的时间近似（奥司他韦 93/109）", "A 档：只用“是否使用”"],
+  ["标签", "GAM 诊断无时间、不分入院/出院", "分不清并发症还是基础病", "入院初步诊断中出现 = POA；补充诊断用签名时间", "A 档：是否排除 POA"],
+  ["文本", "文本中的否定、假设、拒绝、围术期语境", "“必要时插管”“全麻下插管”被误判", "NegEx 式规则 + 伪否定屏蔽；围术期插管单列（5 次）", "A 档：围术期插管是否计入"],
+  ["单位", "GAM 检验表混有尿液、胸腹水等标本", "尿肌酐被当成血肌酐", "标本过滤 + 合理范围标记；肌酐不合理值 40 → 1", ""],
+  ["单位", "GD 只有表头单位；IL-6 无单位；D-二聚体未注明 FEU/DDU", "数值可能差 2 倍以上", "逐项核对 GAM 单位；中位数比值辅助判断", "须向数据方确认"],
+  ["标签", "GAM 没有“重症”标签", "主要结局两边不对称", "候选规则 SEV_A–E；SEV_B 在 GD 上 κ = 0.917", "A 档：采用哪条（已选 SEV_B）"],
+  ["标签", "并发症判定来源不同；CRF 的 AKI 与 KDIGO 不一致", "并发症比较有偏", "检验规则候选（KDIGO、&gt;3×ULN、电解质、血气、TnI、CK）；AKI 另给替代口径（κ = 0.66）", "A 档：采用哪种定义"],
+  ["人群", "GAM 63% 入院 48 小时后才首次阳性", "入院值不可比", "发病时点分类、可比子集、流感索引时点取值", "A 档：采用哪种口径"],
+  ["人群", "GAM 门诊缺少人口学", "门诊难以单独使用", "挂接入院前 0–14 天的住院，借用年龄性别（22 次）", "其余 1144 次缺失"],
+  ["隐私", "GAM 病历全文含姓名、号码、电话、住址、签名", "隐私风险", "字段规则、已知姓名、≥6 位号码 token；行政文书不输出正文；按来源审计，0 命中", "A 档：是否保留全文"],
+  ["标签", "GAM 症状只能从入院现病史抽取", "“未提及”记 0 使患病率偏低", "原始值保留 pos/neg/none；v3 改三态", "A 档：院内发病者是否置缺失"],
+  ["识别", "GD 有 4 次住院无任何时间和结局，5 次不在合并症表", "不完整病例", "保留并在 QC 中计数", "A 档：是否剔除"],
+];
+let issueCat = "全部";
+function drawIssues() {
+  const cats = ["全部", ...new Set(ISSUES.map(x => x[0]))];
+  $("#issueChips").innerHTML = cats.map(c => `<button data-c="${c}" class="${c === issueCat ? "on" : ""}">${c}${c === "全部" ? `（${ISSUES.length}）` : ""}</button>`).join("");
+  chipGroup("#issueChips", b => { issueCat = b.dataset.c; drawIssues(); });
+  const q = $("#issueSearch").value.trim();
+  $("#issueList").innerHTML = ISSUES.map((x, i) => ({ x, i })).filter(({ x }) =>
+    (issueCat === "全部" || x[0] === issueCat) && (!q || x.join(" ").includes(q))).map(({ x, i }) =>
+    `<div class="issue"><div class="h"><span class="tag">${x[0]}</span><b>#${i + 1} ${x[1]}</b>${x[4].includes("A 档") ? '<span class="st part">A 档</span>' : ""}</div>
+     <p><span class="note">影响：</span>${x[2]}</p><p><span class="note">处理：</span>${x[3]}</p>${x[4] ? `<p><span class="note">仍需：</span>${x[4]}</p>` : ""}</div>`).join("")
+    || '<p class="note">没有匹配的条目。</p>';
+}
+$("#issueSearch").addEventListener("input", drawIssues);
+
+/* 3.6 协调方法 */
+const HARM = { V: [["不协调", .732, .846], ["院内 z 分数", .531, .977], ["分位数映射", .536, .840], ["ComBat", .543, .946], ["统一精度", .732, .845], ["统一精度 + 分位数", .536, .834]],
+               VD: [["不协调", .726, .921], ["院内 z 分数", .541, .977], ["分位数映射", .544, .882], ["ComBat", .548, .958], ["统一精度", .726, .920], ["统一精度 + 分位数", .543, .883]] };
+let harmView = "V";
+function drawHarm() {
+  hbar($("#harmChart"), HARM[harmView].map(d => ({ label: d[0], values: [d[1], d[2]] })),
+    { series: [{ color: "--ideal" }, { color: "--muted" }], max: 1, labelW: 120, rowH: 28, w: 860, fmt: v => v.toFixed(2), ticks: [0, 0.5, 1], ref: 0.5 });
+}
+chipGroup("#harmChips", b => { harmView = b.dataset.v; drawHarm(); });
+
+/* 3.7 v1.0 外部验证：AUROC 与 CI */
+function drawV1() {
+  const M = [["URB-65", .631, .535, .723], ["LR", .733, .627, .826], ["LightGBM", .737, .651, .817], ["TabPFN v2", .739, .653, .821], ["MIRA 冻结嵌入", .609, .493, .721], ["Qwen3-8B 零样本", .731, .640, .817]];
+  const w = 520, rowH = 30, h = M.length * rowH + 34, x0 = 120, x1 = w - 50, X = v => x0 + (x1 - x0) * (v - 0.45) / 0.45;
+  const s = svgBox(w, h);
+  [0.5, 0.6, 0.7, 0.8, 0.9].forEach(t => {
+    s.append(el("line", { x1: X(t), x2: X(t), y1: 0, y2: h - 26, stroke: css("--line") }));
+    s.append(el("text", { x: X(t), y: h - 10, "text-anchor": "middle", "font-size": 11, class: "muted" }, t.toFixed(1)));
+  });
+  M.forEach((m, i) => {
+    const y = 10 + i * rowH, c = m[0].startsWith("MIRA") ? "--bad" : m[0].startsWith("Qwen") ? "--gam" : "--gd";
+    s.append(el("text", { x: x0 - 8, y: y + 5, "text-anchor": "end", "font-size": 12.5 }, m[0]));
+    s.append(el("line", { x1: X(m[2]), x2: X(m[3]), y1: y, y2: y, stroke: css(c), "stroke-width": 2 }));
+    s.append(el("circle", { cx: X(m[1]), cy: y, r: 5, fill: css(c) }));
+    s.append(el("text", { x: X(m[3]) + 6, y: y + 4, "font-size": 11, class: "muted" }, m[1].toFixed(3)));
+  });
+  $("#v1Chart").replaceChildren(s);
+}
+
+/* =====================================================================
+   统一重绘（切换主题或页签后颜色需要重新取值）
+   ===================================================================== */
+/* =====================================================================
+   第 4 页：真实格式示例
+   表头、列位置、写法与处理规则取自真实数据结构和对齐代码（alignment/gd_crf.py、gam_ehr.py、
+   textrules.py 及 tests/test_textrules.py）；姓名、号码、日期、数值全部虚构。
+   ===================================================================== */
+
+/* 4.1 GD CRF 原表。每列：[Excel 列字母, 第 1 行模块名, 第 2 行字段名]。
+   列字母与真实表一致：病案号 A、年龄 D、体征时间 R、检验时间 Y、症状时间 AO、TRT001 AW、OUT003 CS 等
+   （见 gd_crf.py 中的 COL、TRT_BLOCKS、OUT_COLS，列号从 0 起）。"…" 表示省略的列。 */
+const CRF_COLS = [
+  ["A", "基本信息", "病案号"], ["B", "基本信息", "姓名"], ["D", "基本信息", "年龄"], ["E", "基本信息", "性别"], ["F", "基本信息", "BMI"],
+  ["H", "基础病", "COM001 慢阻肺"], ["…", "基础病", "…"],
+  ["R", "生命体征", "记录时间"], ["S", "生命体征", "VS001 体温"], ["T", "生命体征", "VS002 心率"], ["U", "生命体征", "VS003 呼吸"], ["X", "生命体征", "VS006 SpO2"],
+  ["Y", "实验室检验结果", "记录时间"], ["Z", "实验室检验结果", "LAB001 WBC"], ["AE", "实验室检验结果", "LAB006 CRP"], ["AF", "实验室检验结果", "LAB007 PCT"], ["…", "实验室检验结果", "…"],
+  ["AO", "症状", "记录时间"], ["AP", "症状", "SYM001 发热"], ["AQ", "症状", "SYM002 咳嗽"], ["AV", "症状", "SYM007 呼吸困难"],
+  ["AW", "治疗", "TRT001 奥司他韦"], ["AX", "治疗", "开始"], ["AY", "治疗", "结束"], ["AZ", "治疗", "剂量"], ["…", "治疗", "…"],
+  ["BW", "治疗", "TRT009ECMO"], ["CC", "治疗", "TRT009其他治疗"],
+  ["CS", "结局", "OUT003 呼吸机"], ["CW", "结局", "OUT007 住院天数"],
+];
+/* 数据行（全部虚构）。r = Excel 行号；kind = 主行（年龄非空）或续行 */
+const CRF_ROWS = [
+  { r: 3, kind: "主行", v: { A: "0099001", B: "示例甲", D: "78", E: "1", F: "22.5", H: "1", R: "2024-01-03 10:30", S: "38.6", T: "102", U: "24", X: "93",
+    Y: "2024-01-03", Z: "12.4", AE: "56.3", AF: "0.32", AO: "2024-01-03", AP: "1", AQ: "1", AV: "0",
+    AW: "1", AX: "2024-01-03", AY: "2024-01-07", AZ: "75mg bid", BW: "0", CS: "0", CW: "9" } },
+  { r: 4, kind: "续行", v: { R: "2024-01-05 08:00", S: "37.9", T: "96", U: "22", X: "95", Y: "2023-01-06", Z: "15.8", AE: "88.1", AF: "0.21",
+    AO: "2024-01-06", AP: "0", AQ: "1", AV: "1" } },
+  { r: 5, kind: "续行", v: { A: "0099002", R: "2024-01-08 09:15", S: "36.7", T: "84", U: "19", X: "96", Y: "2024-01-08", Z: "7.1", AE: "12.0", AF: "<0.05" } },
+  { r: 6, kind: "主行", v: { A: "0099315", B: "示例乙", D: "83", E: "2", F: "19.8", H: "0", R: "2024-01-10", S: "37.6", T: "90", U: "20", X: "97",
+    Y: "2024-01-10", Z: "6.3", AE: "21.4", AO: "2024-01-10", AP: "1", AQ: "1", AV: "0", AW: "1", AX: "2024-01-10", AY: "2024-01-14", AZ: "75mg bid", BW: "0", CS: "0", CW: "6" } },
+];
+/* 每个问题：要高亮的单元格（行号 + 列字母；h 开头表示第 2 行表头）与说明 */
+const CRF_ISSUES = [
+  { k: "group", t: "一人多行", cells: ["3D", "4D", "5D", "6D"],
+    d: "<b>一次住院占好几行。</b>第一行（主行）填年龄、基础病、治疗、结局；后面的续行只填其他时间点的体征、检验和症状。<br><b>处理：</b>按“年龄非空的行开始一位新患者”分组。Sheet1 共 663 行，分出 297 组，与表名“共 297 例”一致。" },
+  { k: "drag", t: "病案号被下拉递增", cells: ["3A", "5A"],
+    d: "<b>续行的病案号大多空着，但有的被 Excel 下拉自动加了 1</b>（0099001 → 0099002）。如果按病案号分组，就会凭空多出一位“病人”。<br><b>处理：</b>分组不信任续行的病案号；这类行记入日志（真实数据中发现 2 行）。<br><b>请数据方：</b>以后导出时每行都填病案号。" },
+  { k: "times", t: "三组时间各自独立", cells: ["3R", "3Y", "3AO", "4R", "4Y", "4AO", "5R", "5Y"],
+    d: "<b>同一行有三个“记录时间”</b>：体征、检验、症状各一个，彼此独立。实测同一行里检验时间和体征时间常常相差好几天（第 4 行：体征 01-05，检验 01-06，症状 01-06）。<br><b>处理：</b>三组分别展开成独立的时间点，不能把一行当作“同一时刻”。" },
+  { k: "year", t: "年份笔误", cells: ["4Y"],
+    d: "<b>2023-01-06</b> 落在这次住院的时间窗 [锚点 − 7 天, 锚点 + 住院天数 + 7 天] 之外。<br><b>处理：</b>依次尝试 +1、−1、+2、−2 年，能落回窗内的就采用，并打标记 <code>year+1</code>；原值另存。真实数据中修正了 105 条（+1 年 59、−1 年 32、+2 年 14），41 条修不了，保留并标出。" },
+  { k: "prec", t: "时间精度", cells: ["3R", "4R", "5R", "6R", "3Y", "4Y", "5Y", "6Y"],
+    d: "<b>体征时间多数到分钟，检验时间全部只有日期。</b>真实计数：体征 2,423 条到分钟、484 条只有日期（如第 6 行）；检验 6,170 条全部只有日期。<br><b>处理：</b>每条记录标 <code>time_precision</code> = minute / day。<br><b>对模型的影响：</b>只凭“时间精度”这一项就能 100% 分出两家医院，所以它不能进入模型输入。" },
+  { k: "anchor", t: "没有入院时间", cells: ["3R", "6R"],
+    d: "<b>CRF 没有入院时间这一列。</b><br><b>处理：</b>用该次住院“首个有效体征时间”作锚点（时间零点），有效 = 与该患者全部日期的中位数相差不超过 60 天，用来避开写错年份的那一条。297 次中 292 次这样取到，1 次用首个事件时间，4 次没有任何时间。<br><b>请数据方：</b>补充入院时间。" },
+  { k: "censor", t: "“<0.05”这类值", cells: ["5AF"],
+    d: "<b>PCT 写作“&lt;0.05”。</b>真实值只知道小于 0.05。<br><b>处理：</b>数值记 0.05，另加删失标记 <code>censor = &lt;</code>，由后续分析决定怎么用。原写法保留在 <code>raw_value</code>。" },
+  { k: "header", t: "表头编码重复", cells: ["hBW", "hCC"],
+    d: "<b>原表头里 ECMO 和“其他治疗”都写成了 TRT009</b>（表头笔误）。<br><b>处理：</b>统一编码中改为 TRT009 = ECMO、TRT010 = 其他治疗。读入时逐列校验表头（如第 S 列必须以 VS001 开头），将来列顺序一变就报错，不会静默读错。" },
+];
+function drawCrf() {
+  // 第 0 行：Excel 列字母
+  let h = "<thead><tr><th class='col'></th>" + CRF_COLS.map(c => `<th class="col">${c[0]}</th>`).join("") + "<th class='col'></th></tr></thead><tbody>";
+  // 第 1 行：模块名（相邻同名的合并成一格，与原表的合并单元格一致）
+  h += "<tr><td class='rn'>1</td>";
+  for (let i = 0; i < CRF_COLS.length;) {
+    let j = i;
+    while (j < CRF_COLS.length && CRF_COLS[j][1] === CRF_COLS[i][1]) j++;
+    h += `<td class="mod" colspan="${j - i}">${CRF_COLS[i][1]}</td>`;
+    i = j;
+  }
+  h += "<td class='kind'></td></tr>";
+  // 第 2 行：字段名
+  h += "<tr><td class='rn'>2</td>" + CRF_COLS.map(c => `<td class="fld" data-c="h${c[0]}">${c[2]}</td>`).join("") + "<td class='kind'></td></tr>";
+  // 数据行
+  CRF_ROWS.forEach(row => {
+    h += `<tr><td class="rn">${row.r}</td>`;
+    CRF_COLS.forEach(c => {
+      const v = c[0] === "…" ? "…" : (row.v[c[0]] || "");
+      h += `<td data-c="${row.r}${c[0]}">${v.replace("<", "&lt;")}</td>`;
+    });
+    h += `<td class="kind">← ${row.kind}</td></tr>`;
+  });
+  $("#crfGrid").innerHTML = h + "</tbody>";
+  // 问题按钮
+  $("#crfChips").innerHTML = CRF_ISSUES.map(x => `<button data-k="${x.k}">${x.t}</button>`).join("");
+  chipGroup("#crfChips", b => {
+    const it = CRF_ISSUES.find(x => x.k === b.dataset.k);
+    $$("#crfGrid td").forEach(td => td.classList.toggle("hl", it.cells.includes(td.dataset.c)));
+    $("#crfExplain").innerHTML = it.d;
+  });
+}
+drawCrf();
+
+/* 4.4 GAM 检验 sheet。列名与真实表一致；子项名是真实写法（common.py 中 gam_items），其余虚构。
+   每行最后一个元素是处理说明。 */
+const LAB_HEAD = ["关联字段", "病人ID", "科室", "检验项目", "时间", "子项", "结果", "单位", "值", "范围"];
+const LAB_ROWS = [
+  ["900001-2", "900001", "呼吸科", "血常规", "2024-01-03 15:42", "★白细胞 [★WBC]", "11.62", "10^9/L", "H", "3.5--9.5",
+    "<b>→ LAB001 白细胞 = 11.62</b>（10^9/L）。子项全名精确匹配到统一编码；时间到分钟；“3.5--9.5”中的上限 9.5 被解析为正常上限（ULN），供“超过 N 倍上限”一类规则使用；“H”是原表的异常标记，原样保留。" ],
+  ["900001-2", "900001", "呼吸科", "降钙素原", "2024-01-03 15:42", "★降钙素原检测 [★PCT]", "<0.05", "ng/ml", "", "0--0.05",
+    "<b>→ LAB007 PCT = 0.05，删失标记“&lt;”</b>。单位“ng/ml”只是写法不同。注意同一个指标在 GAM 有 3 种子项名（“降钙素原测定 [PCT]”“*降钙素原检测 [*PCT]”“★降钙素原检测 [★PCT]”），都要映射到同一编码。" ],
+  ["900001-2", "900001", "呼吸科", "肾功能", "2024-01-04 07:15", "★肌酐(酶法) [★Cr]", "86", "umol/L", "", "57--111",
+    "<b>→ LAB011 肌酐 = 86 μmol/L</b>（原表写 umol/L）。" ],
+  ["900001-2", "900001", "呼吸科", "尿生化", "2024-01-04 09:30", "★肌酐(酶法) [★Cr]", "8650", "umol/L", "", "",
+    "<b>→ 不映射，放进“未映射检验”清单。</b>子项名和血肌酐<b>一字不差</b>，但这是尿液标本（尿肌酐可达上万）。如果只看子项名，就会出现一个 8650 的“血肌酐”，并触发急性肾损伤规则。<br>规则：检验项目以“尿”开头（尿素、尿酸除外），或含胸腹水、脑脊液、引流液等的，都不当作血液指标。" ],
+  ["900001-2", "900001", "呼吸科", "电解质", "2024-01-04 07:15", "★钾 [★K]", "3.2", "Mmol/L", "L", "3.5--5.3",
+    "<b>→ EXT_K 钾 = 3.2 mmol/L</b>。GD 的 CRF 没有收集钾，所以用 <code>EXT_</code> 前缀：只有 GAM 有。单位“Mmol/L”只是大小写不同（钾和乳酸各 788 条）。" ],
+  ["900001-2", "900001", "呼吸科", "血气分析", "2024-01-05 08:50", "氧分压 [pO2]", "55", "mmHg", "L", "83--108",
+    "<b>→ EXT_PAO2 = 55 mmHg</b>。动脉血气只有 GAM 有。血气里的 SaO2 是动脉血，<b>不与</b>指脉氧 SpO2 合并。" ],
+  ["900001-2", "900001", "呼吸科", "凝血", "2024-01-04 07:15", "*D二聚体定量 [D- Dimer]", "1.36", "mg/l FEU", "H", "0--0.55",
+    "<b>→ LAB013 D-二聚体 = 1.36 mg/L（FEU）</b>。GAM 写明了 FEU；GD 表头没写是 FEU 还是 DDU，两者数值差约 2 倍。用分布比对也定不下来，需要数据方确认。" ],
+];
+function drawLab() {
+  let h = "<tbody><tr>" + LAB_HEAD.map(x => `<td class="fld">${x}</td>`).join("") + "</tr>";
+  LAB_ROWS.forEach((r, i) => {
+    h += `<tr class="click" data-i="${i}">` + r.slice(0, 10).map(x => `<td>${x.replace("<", "&lt;")}</td>`).join("") + "</tr>";
+  });
+  $("#labGrid").innerHTML = h + "</tbody>";
+  $$("#labGrid tr.click").forEach(tr => tr.onclick = () => {
+    $$("#labGrid tr.click").forEach(x => x.classList.toggle("on", x === tr));
+    $("#labExplain").innerHTML = LAB_ROWS[+tr.dataset.i][10];
+  });
+}
+drawLab();
+
+/* 4.5 病历文本标注。标记写法：⟦类型|原文|说明⟧，类型对应 CSS 类 .sp.xxx。
+   句式取自 tests/test_textrules.py；判断结果与 textrules.py 的实际规则一致。 */
+const NOTES = [
+  { k: "adm", t: "入院记录", text: `入院记录
+姓名：⟦priv|示例丙|隐私：“姓名：”后面的值在产物中替换为 [姓名]。号码、电话、住址、医师签名同样处理，写盘后再逐文件审计，命中不为 0 流程就失败。⟧　性别：⟦pos|男|性别 → M⟧　年龄：⟦pos|81岁|年龄 → 81⟧
+入院时间：⟦time|2024-01-03 10:00|入院时间 → 这次住院的<b>锚点</b>（时间零点）。GAM 173 次住院全部取到；GD 没有这一项。⟧　记录时间：⟦time|2024-01-03 12:00|这份病历的<b>书写</b>时间，比入院晚 2 小时。⟧
+主诉：⟦pos|发热|SYM001 发热 = 1（明确肯定）⟧3天，伴⟦pos|咳嗽|SYM002 咳嗽 = 1⟧、咳⟦pos|黄痰|SYM003 咳痰 = 1（“黄痰”“白痰”“咯痰”等写法都算）⟧。
+现病史：患者3天前⟦pseudo|无明显诱因|<b>伪否定</b>：“无明显诱因”不是在否定后面的发热。规则先把这类短语屏蔽，再判断否定。⟧出现⟦pos|发热|SYM001 = 1⟧，⟦skip|最高体温39.5℃|病史里的最高体温，不是入院时测的，不进入体征序列。⟧，伴咳嗽、咳黄痰，⟦pos|全身酸痛|SYM005 肌痛 = 1（“全身酸痛”“周身酸痛”“四肢酸痛”等都算）⟧，⟦neg|无咽痛|SYM004 咽痛 = 0（明确否定）⟧，⟦neg|无胸闷气促|SYM007 呼吸困难 = 0（“气促”被“无”否定）⟧。⟦skip|外院测体温38.5℃|入院前外院测的值。入院体征只从“体格检查”段取，这个值不进入数据。⟧，⟦info|查甲型流感病毒抗原阳性|文字里的检测结果不用于编码。流感阳性及阳性时间以检验表为准（有精确时间）。⟧……
+既往史：⟦pos|慢性阻塞性肺疾病|COM001 慢阻肺 = 1⟧病史5年，⟦info|高血压|高血压不在 CRF 的 10 种基础病（COM001–010）里，不编码。⟧病史10年，⟦neg|否认冠心病、糖尿病|<b>否定作用到分句结束</b>：顿号并列的冠心病、糖尿病都被否定 → COM004 = 0、COM006 = 0。⟧病史。
+体格检查：⟦pos|T：37.2℃|VS001 体温 = 37.2。时间记为入院时间，精度标 note。⟧，⟦pos|P：88次/分|VS002 心率 = 88⟧，⟦pos|R：20次/分|VS003 呼吸 = 20⟧，⟦pos|BP：130/80mmHg|VS004 收缩压 = 130，VS005 舒张压 = 80⟧，⟦pos|SpO2 95%|VS006 SpO2 = 95⟧。⟦pos|身高165cm，体重60kg|由身高、体重算出 BMI = 22.0。优先计算，不直接用“BMI：”字样，避免“BMI：19.”这类截断写法。⟧……
+初步诊断：
+1.⟦pos|流行性感冒|入院诊断含流感 → flu_dx_admission = 1⟧
+2.社区获得性⟦pos|肺炎|只写了“肺炎”、没写病原 → 归入扩展类 CLPX_PNEU（未分型肺炎），<b>不等于</b> CRF 的 CLP001 病毒性肺炎。出现在初步诊断里 → 入院时已存在（poa = 1）。⟧
+3.⟦pos|慢性阻塞性肺疾病|入院诊断也用来补充基础病：COM001 = 1⟧
+补充诊断：
+1、⟦pos|Ⅰ型呼吸衰竭|CLP003 Ⅰ型呼衰 = 1。是入院后补充的诊断 → 入院时不存在（poa = 0）。规则专门区分了Ⅰ型和Ⅱ型，避免“Ⅱ型”里的“Ⅰ型”被误算。⟧　医师签名：⟦time|2024-01-05 09:20|补充诊断的签名时间 → CLP003 的时间。只出现在出院诊断里的并发症没有时间。⟧`,
+    out: [["锚点", "入院时间", "2024-01-03 10:00", "入院记录“入院时间”"], ["年龄 / 性别 / BMI", "", "81 / M / 22.0", ""],
+      ["VS001–006", "入院体征", "37.2 / 88 / 20 / 130 / 80 / 95", "入院时间；精度 note"],
+      ["SYM001–005", "发热、咳嗽、咳痰、咽痛、肌痛", "1 / 1 / 1 / 0 / 1", "主诉 + 现病史"], ["SYM006", "乏力", "缺失", "未提及 ≠ 没有（CDM v3 起）"],
+      ["SYM007", "呼吸困难", "0", "明确否定"], ["COM001", "慢阻肺", "1", "既往史 + 初步诊断"], ["COM004 / COM006", "冠心病 / 糖尿病", "0 / 0", "“否认”"],
+      ["其余 COM", "", "0", "未提及按 0，与症状的处理不同"], ["flu_dx_admission", "入院诊断含流感", "1", ""],
+      ["CLPX_PNEU", "肺炎（未分型）", "1", "入院时已存在（poa = 1）"], ["CLP003", "Ⅰ型呼衰", "1", "2024-01-05 09:20；poa = 0"]] },
+  { k: "prog1", t: "日常病程 01-04", text: `⟦time|2024-01-04 09:10|病程记录开头的时间 → 这份记录的书写时间。从中抽出的体征都用这个时间，精度标 note：<b>不是测量时间</b>。⟧　日常病程记录
+患者仍有发热，今日⟦skip|最高体温38.9℃|“最高体温”说的是一天里的峰值，不是此刻的值，跳过。规则：体温前 6 个字内出现“最高 / Tmax / 波动于”等就跳过。⟧，现⟦pos|T：37.8℃|VS001 = 37.8，时间 2024-01-04 09:10⟧，⟦pos|P：96次/分|VS002 = 96⟧，⟦pos|R：22次/分|VS003 = 22⟧，⟦pos|BP：128/76mmHg|VS004 = 128，VS005 = 76⟧，⟦pos|SpO2 92%|VS006 = 92⟧。⟦pos|继续予奥司他韦|TRT001 奥司他韦：是否用过以<b>医嘱表</b>为准，但医嘱表没有时间，开始时间只能取病程里第一次肯定提及的时间。这里写的是“继续”，说明真实开始更早，这就是近似的代价。⟧抗病毒治疗。`,
+    out: [["VS001–006", "体征", "37.8 / 96 / 22 / 128 / 76 / 92", "2024-01-04 09:10；精度 note"], ["TRT001", "奥司他韦", "1", "开始时间 ≈ 首次提及（若此前没提过）"]] },
+  { k: "prog2", t: "日常病程 01-05", text: `⟦time|2024-01-05 08:30|书写时间⟧　日常病程记录
+患者⟦info|喘憋加重|住院期间的症状变化目前<b>没有</b>抽取：症状只取入院时的主诉和现病史。⟧，⟦pos|SpO2 88%|VS006 = 88，时间 2024-01-05 08:30⟧（⟦info|鼻导管吸氧3L/min|吸氧方式和流量没有结构化。同样是 88%，吸氧和不吸氧的意义完全不同，这是理想数据清单里的“氧疗条件”。⟧），予⟦pos|无创呼吸机|TRT006 无创通气 = 1。关键词本身带“无”字：规则要求否定词出现在关键词<b>之前</b>、且不与关键词重叠，所以不算否定。⟧辅助通气。已向家属告知病情，病情加重⟦hypo|必要时气管插管|<b>假设语境</b>（必要时）：不算插管。同类写法还有“家属拒绝气管插管”“建议转ICU”“如需”“拟”等。⟧，家属表示理解。`,
+    out: [["VS006", "SpO2", "88", "2024-01-05 08:30；精度 note"], ["TRT006", "无创通气", "1", "开始 2024-01-05 08:30"], ["TRT007", "有创通气", "（不记）", "假设语境"]] },
+  { k: "rescue", t: "抢救记录 01-06", text: `⟦time|2024-01-06 02:10|书写时间⟧　抢救记录
+患者突发呼吸困难加重，⟦miss|SpO2 降至75%|<b>规则漏抽</b>：“降至”这种写法不在规则里，这个 75% 没有进入数据。结构化的监护数据不会有这个问题。⟧，经家属同意后行⟦pos|气管插管|TRT007 有创通气 = 1，开始时间取第一次肯定提及的时间 2024-01-06 02:10 → 结局“呼吸机”（OUT003）= 1⟧接呼吸机辅助通气，⟦pos|转入ICU|TRT008 ICU = 1。也会用科室名含“ICU / 重症”来判断，开始时间取两者中较早的。⟧进一步治疗。`,
+    out: [["VS006", "SpO2", "（漏抽）", "写法“降至75%”不在规则里"], ["TRT007", "有创通气", "1", "开始 2024-01-06 02:10"], ["OUT003", "呼吸机", "1", "= 无创 ∪ 有创"], ["TRT008", "ICU", "1", "科室或文字"]] },
+  { k: "surg", t: "另一位外科患者", text: `⟦time|2024-02-11 16:40|书写时间⟧　术后首次病程记录
+患者于全麻下行……术，⟦periop|术后气管插管|同一分句里有“术后 / 全麻 / 手术” → 记为<b>围术期插管</b> TRT007_PERIOP，不计入 TRT007 和“呼吸机”结局（GAM 中少于 11 次）。是否计入属于需要研究者决定的口径。⟧状态⟦pos|转入ICU|TRT008 ICU = 1。注意：规则没有区分“术后常规入 ICU”。⟧进一步治疗。`,
+    out: [["TRT007_PERIOP", "围术期插管", "1", "单列备查"], ["TRT007", "有创通气", "0", ""], ["TRT008", "ICU", "1", ""]] },
+];
+let noteK = "adm", noteSpans = [];
+function drawNote() {
+  const n = NOTES.find(x => x.k === noteK);
+  noteSpans = [];
+  // 先转义 HTML，再把 ⟦类型|原文|说明⟧ 换成可点击的片段；说明文字放进数组，按序号取用
+  const esc = n.text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  $("#noteText").innerHTML = esc.replace(/⟦(\w+)\|([^|⟧]+)\|([^⟧]+)⟧/g, (m, k, t, d) => {
+    noteSpans.push(d.replace(/&lt;(\/?)b&gt;/g, "<$1b>"));   // 说明里只允许 <b> 标签
+    return `<span class="sp ${k}" tabindex="0" data-i="${noteSpans.length - 1}">${t}</span>`;
+  });
+  $$("#noteText .sp").forEach(sp => {
+    const show = () => {
+      $$("#noteText .sp").forEach(x => x.classList.toggle("on", x === sp));
+      $("#noteExplain").innerHTML = `<b>“${sp.textContent}”</b>：${noteSpans[+sp.dataset.i]}`;
+    };
+    sp.onclick = show;
+    sp.onkeydown = e => { if (e.key === "Enter") show(); };
+  });
+  $("#noteExplain").innerHTML = "← 点击左侧高亮的文字。";
+  $("#noteOut").innerHTML = n.out.map(r => `<tr><td class="mono">${r[0]}</td><td>${r[1]}</td><td><b>${r[2]}</b></td><td class="note">${r[3]}</td></tr>`).join("");
+}
+$("#noteChips").innerHTML = NOTES.map((x, i) => `<button data-k="${x.k}"${i ? "" : " class='on'"}>${x.t}</button>`).join("");
+chipGroup("#noteChips", b => { noteK = b.dataset.k; drawNote(); });
+drawNote();
+
+/* 4.6 把 4.5 抽出的 SpO2 与事件放到一条时间轴上（虚构病人示例丙） */
+function drawExTL() {
+  const w = 860, h = 230, x0 = 50, x1 = w - 20, y0 = 26, y1 = 130;
+  const T0 = Date.UTC(2024, 0, 3, 0, 0), span = 4 * 24;               // 01-03 00:00 起 4 天
+  const X = (d, hh, mm) => x0 + (x1 - x0) * ((Date.UTC(2024, 0, d, hh, mm) - T0) / 3.6e6) / span;
+  const Y = v => y1 - (y1 - y0) * (v - 70) / 30;
+  const s = svgBox(w, h);
+  for (let d = 0; d <= 4; d++) {
+    const x = x0 + (x1 - x0) * d / 4;
+    s.append(el("line", { x1: x, x2: x, y1: y0, y2: y1, stroke: css("--line") }));
+    if (d < 4) s.append(el("text", { x: x + (x1 - x0) / 8, y: y1 + 16, "text-anchor": "middle", "font-size": 11.5, class: "muted" }, `01-0${d + 3}`));
+  }
+  [70, 80, 90, 100].forEach(v => s.append(el("text", { x: x0 - 6, y: Y(v) + 4, "text-anchor": "end", "font-size": 11, class: "muted" }, v)));
+  s.append(el("text", { x: 6, y: 14, "font-size": 11, class: "muted" }, "SpO2（%）"));
+  const pts = [[3, 10, 0, 95], [4, 9, 10, 92], [5, 8, 30, 88]];          // [日, 时, 分, 值]
+  s.append(el("path", { d: pts.map((p, i) => `${i ? "L" : "M"}${X(p[0], p[1], p[2])},${Y(p[3])}`).join(" "), fill: "none", stroke: css("--gam"), "stroke-width": 1.6, "stroke-dasharray": "3 3" }));
+  pts.forEach(p => {
+    s.append(el("circle", { cx: X(p[0], p[1], p[2]), cy: Y(p[3]), r: 5, fill: css("--gam") }));
+    s.append(el("text", { x: X(p[0], p[1], p[2]) + 8, y: Y(p[3]) - 6, "font-size": 11.5 }, p[3]));
+  });
+  // 漏抽的 75%
+  const mx = X(6, 2, 10);
+  s.append(el("circle", { cx: mx, cy: Y(75), r: 6, fill: "none", stroke: css("--bad"), "stroke-width": 1.6, "stroke-dasharray": "3 2" }));
+  s.append(el("text", { x: mx + 9, y: Y(75) + 4, "font-size": 11.5, fill: css("--bad") }, "75（漏抽）"));
+  // 事件标记：[日, 时, 分, 文字, 颜色]
+  const evs = [[5, 8, 30, "无创通气", "--warn"], [5, 9, 20, "Ⅰ型呼衰（补充诊断）", "--ideal"], [6, 2, 10, "气管插管 · 转 ICU", "--bad"]];
+  evs.forEach((e, i) => {
+    const x = X(e[0], e[1], e[2]), yy = y1 + 42 + i * 17;
+    s.append(el("line", { x1: x, x2: x, y1: y0, y2: y1, stroke: css(e[4]), "stroke-width": 1.5, "stroke-dasharray": i === 1 ? "4 3" : "" }));
+    s.append(el("line", { x1: x, x2: x, y1: y1 + 22, y2: yy - 11, stroke: css(e[4]), "stroke-width": 1, "stroke-dasharray": "2 2" }));   // 跳过日期行
+    s.append(el("text", { x: x + 4, y: yy, "font-size": 11.5, fill: css(e[4]) }, e[3]));
+  });
+  $("#exTL").replaceChildren(s);
+}
+
+function redrawAll() { drawArch(); drawTL(); drawReq(); drawF3(); drawDens(); drawRatio(); drawDom(); drawEv(); drawIssues(); drawHarm(); drawV1(); drawExTL(); }
+redrawAll();
+</script>
+</body>
+</html>

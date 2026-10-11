@@ -17,3 +17,12 @@ data/
 
 # 模型权重：体积超出 GitHub/LFS 上限，只在本地下载后上传服务器，不入库
 models/
+
+# flucase 是独立的私有仓库（EdwinNull/flucase），不随本公开仓库提交
+flucase/
+
+# 会议记录原件含人员姓名，只留本机（会后计划写明"原件未入库"）
+docs/老年流感多中心数据对齐与转重预测研究研讨会议记录.docx
+
+# 本机预览配置（含本机路径），不入库
+.claude/launch.json

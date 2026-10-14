@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 | 位置 | 内容 |
 |---|---|
-| 本机仓库（本目录） | 调研报告、论文精读、实验计划、汇报 PPT、数据对齐说明；少量辅助脚本。**这里没有实验代码和数据** |
+| 本机仓库（本目录） | 调研报告、论文精读、实验计划、汇报 PPT、数据对齐说明；少量辅助脚本。**这里没有实验代码**；研究者的真实数据放在 gitignore 的 `data/`（D35），Claude 不读 |
 | 服务器 `ud202482579@202.114.0.141`（已配免密 SSH） | 所有实验代码、数据、环境与运行。工作区 `/home/ud202482579/wangyiming`（下文记为 `W`），所有操作只在 `W` 内进行 |
 
 服务器 `W/CLAUDE.md` 是实验侧的权威规范（A/B/C 决策分级、医学时序检查清单、日志规范等），在服务器上做实验前先读它；`W/basemodel/README.md` 和 `W/basemodel/experiments/rw_gam2gd/README.md` 说明代码结构与运行命令。
@@ -58,8 +58,9 @@ python PPT/build_data_alignment_presentation.py   # 由 数据对齐五页.pptx 
 
 - **A 档决策归研究者**：转重定义、纳排标准、索引时点与窗口、标签、切分、主要指标、阈值、模型路线、最终结论。先做完不依赖该决策的部分，再带实测证据交回研究者；不得自行换定义把流程跑通，同一判据连续两次操作化失败即停下报告。
 - **实验流程**：写/更新方案 → 锁定（方案、配置、代码 sha256 写入 `logs/<日期>/<实验>_plan_lock.txt`）→ 运行 → 报告。外部验证集只评价一次，改口径须登记为新版本。
-- **数据纪律**：医院数据含可识别信息，只在服务器 `data/real_world/` 只读使用，逐患者数据只放 `basemodel/derived/`，文档只放聚合量；本机 `data/` 已 gitignore，严禁提交。PhysioNet 公开数据（MIMIC-IV、eICU、MC-MED）不得拷出服务器，也不得发给任何在线 LLM/API，只用本地模型。测试、注释、日志只用虚构姓名与号码。
-  - 例外（D34，2026-10-13）：数据使用协议允许研究者在本人设备上用 flucase 处理化名后的 CDM，条件与步骤见 `plans/flucase本机处理真实数据_操作文档_20261013.md` §1；化名对照表和原始文件仍只在服务器。Claude 不读任何真实病例内容：不打开、不打印研究者设备上的真实数据目录（默认 `~/flucase_real`），开发和测试只用虚构数据。
+- **数据纪律**：医院数据含可识别信息。服务器上只在 `data/real_world/` 只读使用，逐患者数据只放 `basemodel/derived/`；文档只放聚合量。PhysioNet 公开数据（MIMIC-IV、eICU、MC-MED）不得拷出服务器，也不得发给任何在线 LLM/API，只用本地模型。测试、注释、日志只用虚构姓名与号码。
+  - 研究者本机（D34、D35，2026-10-13）：已取消"医院原始数据不出服务器"。原始 Excel、化名对照表 `registry.csv`、CDM 和 flucase 的运行产物都放在本仓库的 `data/`（已 gitignore，严禁提交；不放进 `flucase/`，那是另一个仓库），由 flucase 处理（D36：flucase 引入服务器对齐代码，原始 Excel → CDM → std_v1）。条件与步骤见 `plans/flucase本机处理真实数据_操作文档_20261013.md` §1、§4A。医院数据同样不得发给任何在线 LLM/API。
+  - Claude 不读任何真实病例内容：不打开、不列出、不打印本仓库 `data/` 下的文件（旧路径 `~/flucase_real` 同理）；在仓库根目录跑 `grep -r`、`find` 等递归命令时排除 `data/`；开发和测试只用虚构数据。服务器对齐代码 `alignment/` 已于 10-13 经研究者人工检查，原样引入 flucase `pipeline/legacy/`（不改，只随服务器同步，见 `SOURCE.md`）；flucase 依赖限为 pandas 2.x（`backend/constraints.txt`，与服务器同版本），pandas 3 下对齐结果会变。
 - 服务器上临时文件不写 `/tmp`、`/dev/shm`，放在 `W` 内；日志写 `W/logs/YYYY-MM-DD/`，不散落在根目录。
 - 长时训练/实验运行期间不做查询或 sleep 轮询，估算时长后等待。
 - 文献工作：结论需可追溯到来源（标题、页码、章节、图表）；不得编造 DOI/作者/结果；只读摘要时标注"基于摘要"。历史论文清单曾出现题名与 PDF 不符，使用前看 `paper/首次调研阅读/00_论文身份核对.md`。

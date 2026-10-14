@@ -114,7 +114,7 @@ shape(1, "derived-arrow", 566, 392, 23, 14, fill=BLUE, preset="downArrow")
 shape(1, "wide-bg", 296, 409, 564, 42, fill=PALE, preset="roundRect")
 label(1, "wide-label", "crf_view   1 行 / 住院：adm_* · idx_* · lab_* · OUT00x", 308, 413, 540, 34,
       size=15, color=NAVY)
-footer(1, "资料：docs/数据对齐.md；实验执行计划 §4.3。来源规模为原稿状态（2026-09-28）。",
+footer(1, "资料：docs/数据对齐/数据对齐.md；实验执行计划 §4.3。来源规模为原稿状态（2026-09-28）。",
        "一次就诊连接多条事件和治疗，最后派生一行可追溯的建模宽表。")
 note(1, "先解释表粒度：encounters 一次就诊一行，events 是长表，治疗和并发症独立保存，crf_view 由这些记录派生。五个来源并不意味着患者可合并，只复用编码、单位和表结构。eICU 与 MC-MED 还未完成正式桥接验收。")
 
@@ -169,7 +169,7 @@ for index, (code, value) in enumerate([
         label(2, f"row-{index}-{suffix}", content, x_pos, y_pos + 2, width, 22,
               size=11.6, color=TEXT, bold=False,
               align="center" if suffix in ("day", "precision") else "left")
-footer(2, "字段值据 docs/数据对齐.md 中的病例示例；*EXAMPLE_01 为展示用关联键，非真实 ID。",
+footer(2, "字段值据 docs/数据对齐/数据对齐.md 中的病例示例；*EXAMPLE_01 为展示用关联键，非真实 ID。",
        "同一套编码能落入相同列；GD 的“第 0 天”不等于精确 0 小时。")
 note(2, "这页是本地文档中的字段值示例，EXAMPLE_01 是排版用键。GD 缺少真实入院时刻，锚点用首个体征；为跨源比较，这里只展示 day_rel，而不是伪造小时轨迹。门诊用于补充流感证据，不直接并入住院预测队列。")
 
@@ -252,7 +252,7 @@ for index, (model, value, dot_color) in enumerate([
 for index, tick in enumerate(["0.5", "0.6", "0.7", "0.8"]):
     label(4, f"tick-{index}", tick, 567 + index * 74.7, 416, 42, 20,
           size=10.5, color=MUTED, bold=False, align="center")
-footer(4, "资料：原稿 GD 外部验证结果；docs/数据对齐.md 字段示例。O/E = 1.18–2.81。",
+footer(4, "资料：原稿 GD 外部验证结果；docs/数据对齐/数据对齐.md 字段示例。O/E = 1.18–2.81。",
        "输入已可用于外部验证；TabPFN 与 LR 接近，当天事件使时点解释受限。")
 note(4, "左侧是结构示意：医院 v1.0 取索引日附近各变量第一个值，加年龄、性别；字段数值来自文档示例，不能与右侧验证结果解释为同一患者。右侧点图刻度从 0.5 到 0.8，并明确标出每个 AUROC；TabPFN 0.739 与 LR 0.733 的差异不稳健。GD 38 个事件中 26 个发生在索引当天。")
 
@@ -283,7 +283,7 @@ for index, (title, example, action) in enumerate([
           fill="DDEFFA", preset="roundRect")
     label(5, f"boundary-action-{index}", action, x_pos + 18, 384, 206, 30,
           size=11.5, color=NAVY, align="center")
-footer(5, "资料：docs/数据对齐.md；实验执行计划 §4.2–4.3；原稿中的质量问题与限制（2026-09-28）。",
+footer(5, "资料：docs/数据对齐/数据对齐.md；实验执行计划 §4.2–4.3；原稿中的质量问题与限制（2026-09-28）。",
        "先冻结字段、时间和结局规则，再开展正式训练与跨来源验证。")
 note(5, "三类边界要分别处理：单位和测法核对后才能比较；GD 日期精度不支持补造小时级输入；T-hour 任务必须看数据何时可用。eICU 全员已在 ICU，不能定义新发 ICU 终点。当前规则下严格流感为零只是规则结果。CRP 未测应保留缺失而不是写成阴性。")
 

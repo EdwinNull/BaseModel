@@ -71,5 +71,5 @@ python PPT/build_data_alignment_presentation.py   # 由 数据对齐五页.pptx 
 - `research/`：多轮调研报告（每轮含 `brief.md`、`report.md`、`research-log.md`、`sources.jsonl`）与合并展示页 HTML。
 - `paper/`：论文库、精读笔记（按 时序基础模型 / 强化学习_后训练奖惩机制 / 数据集 分类）；`生成合并调研.py` 生成笔记骨架与 SVG 流程图。
 - `plans/`：实验方案与执行计划（与服务器 `W/docs/basemodel/plan/week01/` 同步，两处内容应一致）。
-- `docs/数据对齐.md`：各数据源规模、CDM 表结构与示例。
+- `docs/`：按主题分子文件夹（`数据对齐/`、`实验/`、`汇报/`、`flucase/`，索引见 `docs/README.md`）；`docs/数据对齐/数据对齐.md`：各数据源规模、CDM 表结构与示例；flucase 演示页在 `docs/flucase/`。
 - 第三方 PDF、全文提取、检索记录、`tmp/`、`*.plan.json`、`lint.json` 只保留在本地，不入库（见 `.gitignore`）；`models/` 中的权重也不应提交。

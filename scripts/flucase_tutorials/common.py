@@ -13,6 +13,8 @@ SHOTS = WORK / "shots"
 IMG = WORK / "img"
 SPEC = WORK / "spec"
 DATE = "20261016"
+# 截图对应的 flucase 版本（10-16 测试问题修复之后；合并 main 后改成 main 的提交号）
+VERSION = "fix/test-findings-20261016"
 IMG.mkdir(parents=True, exist_ok=True)
 SPEC.mkdir(parents=True, exist_ok=True)
 
@@ -94,5 +96,5 @@ def write(spec: dict) -> Path:
     return out
 
 
-FOOT = ("截图来自 2026-10-16 的本机正式模式测试（flucase main 51beaca，FLUCASE_ENV=prod），病例、姓名、编号全部虚构，本文不含任何真实病例。"
+FOOT = (f"截图来自 2026-10-16 测试问题修复后的本机正式模式测试（flucase {VERSION}，FLUCASE_ENV=prod），病例、姓名、编号全部虚构，本文不含任何真实病例。"
         "真实数据测试时只回报计数、问题代码、页面现象和原表列名，不发病例内容，也不发带病例信息的截图。")

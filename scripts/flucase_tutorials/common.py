@@ -13,8 +13,8 @@ SHOTS = WORK / "shots"
 IMG = WORK / "img"
 SPEC = WORK / "spec"
 DATE = "20261016"
-# 截图对应的 flucase 版本（10-16 测试问题修复合并到 main 之后）
-VERSION = "main c5575d6"
+# 截图对应的 flucase 版本（D48、D49 与回归后的显示修正，分支 fix/t0-r4-20261016；合并 main 后改成 main 的提交号）
+VERSION = "fix/t0-r4-20261016 470cae9"
 IMG.mkdir(parents=True, exist_ok=True)
 SPEC.mkdir(parents=True, exist_ok=True)
 

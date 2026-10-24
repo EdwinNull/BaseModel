@@ -105,6 +105,10 @@ KEY_CN = {"site": "中心", "setting": "场景", "patient_id": "患者编号", "
 T_BUCKETS = [(-math.inf, -168, "t0 前 >7 天"), (-168, -24, "t0 前 1–7 天"), (-24, 0, "t0 前 24 小时内"), (0, 24, "t0 后 24 小时内"),
              (24, 72, "t0 后 1–3 天"), (72, 168, "t0 后 3–7 天"), (168, math.inf, "t0 后 >7 天")]
 FORMATS = ("std_v3", "std_v2")
+# 问题单计数（A10）用的口径
+QSHEET = "docs/汇报/临床负责人问题单_20261024.md"
+FEVER_C = 37.3                                     # 发热阈值，腋温（D13；规则集 fever_threshold_c）
+ICU_ORGANS = ("CLP005", "CLP008", "CLP014", "CLP016", "CLP018", "CLP020", "CLP024")   # 规则集 v0.3 ICU_ORGAN 认的其他器官衰竭
 
 # 用到的列（缺了照样跑，缺哪些写进分析）
 NEED = {
@@ -795,6 +799,116 @@ def _smd(x1: pd.Series, x2: pd.Series):
     return None if sd == 0 else round((x1.mean() - x2.mean()) / sd, 3)
 
 
+def question_counts(d: Data, S: dict[str, pd.DataFrame], o: Options, f: Fmt, names: bool) -> list[Table]:
+    """问题单（QSHEET）上要先在数据上数的数，按中心 × 场景。题号跟问题单走；“其中”行的比例分母是上一级。"""
+    enc, ev = d.enc, d.ev
+    e = enc.set_index("encounter_id")
+    ids = e.index.to_series()
+    grps = list(dict.fromkeys(enc["_grp"]))
+    by = {g: enc.loc[enc["_grp"] == g, "encounter_id"].to_numpy() for g in grps}
+    pos = ev[ev["_pos"]]
+    s02, s03, s04, s05, s08, s09, s11 = (S[k] for k in ("02_流感检测", "03_基础病", "04_症状", "05_生命体征", "08_治疗", "09_并发症与诊断",
+                                                         "11_分级时间线"))
+    rows: list[list] = []
+
+    def put(q: str, label: str, mask: pd.Series, parent: pd.Series | None = None, note: str = "") -> pd.Series:
+        mask = mask.reindex(e.index).fillna(False).astype(bool)
+        if parent is not None:
+            mask &= parent
+        rows.append([q, label, *[f.kp(mask.loc[by[g]].sum(), parent.loc[by[g]].sum() if parent is not None else len(by[g])) for g in grps], note])
+        return mask
+
+    def per_group(q: str, label: str, fn, note: str = "") -> None:
+        rows.append([q, label, *[fn(g) for g in grps], note])
+
+    # 1 发热
+    no_hist = s04["SYM001"].astype(object).ne("yes")
+    wmax = s05["VS001_win_max"]
+    cool = put("1", f"基线窗（t0 {o.window[0]:+g} 至 {o.window[1]:+g} 小时）体温都 <{FEVER_C:g}℃ 或没测，且病史没写发热",
+               (wmax.isna() | (wmax < FEVER_C)) & no_hist, note="体温 = 05_生命体征 VS001_win_max；病史 = 04_症状 SYM001")
+    put("1", "  其中基线窗内没测体温", wmax.isna(), parent=cool)
+    put("1", "整个就诊都不发热（fever_status = no）", e["fever_status"] == "no", note="fever_status 按整次就诊：任何时候测到 ≥阈值或病史写了发热都算发热")
+    # 2 COPD 与 SpO2
+    copd = put("2", "有 COPD（COM001 = yes）", s03["COM001"] == "yes")
+    put("2", "  其中吸空气 SpO2 曾 ≤93%", s05["VS006_all_min_air"] <= 93, parent=copd, note="全程；o2_status = 空气")
+    # 3 病例从哪里找
+    conf_yes, dx = e["flu_confirmed"] == "yes", s02["flu_dx"] == "yes"
+    put("3", "诊断写了流感、没有阳性检测", dx & ~conf_yes, note="flu_dx = yes 且 flu_confirmed 不是 yes")
+    put("3", "有阳性检测、诊断没写流感", conf_yes & ~dx)
+    # 4 弱阳性
+    ft = ev[ev["var"] == "FLU_TEST"]
+    ftp = ft[ft["_pos"]]
+    weak_row = ftp["value_text"].astype(object).fillna("").astype(str).str.contains("弱阳性|±", regex=True)
+    weak_ids, strong_ids = set(ftp.loc[weak_row, "encounter_id"]), set(ftp.loc[~weak_row, "encounter_id"])
+    weak = put("4", "有弱阳性（±）检测结果", ids.isin(weak_ids), note="结果原文含“弱阳性”或“±”")
+    put("4", "  其中没有别的阳性检测（只靠弱阳性确诊）", ids.isin(weak_ids - strong_ids), parent=weak)
+    # 5 14 天内再住院
+    rep = put("5", "14 天内再就诊（season_index = repeat_within_14d）", e["season_index"] == "repeat_within_14d")
+    put("5", "  其中这次就诊达到重型及以上", s11["sev_max"].isin([LEVEL_CN["severe"], LEVEL_CN["critical"]]), parent=rep, note="有时间的证据（sev_max）")
+    # 6 中医证候
+    syn = pos[pos["var"] == "TCM_SYN"]
+    typed = set(pos.loc[pos["var"] == "TCM_TYPE", "encounter_id"])
+    put("6", "有中医证候记录", ids.isin(set(syn["encounter_id"])))
+    per_group("6", "  证候写法（种）", lambda g: f.n(syn.loc[syn["_grp"] == g, "value_text"].nunique()), "不同写法的个数")
+    per_group("6", "  其中已对到方案证型（种）",
+              lambda g: f.n(syn.loc[(syn["_grp"] == g) & syn["encounter_id"].isin(typed), "value_text"].nunique()),
+              "按就诊近似：同一次就诊认出了方案证型（TCM_TYPE），就算这次的写法已对应")
+    # 8 新开始吸氧，及给氧前后 24 小时内是否同时有低氧（对齐方案 §7 第 11、12 项）
+    st = d.st
+    o2 = st[(st["layer"] == "effective") & (st["row_type"] == "criterion") & st["criterion"].astype(str).str.startswith("O2_NEW")]
+    o2h = rel_h(o2["start"], o2["encounter_id"], enc).groupby(o2["encounter_id"]).min()
+    vals = pos[pos["value"].notna() & (o.keep_implausible | ~pos["_impl"])]
+    signs = {"吸空气 SpO2 ≤93%": vals[(vals["var"] == "VS006") & (vals["o2_status"].astype(object) == "空气") & (vals["value"] <= 93)],
+             "PaO2/FiO2 ≤300": vals[(vals["var"] == "EXT_PF") & (vals["value"] <= 300)],
+             "呼吸 ≥30 次/分": vals[(vals["var"] == "VS003") & (vals["value"] >= 30)]}
+    near = {k: set(x.loc[(x["t_rel_h"] - x["encounter_id"].map(o2h)).abs() <= 24, "encounter_id"]) for k, x in signs.items()}
+    new = put("8", "新开始吸氧（判据 O2_NEW 命中，有效层）", ids.isin(set(o2["encounter_id"])),
+              note="“必要时”吸氧、长期家庭氧疗者规则集已排除（D67、D71）；时间取判据首次命中")
+    h = o2h.reindex(e.index)
+    put("8", "  其中首次在 t0 后 24 小时内（含 t0 前）", h <= 24, parent=new)
+    put("8", "  其中首次在 t0 后 24 小时以后", h > 24, parent=new)
+    put("8", "  其中时间未知", h.isna(), parent=new)
+    timed = new & h.notna()
+    hy = put("8", "  给氧前后 24 小时内同时有低氧（分母：有给氧时间的）", ids.isin(set().union(*near.values())), parent=timed,
+             note="低氧 = 吸空气 SpO2 ≤93%、PaO2/FiO2 ≤300 或呼吸 ≥30 次/分（方案重型判据）；越界值不算")
+    put("8", "  给氧前后 24 小时内没有低氧（分母：有给氧时间的）", ~hy, parent=timed)
+    for k, s in near.items():
+        put("8", f"    低氧里有{k}", ids.isin(s), parent=hy)
+    # 9 ICU 与器官衰竭
+    icu = put("9", "进入 ICU（icu = yes）", e["icu"] == "yes")
+    organ = s09[[c for c in ICU_ORGANS if c in s09.columns]].eq("yes").any(axis=1)
+    put("9", "  其中同时有其他器官衰竭", organ, parent=icu, note="ARDS、急性心衰、急性肾损伤、流感相关脑病、DIC、MODS、急性肝衰竭（规则集 v0.3 ICU_ORGAN）")
+    # 10 ICU 科室名称：导出里没有
+    per_group("10", "ICU 科室名称（问题单附件 2）", lambda g: "—", "std_v3 导出里没有科室名称，要从 flucase 的读取结果里取（对齐方案 §7 第 13 项）")
+    # 11–13
+    put("11", "进入 ICU 的就诊里，都是术后转入的（icu_periop）", e["icu_periop"].fillna(False).astype(bool), parent=icu,
+        note="分母是第 9 题的进入 ICU；转入前 48 小时内有手术或病历写术后转入")
+    for code in ("TRT006", "TRT007", "TRT014"):
+        put("12", d.voc.name(code), s08[code] == "yes")
+    put("13", f"确诊且 ≥{o.age_main:g} 岁（主分析人群）", conf_yes & (e["age"] >= o.age_main))
+    put("13", f"确诊且 ≥{o.age_sub:g} 岁（亚组）", conf_yes & (e["age"] >= o.age_sub))
+    # 14 SpO2 吸氧状态：按记录条数
+    sp = pos[pos["var"] == "VS006"]
+    inf, air = sp["_marks"].str.contains("o2_inferred", regex=False), sp["o2_status"].astype(object) == "空气"
+    per_group("14", "SpO2 记录推断为吸空气（条，分母：全部 SpO2 记录）",
+              lambda g: f.kp((inf & air)[sp["_grp"] == g].sum(), (sp["_grp"] == g).sum()), "按医嘱推断（marks 含 o2_inferred）")
+    per_group("14", "SpO2 记录的吸氧状态是按医嘱推断的（条）", lambda g: f.kp(inf[sp["_grp"] == g].sum(), (sp["_grp"] == g).sum()))
+    out = [Table("A10 问题单计数（按中心 × 场景）", pd.DataFrame(rows, columns=["题", "计数", *grps, "说明"]),
+                 f"给 {QSHEET}；题号跟问题单走；“其中”行的比例分母是上一级；按就诊计数（第 14 题按记录条数）；"
+                 "问题单只用住院（门诊只用第 3、13 题），其余组照算供参考")]
+    if names:
+        name = ft["value_text"].astype(object).fillna("（空）").astype(str).str.split("[：:]", n=1, regex=True).str[0]
+        r = [[k, *[f.n(x.loc[x["_grp"] == g, "encounter_id"].nunique()) for g in grps], f.n(len(x)), f.n(x["_pos"].sum())]
+             for k, x in sorted(ft.assign(_name=name).groupby("_name"), key=lambda kv: -len(kv[1]))]
+        out.append(Table("A10b 流感检测名称（问题单附件 1）", pd.DataFrame(r, columns=["检测名称", *[f"{g} 就诊" for g in grps], "记录", "其中阳性记录"]),
+                         "名称取结果原文冒号前的部分；只列名称与次数（D56）"))
+        r = [[k, "是" if x["encounter_id"].isin(typed).any() else "否", *[f.n(x.loc[x["_grp"] == g, "encounter_id"].nunique()) for g in grps]]
+             for k, x in sorted(syn.groupby("value_text"), key=lambda kv: -kv[1]["encounter_id"].nunique())]
+        out.append(Table("A10c 中医证候写法（问题单附件 3）", pd.DataFrame(r, columns=["写法", "已对到方案证型", *[f"{g} 就诊" for g in grps]]),
+                         "已对应按就诊近似；只列写法与次数"))
+    return out
+
+
 def analyse(d: Data, sheets: list[Sheet], o: Options, f: Fmt, names: bool) -> tuple[list[Table], list[str]]:
     enc, ev, voc, out = d.enc, d.ev, d.voc, []
     grps = list(dict.fromkeys(enc["_grp"]))
@@ -1085,6 +1199,7 @@ def analyse(d: Data, sheets: list[Sheet], o: Options, f: Fmt, names: bool) -> tu
     r9.append(["单位与统一单位不同的数据项", *[""] * len(grps), "；".join(bad_units) or "无"])
     r9.append(["编码表里没有、导出里单位不止一种的数据项", *[""] * len(grps), "；".join(multi) or "无"])
     out.append(Table("A9 待核问题（就诊数）", pd.DataFrame(r9, columns=["问题", *grps, "说明"]), "只是提示，处理与否由研究者定"))
+    out += question_counts(d, S, o, f, names)
 
     # 要点
     key = ["就诊数：" + "，".join(f"{g} {f.n(len(by[g]))}" for g in grps),

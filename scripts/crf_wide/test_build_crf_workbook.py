@@ -81,12 +81,25 @@ def make_export(root: Path, version: str = "std_v3_20261101", generated: str = "
             add("NEWX001", 7, 3.5, unit="分", label="NEWX001")                     # 本脚本不认识的编码
             add("LABX:示例检验项目", 8, 1.2, unit="g/L", label="示例检验项目")       # 未映射检验
             add("DX:J11.101", None, label="流行性感冒")
-            add("FLU_TEST", 1, text="甲型流感病毒核酸：阳性")
+            add("FLU_TEST", 1, text="甲型流感病毒抗原：弱阳性(±)" if (site, i) == ("GD", 2) else "甲型流感病毒核酸：阳性")
+            if (site, i) == ("GD", 1):
+                add("FLU_TEST", 2, text="乙型流感病毒抗原：弱阳性(±)")
+            if site == "GD" and i < 3:                                          # 中医证候：一种写法认出了方案证型，一种没有
+                add("TCM_SYN", 0, text="痰热壅肺证" if i == 0 else "示例证候乙", prec="note")
+                if i == 0:
+                    add("TCM_TYPE", None, text="痰热壅肺证（方案证型）")
+            if setting == "inpatient" and i % 4 == 0:                          # 新开始吸氧（t0 后 10 小时）；一部分 2 小时后呼吸 ≥30
+                add("TRT011", 10, text="低流量给氧")
+                if i % 8 == 0:
+                    add("VS003", 12, 32.0, unit="次/分")
             if setting == "inpatient" and i % 2 == 0:
                 for layer in ("auto", "effective"):
                     common = {"encounter_id": eid, "layer": layer, "level": "severe", "start": _t(t0 + timedelta(hours=30)), "ruleset_version": RULESET}
                     st.append({**common, "row_type": "band", "end": _t(t0 + timedelta(hours=80))})
                     st.append({**common, "row_type": "criterion", "criterion": "RR30 呼吸≥30", "kind": "physiologic", "basis": "guideline", "precision": "minute"})
+                    if i % 4 == 0:
+                        st.append({**common, "row_type": "criterion", "criterion": "O2_NEW 新开始氧疗", "kind": "treatment", "basis": "proxy",
+                                   "start": _t(t0 + timedelta(hours=10)), "precision": "minute"})
             for name in (("D0", "O1", "O2") if setting == "inpatient" else ("O3", "O3_7d")):
                 val = ("event" if i % 2 == 0 else "no_event") if setting == "inpatient" else "unknown"
                 for layer in ("auto", "effective"):
@@ -120,11 +133,15 @@ def _header(path: Path, sheet: str) -> list:
     return pd.read_excel(path, sheet_name=sheet, header=None, nrows=1).iloc[0].tolist()
 
 
+def _atable(path: Path, sheet: str, first: str) -> pd.DataFrame:
+    """分析 sheet：第 1 行标题，可能有一行说明，然后是表头（第一列叫 first）。"""
+    raw = pd.read_excel(path, sheet_name=sheet, header=None)
+    h = raw.index[raw[0] == first][0]
+    return raw.iloc[h + 1:].set_axis(raw.iloc[h].tolist(), axis=1).reset_index(drop=True)
+
+
 def _a1(path: Path) -> pd.DataFrame:
-    """分析 sheet：第 1 行标题，可能有一行说明，然后是表头。"""
-    raw = pd.read_excel(path, sheet_name="A1_导出与结构检查", header=None)
-    h = raw.index[raw[0] == "项"][0]
-    return raw.iloc[h + 1:].set_axis(["项", "值"], axis=1)
+    return _atable(path, "A1_导出与结构检查", "项")
 
 
 def test_wide_values_and_new_items(tmp_path):
@@ -184,6 +201,32 @@ def test_report_is_aggregate_only(tmp_path):
     code, out = _run(tmp_path, "--no-names", out="out_no_names")
     text = next(out.glob("分析报告_*.md")).read_text(encoding="utf-8")
     assert "示例检验项目" not in text and "J11.101" not in text
+
+
+def test_question_sheet_counts(tmp_path):
+    make_export(tmp_path / "export")
+    code, out = _run(tmp_path)
+    assert code == 0
+    (xlsx,) = out.glob("CRF宽表_*.xlsx")
+    t = _atable(xlsx, "A10_问题单计数（按中心 × 场景）", "题")
+    gd = {r["计数"].strip(): r["GD 住院"] for _, r in t.iterrows()}
+    assert gd["新开始吸氧（判据 O2_NEW 命中，有效层）"] == "3 (25%)"                    # 第 0、4、8 次住院
+    assert gd["其中首次在 t0 后 24 小时内（含 t0 前）"] == "3 (100%)"
+    assert gd["给氧前后 24 小时内同时有低氧（分母：有给氧时间的）"] == "2 (67%)"        # 第 0、8 次给氧后 2 小时呼吸 32
+    assert gd["给氧前后 24 小时内没有低氧（分母：有给氧时间的）"] == "1 (33%)"
+    assert gd["低氧里有呼吸 ≥30 次/分"] == "2 (100%)" and gd["低氧里有吸空气 SpO2 ≤93%"] == "0 (0%)"
+    assert gd["有弱阳性（±）检测结果"] == "2 (17%)" and gd["其中没有别的阳性检测（只靠弱阳性确诊）"] == "1 (50%)"
+    assert gd["有 COPD（COM001 = yes）"] == "4 (33%)" and gd["其中吸空气 SpO2 曾 ≤93%"] == "0 (0%)"
+    assert gd["有中医证候记录"] == "3 (25%)" and gd["证候写法（种）"] == 2 and gd["其中已对到方案证型（种）"] == 1
+    assert gd["确诊且 ≥60 岁（主分析人群）"] == "11 (92%)"
+    assert gd["其中同时有其他器官衰竭"] == "—"                                           # 没有 ICU：分母为 0
+    assert t.loc[t["计数"].str.startswith("ICU 科室名称"), "说明"].str.contains("没有科室名称").all()
+    names = _atable(xlsx, "A10b_流感检测名称（问题单附件 1）", "检测名称")
+    assert set(names["检测名称"]) == {"甲型流感病毒核酸", "甲型流感病毒抗原", "乙型流感病毒抗原"}
+    tcm = _atable(xlsx, "A10c_中医证候写法（问题单附件 3）", "写法").set_index("写法")
+    assert tcm.loc["痰热壅肺证", "已对到方案证型"] == "是" and tcm.loc["示例证候乙", "已对到方案证型"] == "否"
+    text = next(out.glob("分析报告_*.md")).read_text(encoding="utf-8")
+    assert "## A10 问题单计数（按中心 × 场景）" in text and "## A10b 流感检测名称" in text
 
 
 def test_versions_of_same_cases_each_or_merge_or_latest(tmp_path):

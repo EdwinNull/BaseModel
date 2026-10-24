@@ -50,6 +50,8 @@ python scripts/download_models.py        # 下载 MOMENT-1-large、chronos-t5-la
 bash scripts/upload_models.sh            # rsync 上传到服务器 W/（upload_models.py、upload_models_scp.sh 仍是占位配置）
 bash scripts/check_upload_status.sh      # 检查服务器上的模型
 python PPT/build_data_alignment_presentation.py   # 由 数据对齐五页.pptx 生成 _结构与示例版.pptx（python-pptx）
+flucase/backend/.venv/Scripts/python.exe scripts/crf_wide/build_crf_workbook.py --input data/export   # 标准导出 → CRF 宽表 xlsx + 聚合报告 md（研究者跑；Claude 只看报告）
+flucase/backend/.venv/Scripts/python.exe -m pytest scripts/crf_wide -q -p no:cacheprovider          # 上面脚本的测试（虚构数据）
 ```
 
 `scripts/evaluate_patch.py` 是对服务器 `experiments/rw_gam2gd/evaluate.py` 的就地补丁，需在服务器 `basemodel/` 下执行。

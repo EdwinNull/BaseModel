@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>数据集构建论文路线</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* 布局：一条七站路线 → 每站论文卡片（设计要点 | 对本项目）→ 落地矩阵。读起来像一份研究工作手册。 */
+:root{--bg:#f4f6f5;--paper:#ffffff;--ink:#17252b;--muted:#5b6b70;--line:#d5dddb;--accent:#0e6b62;--accent-soft:#e3f0ee;--mark:#9a5b00;--mark-soft:#fbf0dc;
+--f-display:"Noto Serif SC","Source Han Serif SC","Songti SC","STSong","SimSun",serif;--f-body:"Noto Sans SC","Source Han Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;--f-mono:"JetBrains Mono","Cascadia Mono",Consolas,ui-monospace,monospace;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111a1d;--paper:#172327;--ink:#e3ebe9;--muted:#9aaaae;--line:#2b3a3f;--accent:#5cc2b5;--accent-soft:#1c3533;--mark:#e3a948;--mark-soft:#33280f;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#111a1d;--paper:#172327;--ink:#e3ebe9;--muted:#9aaaae;--line:#2b3a3f;--accent:#5cc2b5;--accent-soft:#1c3533;--mark:#e3a948;--mark-soft:#33280f;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.7 var(--f-body)}
+.wrap{max-width:1080px;margin:0 auto;padding-block:32px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:40px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;font-weight:700}
+h1{font-size:clamp(28px,4vw,40px);line-height:1.25}
+h2{font-size:24px} h3{font-size:17px} h4{margin:0 0 6px;font-size:12px;letter-spacing:.08em;color:var(--muted);font-weight:600}
+a{color:var(--accent)} a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code{font-family:var(--f-mono);font-size:12.5px;background:var(--accent-soft);padding:1px 6px;border-radius:4px;word-break:break-all}
+.intro{display:grid;gap:14px;max-width:72ch} .intro p{margin:0;color:var(--muted)}
+.facts{display:flex;flex-wrap:wrap;gap:10px 24px;font-size:13px;color:var(--muted)} .facts b{color:var(--ink);font-variant-numeric:tabular-nums}
+figure{margin:0;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:16px;display:grid;gap:10px}
+.svgbox{overflow-x:auto} .route{width:100%;min-width:640px;height:auto;display:block;color:var(--ink)}
+.route .node rect{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.5} .route a:hover rect{fill:var(--paper)}
+.route .nk{font:600 12px var(--f-body);fill:var(--accent);letter-spacing:.06em} .route .nt{font:700 18px var(--f-display);fill:var(--ink)}
+.route .ns{font:12px var(--f-body);fill:var(--muted)} .route .edge{stroke:currentColor;stroke-width:1.5} .route .elab{font:12px var(--f-body);fill:var(--mark)} .route .note{font:13px var(--f-body);fill:var(--muted)}
+figcaption{font-size:13px;color:var(--muted)}
+.core{display:grid;gap:8px} .core ol{margin:0;padding-left:1.4em;columns:2 240px;column-gap:32px} .core li{break-inside:avoid}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.toolbar button{font:inherit;border:1px solid var(--line);background:var(--paper);color:var(--ink);padding:4px 12px;border-radius:999px;cursor:pointer}
+.toolbar button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--paper)}
+.stage{display:grid;gap:14px} .sh{display:grid;gap:4px;border-top:2px solid var(--ink);padding-top:12px}
+.sn{font-size:12px;letter-spacing:.1em;color:var(--accent);font-weight:600} .q{margin:0;color:var(--muted)} .dir{margin:0}
+.paper{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:16px;display:grid;gap:12px}
+.paper.is-must{border-left:4px solid var(--mark)}
+.paper header{display:flex;gap:14px;align-items:flex-start} .ph{min-width:0;display:grid;gap:2px}
+.no{font:600 20px var(--f-mono);color:var(--accent);min-width:2.2em;font-variant-numeric:tabular-nums}
+.ttl{margin:0;font-size:13.5px} .meta{margin:0;font-size:12.5px;color:var(--muted)} .file{margin:2px 0 0}
+.must{font:600 11px var(--f-body);color:var(--mark);background:var(--mark-soft);padding:1px 7px;border-radius:999px;vertical-align:middle;margin-left:4px}
+.cols{display:grid;grid-template-columns:1.3fr 1fr;gap:18px} .cols>div{min-width:0} .cols ul{margin:0;padding-left:1.2em} .cols li{margin-bottom:4px}
+.prj{background:var(--accent-soft);border-radius:6px;padding:10px 12px}
+@media (max-width:720px){.cols{grid-template-columns:1fr}}
+body.only-must .paper[data-must="0"]{display:none}
+.tablebox{overflow-x:auto;background:var(--paper);border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:14px} th,td{text-align:left;vertical-align:top;padding:12px 14px;border-bottom:1px solid var(--line)}
+thead th{font-size:12px;letter-spacing:.06em;color:var(--muted)} tbody th{width:22%;font-weight:600} td ul{margin:0;padding-left:1.1em}
+.when{display:inline-block;white-space:nowrap;font-size:12px;padding:1px 8px;border-radius:999px;border:1px solid var(--accent);color:var(--accent)}
+.small{font-size:13px;color:var(--muted);display:grid;gap:6px;max-width:80ch} .small p,.small ul{margin:0}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+</style></head>
+<body><div class="wrap">
+<header class="intro">
+<p class="sn">老年流感转重预测 · 数据集构建</p>
+<h1>数据集构建论文路线</h1>
+<p>本轮收集了 34 篇论文，按阅读顺序分成 7 站，一篇一个编号，和 <code>paper/数据集构建调研_20261025/</code> 里的 PDF 文件名一致。每张卡片左边是论文自己的设计做法（括号里是 PDF 页码或章节），右边是它对 flucase、std_v3 导出、转重规则集和 GAM→GD 验证可以改的地方。</p>
+<div class="facts"><span><b>34</b> 篇</span><span><b>7</b> 站</span><span>必读 <b>13</b> 篇</span><span>34 份 PDF 均已核对首页标题</span></div>
+</header>
+
+<figure><div class="svgbox"><svg viewBox="0 0 960 400" role="img" aria-label="七站阅读路线：从数据库范本到面向基础模型，每站带着一个问题进入下一站" class="route">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+<line x1="200" y1="92.0" x2="262" y2="92.0" class="edge" marker-end="url(#ah)"/>
+<text x="231.0" y="82.0" class="elab" text-anchor="middle">多家怎么合</text>
+<line x1="448" y1="92.0" x2="510" y2="92.0" class="edge" marker-end="url(#ah)"/>
+<text x="479.0" y="82.0" class="elab" text-anchor="middle">转重怎么定</text>
+<line x1="696" y1="92.0" x2="758" y2="92.0" class="edge" marker-end="url(#ah)"/>
+<text x="727.0" y="82.0" class="elab" text-anchor="middle">数据可信吗</text>
+<line x1="852.0" y1="148" x2="852.0" y2="244" class="edge" marker-end="url(#ah)"/>
+<text x="862.0" y="201.0" class="elab">新数据怎么收</text>
+<line x1="760" y1="302.0" x2="698" y2="302.0" class="edge" marker-end="url(#ah)"/>
+<text x="729.0" y="292.0" class="elab" text-anchor="middle">要收多少</text>
+<line x1="512" y1="302.0" x2="450" y2="302.0" class="edge" marker-end="url(#ah)"/>
+<text x="481.0" y="292.0" class="elab" text-anchor="middle">接基础模型</text>
+<a href="#st1"><g class="node"><rect x="20" y="40" width="176" height="104" rx="6"/><text x="34" y="64" class="nk">第 1 站</text><text x="34" y="92" class="nt">看范本</text><text x="34" y="116" class="ns">4 篇 · 必读 2</text></g></a>
+<a href="#st2"><g class="node"><rect x="268" y="40" width="176" height="104" rx="6"/><text x="282" y="64" class="nk">第 2 站</text><text x="282" y="92" class="nt">合到一张表</text><text x="282" y="116" class="ns">6 篇 · 必读 2</text></g></a>
+<a href="#st3"><g class="node"><rect x="516" y="40" width="176" height="104" rx="6"/><text x="530" y="64" class="nk">第 3 站</text><text x="530" y="92" class="nt">定义转重</text><text x="530" y="116" class="ns">8 篇 · 必读 4</text></g></a>
+<a href="#st4"><g class="node"><rect x="764" y="40" width="176" height="104" rx="6"/><text x="778" y="64" class="nk">第 4 站</text><text x="778" y="92" class="nt">查质量</text><text x="778" y="116" class="ns">4 篇 · 必读 1</text></g></a>
+<a href="#st5"><g class="node"><rect x="764" y="250" width="176" height="104" rx="6"/><text x="778" y="274" class="nk">第 5 站</text><text x="778" y="302" class="nt">收数据</text><text x="778" y="326" class="ns">4 篇 · 必读 1</text></g></a>
+<a href="#st6"><g class="node"><rect x="516" y="250" width="176" height="104" rx="6"/><text x="530" y="274" class="nk">第 6 站</text><text x="530" y="302" class="nt">样本量与验证</text><text x="530" y="326" class="ns">7 篇 · 必读 3</text></g></a>
+<a href="#st7"><g class="node"><rect x="268" y="250" width="176" height="104" rx="6"/><text x="282" y="274" class="nk">第 7 站</text><text x="282" y="302" class="nt">接基础模型</text><text x="282" y="326" class="ns">1 篇 · 必读 0</text></g></a>
+<text x="20" y="290" class="note">读法：沿箭头顺序走，</text>
+<text x="20" y="310" class="note">先读每站标“必读”的，</text>
+<text x="20" y="330" class="note">其余按问题回查。</text>
+</svg></div>
+<figcaption>七站阅读路线。每条箭头上写的是读完这一站后带到下一站的问题；点站名跳到该站的论文。</figcaption></figure>
+
+<section class="core"><h2>先读这 13 篇</h2><ol><li><a href="#p01">01 MIMIC-IV</a></li><li><a href="#p03">03 PIC</a></li><li><a href="#p06">06 N3C</a></li><li><a href="#p08">08 CLIF</a></li><li><a href="#p11">11 Sherman：时序数据的警示</a></li><li><a href="#p12">12 Lauritsen：预测框架</a></li><li><a href="#p14">14 Beaulieu-Jones：越过医生肩膀</a></li><li><a href="#p16">16 ISARIC 4C 恶化模型</a></li><li><a href="#p20">20 Kahn 数据质量框架</a></li><li><a href="#p23">23 ISARIC CCP-UK</a></li><li><a href="#p27">27 Riley：开发样本量</a></li><li><a href="#p29">29 Debray：外部验证怎么解读</a></li><li><a href="#p33">33 Healthsheet</a></li></ol></section>
+
+<div class="toolbar"><span>显示：</span><button type="button" id="f-all" aria-pressed="true">全部论文</button><button type="button" id="f-must" aria-pressed="false">只看必读</button></div>
+<section class="stage" id="st1"><div class="sh"><span class="sn">第 1 站</span><h2>大型临床数据库是怎么建起来的</h2>
+<p class="q">这一站回答：表怎么分、ID 怎么分层、时间怎么存、怎么验收、怎么发版本</p><p class="dir"><code>01_数据库范本/</code></p></div><article class="paper is-must" data-must="1" id="p01">
+<header><span class="no">01</span><div class="ph"><h3>MIMIC-IV <span class="must">必读</span></h3>
+<p class="ttl">MIMIC-IV, a freely accessible electronic health record dataset</p><p class="meta">Sci Data 2023 · DOI 10.1038/s41597-022-01899-x · <a href="https://www.nature.com/articles/s41597-022-01899-x" target="_blank" rel="noopener">原文页</a> · 阅读依据：PDF 全文</p>
+<p class="file"><code>01_数据库范本/01_MIMIC-IV_2023.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>采集→转换→去标识三步；hosp/icu/note 按来源分模块，用 subject_id、hadm_id 与平移后的时间联结（p2–4）</li><li>两个时间分开存：charttime（测量对应时刻）与 storetime（核实录入时刻）（p7）</li><li>验收写成单元测试：完整性（外键都能挂上）、一致性（≥99% ICU 住段有诊断/有心率）、与上一版比对（p7–8）</li><li>ICD 字典逐版补回已废止编码，核验库里每个编码都有描述（p3）</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>std_v3 的事件时间补一列&quot;时间来源&quot;（测量/医嘱/病历书写/推断），GAM 的体征多是病历书写时间</li><li>把 MIMIC 的三类验收照搬成导出验收：每条 events 能挂上就诊、住院 ≥X% 有检验（阈值由你定）、与上一版导出比对</li></ul></div></div>
+</article><article class="paper" data-must="0" id="p02">
+<header><span class="no">02</span><div class="ph"><h3>eICU-CRD </h3>
+<p class="ttl">The eICU Collaborative Research Database, a freely available multi-center database for critical care research</p><p class="meta">Sci Data 2018 · DOI 10.1038/sdata.2018.178 · <a href="https://www.nature.com/articles/sdata2018178" target="_blank" rel="noopener">原文页</a> · 阅读依据：PDF 全文</p>
+<p class="file"><code>01_数据库范本/02_eICU-CRD_2018.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>三级身份：患者 uniquePid → 住院 → ICU 住段（所有表的联结键）（p2–3）</li><li>按医院分层抽&quot;每人一个索引住段&quot;，再纳入其后全部住段（p3）</li><li>写明数据含义边界：医嘱≠执行、监护仪数据未经人工核实（p8–9）</li><li>按医院统计每张表覆盖率分级，并提示&quot;覆盖率≠可靠性&quot;（Table 8，p11）</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>flucase 的 患者→就诊→记录 与之同构；把&quot;索引就诊&quot;规则（season_index）写进数据说明</li><li>治疗记录加来源类型（医嘱/执行/文书提及），&quot;必要时&quot;吸氧这类医嘱不等于执行</li></ul></div></div>
+</article><article class="paper is-must" data-must="1" id="p03">
+<header><span class="no">03</span><div class="ph"><h3>PIC <span class="must">必读</span></h3>
+<p class="ttl">PIC, a paediatric-specific intensive care database</p><p class="meta">Sci Data 2020 · DOI 10.1038/s41597-020-0355-4 · <a href="https://www.nature.com/articles/s41597-020-0355-4" target="_blank" rel="noopener">原文页</a> · 阅读依据：PDF 全文</p>
+<p class="file"><code>01_数据库范本/03_PIC_2020.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>中国医院的多系统抽取（EMR、LIS、CPOE、护理、麻醉、检查报告），schema 沿用 MIMIC-III（p2）</li><li>双语字典：保留中文原名 + 英文名；无标准编码的人工翻译并复核（p3）</li><li>中文文书不能直接发布 → NLP 抽症状及否定，两人独立核对 100 份文书，报准确率 91.9% 与典型错误（p3–4）</li><li>系统上线时间不同、厂商更换导致各表完整度不同，写进文档（p7）</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>flucase 规则抽取（S5）补一份验证报告：抽样文书 → 两人独立标注 → 报一致率与错误类型（家族史、&quot;必要时&quot;、否定）</li><li>&quot;医院原名 → 统一编码&quot;映射表随每次导出发布</li></ul></div></div>
+</article><article class="paper" data-must="0" id="p04">
+<header><span class="no">04</span><div class="ph"><h3>MIMIC-IV-ED 基准 </h3>
+<p class="ttl">Benchmarking emergency department prediction models with machine learning and public electronic health records</p><p class="meta">Sci Data 2022 · DOI 10.1038/s41597-022-01782-9 · <a href="https://www.nature.com/articles/s41597-022-01782-9" target="_blank" rel="noopener">原文页</a> · 阅读依据：PDF 全文</p>
+<p class="file"><code>01_数据库范本/04_MIMIC-IV-ED_benchmark_2022.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>一次预测 = 一次急诊就诊，以 edstays 为根表联结出 master dataset（p2）</li><li>变量清单来自文献 + 熟悉数据的临床与信息人员确认（p3）</li><li>离群值两套阈值：超出可能范围标缺失、超出生理有效范围截断（p3）</li><li>三个结局各有预测时点：立即住院、12h 内 ICU 或院内死亡（复合）、72h 再返急诊（p3–4）</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>与 O3（门急诊早期进展）最接近：把&quot;当次收住院&quot;与&quot;之后住院&quot;分开定义，留观、转院显式归类</li><li>implausible 标记可细分为&quot;不可能值&quot;与&quot;极端但可能值&quot;</li></ul></div></div>
+</article></section><section class="stage" id="st2"><div class="sh"><span class="sn">第 2 站</span><h2>多中心数据怎么协调</h2>
+<p class="q">这一站回答：统一编码怎么定、原名怎么保留、各中心怎么只交聚合量</p><p class="dir"><code>02_多中心协调与公共数据模型/</code></p></div><article class="paper" data-must="0" id="p05">
+<header><span class="no">05</span><div class="ph"><h3>OMOP 多库转换 </h3>
+<p class="ttl">Feasibility and utility of applications of the common data model to multiple, disparate observational health databases</p><p class="meta">JAMIA 2015 · DOI 10.1093/jamia/ocu023 · <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC4457111/" target="_blank" rel="noopener">原文页</a> · 阅读依据：PMC 全文（按章节）</p>
+<p class="file"><code>02_多中心协调与公共数据模型/05_OMOP_multiDB_Voss_2015.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>ETL 先用工具扫描所有表和取值分布，再画&quot;源字段→CDM 字段&quot;映射，作为需求文档；另一人独立重写逻辑对比结果</li><li>质量排除规则在 ETL 中统一执行，对所有研究一致</li><li>&quot;观察期&quot;内没有记录才可解读为&quot;没有发生&quot;</li><li>信息损失分四个口径量化；映射率按&quot;唯一编码&quot;和&quot;按记录数&quot;两种口径报（Table 2）</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>格式差异确认的结果导出成每个中心的映射说明，随数据版本保存</li><li>每个就诊导出数据覆盖窗口（obs_start/obs_end），窗内无记录才解读为&quot;无&quot;</li></ul></div></div>
+</article><article class="paper is-must" data-must="1" id="p06">
+<header><span class="no">06</span><div class="ph"><h3>N3C <span class="must">必读</span></h3>
+<p class="ttl">The National COVID Cohort Collaborative (N3C): Rationale, design, infrastructure, and deployment</p><p class="meta">JAMIA 2021 · DOI 10.1093/jamia/ocaa196 · <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC7454687/" target="_blank" rel="noopener">原文页</a> · 阅读依据：PMC 全文（按章节）</p>
+<p class="file"><code>02_多中心协调与公共数据模型/06_N3C_2021.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>可计算表型决定谁进库：有意纳入检测阴性者，分&quot;确诊阴性/确诊阳性/疑似/可能&quot;</li><li>四种 CDM 各用一套脚本在站点本地抽取，原则是尽量少做站点定制</li><li>映射分&quot;语法&quot;（字段→字段）与&quot;语义&quot;（取值→词表），每套都评审、全部公开</li><li>质控轻触：只做必要修正并记入文档；主键重复则抽取失败；manifest 校验；保留原始数据（Fig.3）</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>收集时把&quot;诊断写流感但无阳性检测&quot;&quot;检测阴性&quot;也收进来并分层，便于敏感性分析</li><li>&quot;同一就诊编号出现两组&quot;从问题清单升级为导出阻断条件</li></ul></div></div>
+</article><article class="paper" data-must="0" id="p07">
+<header><span class="no">07</span><div class="ph"><h3>4CE </h3>
+<p class="ttl">International electronic health record-derived COVID-19 clinical course profiles: the 4CE consortium</p><p class="meta">npj Digit Med 2020 · DOI 10.1038/s41746-020-00308-0 · <a href="https://www.nature.com/articles/s41746-020-00308-0" target="_blank" rel="noopener">原文页</a> · 阅读依据：PDF 全文</p>
+<p class="file"><code>02_多中心协调与公共数据模型/07_4CE_2020.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>各站本地跑脚本，只交 4 个固定格式的聚合 CSV，伦理审批更快（p7–8）</li><li>14 项检验各定 LOINC、单位、参考范围；只有 13% 站点交齐（p2、p6–7）</li><li>照护级别（ICU）难识别、不可靠；需区分检测后回家者（p6–7）</li><li>小格遮蔽写 −1、缺失写 −2，并记阈值，便于合并（p7–8）</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>我们&quot;本机跑脚本、只回报聚合报告&quot;就是这一模式；4CE 暴露的短板（单位、检验映射、ICU 识别）正是 A3/A8/问题单第 9 题在查的</li><li>报告 JSON 记录被抑制的格数，方便以后合并多中心报告</li></ul></div></div>
+</article><article class="paper is-must" data-must="1" id="p08">
+<header><span class="no">08</span><div class="ph"><h3>CLIF <span class="must">必读</span></h3>
+<p class="ttl">A common longitudinal intensive care unit data format (CLIF) for critical illness research</p><p class="meta">Intensive Care Med 2025（本地为 medRxiv 预印本） · DOI 10.1007/s00134-025-07848-7 · <a href="https://www.medrxiv.org/content/10.1101/2024.09.04.24313058v1" target="_blank" rel="noopener">原文页</a> · 阅读依据：预印本全文</p>
+<p class="file"><code>02_多中心协调与公共数据模型/08_CLIF_2025.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>mCIDE：每张表一组以 _category 结尾的最小元素，各有受控取值；医院原始标签存在 _name 字段</li><li>23 张纵向表，含单独的&quot;呼吸支持&quot;表（设备类别、模式、FiO2）</li><li>8 家医院每周例会定术语与质控；共用离群值脚本；只回传聚合结果</li><li>同一死亡模型在各站区分度与校准差异明显</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>照此建一张&quot;呼吸支持&quot;长表：空气/鼻导管/面罩/高流量/无创/有创/ECMO + 起止时间 + 原文标签，问题单第 7、11 题可直接从中计算</li><li>每个统一编码在字典里写明允许取值清单（三态、吸氧状态、检测结果）</li></ul></div></div>
+</article><article class="paper" data-must="0" id="p09">
+<header><span class="no">09</span><div class="ph"><h3>ricu </h3>
+<p class="ttl">ricu: R’s interface to intensive care data</p><p class="meta">GigaScience（arXiv 2021） · DOI 10.1093/gigascience/giad041 · <a href="https://arxiv.org/abs/2108.00796" target="_blank" rel="noopener">原文页</a> · 阅读依据：PDF 全文（按章节）</p>
+<p class="file"><code>02_多中心协调与公共数据模型/09_ricu_2023.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>两层抽象：数据源配置（ID 体系、默认列）+ 概念字典（JSON；概念带单位、合理范围、聚合方式）</li><li>同一概念在不同库用不同取法（心率：长表两个 itemid vs 宽表一列）（§4.1）</li><li>派生概念（P/F 比）由基础概念递归组合（§4.1）</li><li>写明各库 ID 体系能做到什么、做不到什么（§1、§3.2）</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>把&quot;一个概念在每个中心怎么取&quot;写成可读的概念字典，而不是散落在读取器代码里；新中心只加取法</li><li>P/F、吸空气 SpO2、新开始吸氧作为派生概念单独登记依赖关系</li></ul></div></div>
+</article><article class="paper" data-must="0" id="p10">
+<header><span class="no">10</span><div class="ph"><h3>MEDS </h3>
+<p class="ttl">Medical Event Data Standard (MEDS): Facilitating Machine Learning for Health</p><p class="meta">ICLR 2024 Workshop · <a href="https://openreview.net/forum?id=IsHy2ebjIG" target="_blank" rel="noopener">原文页</a> · 阅读依据：PDF 全文</p>
+<p class="file"><code>02_多中心协调与公共数据模型/10_MEDS_2024.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>定位为原始数据与模型代码之间的最小标准层，不取代 OMOP（p1）</li><li>事件流：患者 → 按时间排序的事件 → 测量（code + 数值/文本）（p4）</li><li>编码写成&quot;词表名/编码&quot;（p4）；数据集元数据含数据集版本与 ETL 版本（附录 C）</li><li>不统一医学词表、暂不含影像与波形（p5）</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>给 std_v3 加一个 MEDS 风格事件表视图，方便以后接 ACES 和时序基础模型工具链</li><li>导出编码加前缀区分统一编码与医院原名（FLUCASE/VS001、GD_RAW/&lt;原名&gt;）</li></ul></div></div>
+</article></section><section class="stage" id="st3"><div class="sh"><span class="sn">第 3 站</span><h2>人群、预测时刻与标签</h2>
+<p class="q">这一站回答：t0 放哪、窗口怎么写、哪些信息会泄漏结局</p><p class="dir"><code>03_队列_时间零点_标签/</code></p></div><article class="paper is-must" data-must="1" id="p11">
+<header><span class="no">11</span><div class="ph"><h3>Sherman：时序数据的警示 <span class="must">必读</span></h3>
+<p class="ttl">Leveraging Clinical Time-Series Data for Prediction: A Cautionary Tale</p><p class="meta">AMIA 2017 · <a href="https://arxiv.org/abs/1811.12520" target="_blank" rel="noopener">原文页</a> · 阅读依据：PDF 全文</p>
+<p class="file"><code>03_队列_时间零点_标签/11_Sherman_cautionary_tale_2017.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>两种索引：以入院等固定标记为起点 vs 以结局事件为锚往回取数据</li><li>以结局为锚的评估过于乐观：死亡 .963 → 换成与结局无关的测试后，两方案对比为 .882 vs .831</li><li>原因：出院前的人本来就比死亡前的人指标好，测试集等于挑了容易的例子</li><li>测试样本必须独立于标签抽取</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>t0 取首次就诊/首次阳性是对的；警惕按&quot;首次重型时间&quot;往前取窗口做样本</li><li>CRF 宽表的&quot;全程最低/最高&quot;含 t0 后信息，只能描述，不能做特征</li></ul></div></div>
+</article><article class="paper is-must" data-must="1" id="p12">
+<header><span class="no">12</span><div class="ph"><h3>Lauritsen：预测框架 <span class="must">必读</span></h3>
+<p class="ttl">The Framing of machine learning risk prediction models illustrated by evaluation of sepsis in general wards</p><p class="meta">npj Digit Med 2021 · DOI 10.1038/s41746-021-00529-x · <a href="https://www.nature.com/articles/s41746-021-00529-x" target="_blank" rel="noopener">原文页</a> · 阅读依据：PDF 全文</p>
+<p class="file"><code>03_队列_时间零点_标签/12_Lauritsen_framing_2021.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>&quot;发病前固定 12h&quot;框架 AUROC 0.906，同一数据换成全住院滑动窗口只有 0.756（p3–4）</li><li>类别比 1:750 时 AUPRC 仅 0.007，AUROC 会掩盖差异（p3–4）</li><li>固定框架的模型学到&quot;SpO2 越高越危险&quot;这种反向关系（p4）</li><li>建议报告预测窗、观察窗、滑动步长和触发事件（p6）</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>O3 写明是&quot;首次就诊触发的单点预测&quot;；以后做住院中每日滚动预测，窗口与触发时点要先写进规则集</li></ul></div></div>
+</article><article class="paper" data-must="0" id="p13">
+<header><span class="no">13</span><div class="ph"><h3>Agniel：医疗过程偏倚 </h3>
+<p class="ttl">Biases in electronic health record data due to processes within the healthcare system: retrospective observational study</p><p class="meta">BMJ 2018 · DOI 10.1136/bmj.k1479 · <a href="https://www.bmj.com/content/361/bmj.k1479" target="_blank" rel="noopener">原文页</a> · 阅读依据：出版社全文</p>
+<p class="file"><code>03_队列_时间零点_标签/13_Agniel_process_bias_2018.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>272 项检验中 86% &quot;做没做&quot;本身就与死亡相关</li><li>68% 的检验，下单时间比结果值更能预测 3 年生存</li><li>两次检验的间隔是最强预测因子之一</li><li>结论：医疗过程必须在分析中被处理</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>测量次数、间隔作为&quot;过程变量&quot;单列；跨院验证时检查它们是否只是在识别医院</li></ul></div></div>
+</article><article class="paper is-must" data-must="1" id="p14">
+<header><span class="no">14</span><div class="ph"><h3>Beaulieu-Jones：越过医生肩膀 <span class="must">必读</span></h3>
+<p class="ttl">Machine learning for patient risk stratification: standing on, or looking over, the shoulders of clinicians?</p><p class="meta">npj Digit Med 2021 · DOI 10.1038/s41746-021-00426-3 · <a href="https://www.nature.com/articles/s41746-021-00426-3" target="_blank" rel="noopener">原文页</a> · 阅读依据：PDF 全文</p>
+<p class="file"><code>03_队列_时间零点_标签/14_Beaulieu-Jones_shoulders_2021.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>只用收费明细（医院做了什么）就接近完整 EMR 模型（p3）</li><li>区分&quot;医生发起&quot;与&quot;非医生发起&quot;的数据（p1–4）</li><li>模型可能只是学到医生已经在怀疑什么（肌钙蛋白例，p2）</li><li>建议把&quot;医生行为模型&quot;当作必须超过的基线</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>特征清单按&quot;生理测量/医生发起&quot;分类；t0 前的吸氧医嘱、科室等医生行为特征只做对照，不进主模型</li></ul></div></div>
+</article><article class="paper" data-must="0" id="p15">
+<header><span class="no">15</span><div class="ph"><h3>WHO 临床进展量表 </h3>
+<p class="ttl">A minimal common outcome measure set for COVID-19 clinical research</p><p class="meta">Lancet Infect Dis 2020 · DOI 10.1016/S1473-3099(20)30483-7 · <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC7292605/" target="_blank" rel="noopener">原文页</a> · 阅读依据：PMC 全文（按章节）</p>
+<p class="file"><code>03_队列_时间零点_标签/15_WHO_Clinical_Progression_Scale_2020.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>0（未感染）到 10（死亡），按门诊症状、住院、ICU 级支持措施分级，每日记录</li><li>不记&quot;是否进 ICU&quot;，记 ICU 里提供的支持：&quot;重症监护是过程而不是地点&quot;</li><li>仅为隔离而住院按门诊状态记</li><li>有序变量，宜用有序方法分析</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>问题单第 8 题（进 ICU 是否算危重）可参照：看支持措施而不是看科室</li><li>从 events 派生&quot;每日最高等级&quot;序列，既服务分级时间线，也是天级的时序目标</li></ul></div></div>
+</article><article class="paper is-must" data-must="1" id="p16">
+<header><span class="no">16</span><div class="ph"><h3>ISARIC 4C 恶化模型 <span class="must">必读</span></h3>
+<p class="ttl">Development and validation of the ISARIC 4C Deterioration model for adults hospitalised with COVID-19: a prospective cohort study</p><p class="meta">Lancet Respir Med 2021 · DOI 10.1016/S2213-2600(20)30559-2 · <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC7832571/" target="_blank" rel="noopener">原文页</a> · 阅读依据：PMC 全文（按章节）</p>
+<p class="file"><code>03_队列_时间零点_标签/16_ISARIC_4C_Deterioration_2021.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>复合结局：通气支持（无创/有创/ECMO）、进 HDU/ICU 或死亡，与 WHO 量表 ≥6 接近，跨院可比</li><li>预测时点 = 首次评估；院内感染以入院 7 天为界，排除感染前已达结局者</li><li>预测因子只考虑 ≥60% 人群可得的；SpO2 与吸空气/吸氧同时记录</li><li>按 8 个地区做内-外交叉验证，伦敦整区留出验证；按&quot;入院当天 vs 之后&quot;恶化做敏感性分析</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>几乎是 O1/O2 的设计模板：同类复合结局、院内发病阈值显式化、same_day 主分析计入并分层做敏感性</li><li>内-外交叉验证需要多个中心才有意义，这是多收中心的量化理由</li></ul></div></div>
+</article><article class="paper" data-must="0" id="p17">
+<header><span class="no">17</span><div class="ph"><h3>PhysioNet 2019 脓毒症挑战 </h3>
+<p class="ttl">Early Prediction of Sepsis From Clinical Data: The PhysioNet/Computing in Cardiology Challenge 2019</p><p class="meta">Crit Care Med 2020 · DOI 10.1097/CCM.0000000000004145 · <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC6964870/" target="_blank" rel="noopener">原文页</a> · 阅读依据：PMC 全文（按章节）</p>
+<p class="file"><code>03_队列_时间零点_标签/17_PhysioNet2019_sepsis_Reyna_2020.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>标签写成三个时间点：怀疑感染、SOFA 升高、发病，加窗口规则</li><li>排除入 ICU 后 4h 内就发病者</li><li>两院公开、第三家医院完全隐藏做测试；在新医院普遍变差</li><li>报告各院各变量的非空小时占比</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>把每条分级判据写成&quot;时间点 + 窗口规则&quot;的显式形式（如新开始吸氧 ± 24h 是否有低氧）</li><li>t0 时已达结局的就诊不进&quot;预测转重&quot;主分析</li></ul></div></div>
+</article><article class="paper" data-must="0" id="p18">
+<header><span class="no">18</span><div class="ph"><h3>ACES </h3>
+<p class="ttl">ACES: Automatic Cohort Extraction System for Event-Stream Datasets</p><p class="meta">ICLR 2025 · <a href="https://arxiv.org/abs/2406.19653" target="_blank" rel="noopener">原文页</a> · 阅读依据：PDF 全文</p>
+<p class="file"><code>03_队列_时间零点_标签/18_ACES_2025.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>任务定义拆两份：数据集专用的谓词文件 + 与数据集无关的任务文件</li><li>触发事件、窗口、&quot;窗内某事件计数&quot;约束、标签窗</li><li>例：入院后 48h 预测院内死亡，间隔窗内出院或死亡者排除</li><li>输出：每个预测实例一行（患者、预测时间、标签）</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>规则集拆两层：中心专用的&quot;判据→统一编码&quot;映射 + 中心无关的结局窗口定义</li><li>t0 后很快出院/转院/死亡的就诊如何处理（排除/阴性/未知）要显式写出，属研究者决策</li></ul></div></div>
+</article></section><section class="stage" id="st4"><div class="sh"><span class="sn">第 4 站</span><h2>数据质量与缺失</h2>
+<p class="q">这一站回答：检查怎么分类、阈值怎么设、&quot;没记录&quot;该怎么解读</p><p class="dir"><code>04_数据质量与缺失/</code></p></div><article class="paper" data-must="0" id="p19">
+<header><span class="no">19</span><div class="ph"><h3>Weiskopf &amp; Weng </h3>
+<p class="ttl">Methods and dimensions of electronic health record data quality assessment: enabling reuse for clinical research</p><p class="meta">JAMIA 2013 · DOI 10.1136/amiajnl-2011-000681 · <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC3555312/" target="_blank" rel="noopener">原文页</a> · 阅读依据：PMC 全文（按章节）</p>
+<p class="file"><code>04_数据质量与缺失/19_Weiskopf_Weng_DQ_2013.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>95 篇文献归纳出五个维度：完整性、正确性、一致性、合理性、时效性</li><li>七类评估方法：金标准、元素间一致、元素存在、数据源一致、分布比较、有效性检查、日志审查</li><li>时效性最少被评估（4 篇）</li><li>完整性取决于用途</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>补&quot;时效性&quot;：记录时间离真实测量多远（time_precision + 时间来源）</li><li>用元素间一致做正确性代理：诊断写呼吸衰竭 ↔ 有低氧或呼吸支持证据</li></ul></div></div>
+</article><article class="paper is-must" data-must="1" id="p20">
+<header><span class="no">20</span><div class="ph"><h3>Kahn 数据质量框架 <span class="must">必读</span></h3>
+<p class="ttl">A Harmonized Data Quality Assessment Terminology and Framework for the Secondary Use of Electronic Health Record Data</p><p class="meta">eGEMs 2016 · DOI 10.13063/2327-9214.1244 · <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5051581/" target="_blank" rel="noopener">原文页</a> · 阅读依据：PMC 全文（按章节）</p>
+<p class="file"><code>04_数据质量与缺失/20_Kahn_DQ_framework_2016.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>三类：一致性（值/关系/计算）、完整性、合理性（唯一性/非时间/时间）</li><li>两种情境：核查（本地期望）与验证（外部基准，含多数据方合并对照）</li><li>合格线随用途变化</li><li>数据模型缺陷（如不能区分入院/出院诊断）会严重影响适用性</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>用三类 × 两情境给 CRF 报告 A1/A9 的检查重新归档</li><li>诊断记录来源类型（入院/初步/出院/病程），否则判断不了 t0 前是否已存在</li></ul></div></div>
+</article><article class="paper" data-must="0" id="p21">
+<header><span class="no">21</span><div class="ph"><h3>OHDSI 数据质量看板 </h3>
+<p class="ttl">Increasing trust in real-world evidence through evaluation of observational data quality</p><p class="meta">JAMIA 2021 · DOI 10.1093/jamia/ocab132 · <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC8449628/" target="_blank" rel="noopener">原文页</a> · 阅读依据：预印本全文</p>
+<p class="file"><code>04_数据质量与缺失/21_OHDSI_DQD_Blacketer_2021.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>20 种检查类型展开成 3,300 多条检查</li><li>检查写成参数化模板，控制文件列出每个字段适用的检查与阈值</li><li>两种完整性指标组合能区分 ETL 问题与词表问题</li><li>结果输出 JSON，建议随论文共享</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>把 A1/A9 改成&quot;检查清单 + 阈值 + 通过/失败&quot;，每份导出生成一张质量成绩单（md + JSON）</li></ul></div></div>
+</article><article class="paper" data-must="0" id="p22">
+<header><span class="no">22</span><div class="ph"><h3>Groenwold：信息性缺失 </h3>
+<p class="ttl">Informative missingness in electronic health record systems: the curse of knowing</p><p class="meta">Diagn Progn Res 2020 · DOI 10.1186/s41512-020-00077-0 · <a href="https://diagnprognres.biomedcentral.com/articles/10.1186/s41512-020-00077-0" target="_blank" rel="noopener">原文页</a> · 阅读依据：出版社全文</p>
+<p class="file"><code>04_数据质量与缺失/22_Groenwold_informative_missingness_2020.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>是否测量反映医生判断，缺失有信息</li><li>缺失指示变量在开发环境能提升预测，但上线后医生改变测量行为，关系会变</li><li>没有一种处理方法在所有情形都最好</li><li>按&quot;上线后缺失机制会怎样&quot;选择处理方式</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>数据层坚持&quot;未记录≠无&quot;；跨院模型分别报告含/不含缺失指示的结果</li></ul></div></div>
+</article></section><section class="stage" id="st5"><div class="sh"><span class="sn">第 5 站</span><h2>收集系统与病例报告表</h2>
+<p class="q">这一站回答：前瞻怎么采、病例定义与时间窗、人工摘录怎么保证一致</p><p class="dir"><code>05_数据收集与病例报告表/</code></p></div><article class="paper is-must" data-must="1" id="p23">
+<header><span class="no">23</span><div class="ph"><h3>ISARIC CCP-UK <span class="must">必读</span></h3>
+<p class="ttl">Features of 20 133 UK patients in hospital with covid-19 using the ISARIC WHO Clinical Characterisation Protocol: prospective observational cohort study</p><p class="meta">BMJ 2020 · DOI 10.1136/bmj.m1985 · <a href="https://www.bmj.com/content/369/bmj.m1985" target="_blank" rel="noopener">原文页</a> · 阅读依据：PMC 全文（按章节）</p>
+<p class="file"><code>05_数据收集与病例报告表/23_ISARIC_CCP-UK_Docherty_2020.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>疫情前准备好的&quot;沉睡协议&quot;，疫情一来即激活；协议与 CRF 全部公开</li><li>三层：tier 0 只录常规病历；tier 1–2 加生物样本需同意</li><li>固定时点采集：入院日、第 3/6/9 天、进入重症监护当天</li><li>只分析提取前已满 2 周的病例；出院作吸收状态处理竞争风险</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>前瞻表单按&quot;t0、第 3/6/9 天、首次需要吸氧/无创/有创/ICU 当天、离院日&quot;采集</li><li>导出标注每个就诊&quot;随访窗是否已满&quot;，未满者不进 O3 主分析</li></ul></div></div>
+</article><article class="paper" data-must="0" id="p24">
+<header><span class="no">24</span><div class="ph"><h3>FluSurv-NET </h3>
+<p class="ttl">The US Influenza Hospitalization Surveillance Network</p><p class="meta">Emerg Infect Dis 2015 · DOI 10.3201/eid2109.141912 · <a href="https://wwwnc.cdc.gov/eid/article/21/9/14-1912_article" target="_blank" rel="noopener">原文页</a> · 阅读依据：出版社全文</p>
+<p class="file"><code>05_数据收集与病例报告表/24_FluSurv-NET_2015.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>人群为基础的监测区域，有人口普查分母</li><li>病例定义：住院在阳性检测前 &lt;3 天或后 &lt;14 天内</li><li>受训人员按标准表单摘录病历；每个阳性检测核对是否对应一次住院</li><li>检测不足导致漏报，按年龄校正</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>把&quot;检测与住院的时间窗&quot;写成显式参数，决定社区获得与院内发病的界线（研究者定）</li><li>数据说明报告各中心检测方法构成与&quot;诊断无检测&quot;的数量</li></ul></div></div>
+</article><article class="paper" data-must="0" id="p25">
+<header><span class="no">25</span><div class="ph"><h3>GIHSN </h3>
+<p class="ttl">The Global Influenza Hospital Surveillance Network (GIHSN): a new platform to describe the epidemiology of severe influenza</p><p class="meta">Influenza Other Respir Viruses 2015 · DOI 10.1111/irv.12335 · <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC4605407/" target="_blank" rel="noopener">原文页</a> · 阅读依据：PMC 全文（按章节）</p>
+<p class="file"><code>05_数据收集与病例报告表/25_GIHSN_2015.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>多国统一核心协议、前瞻主动监测、连续纳入</li><li>ILI 定义 + 起病 7 天内入院；按协议对所有符合者采样检测</li><li>≥65 岁用 Barthel 指数评估起病前功能状态</li><li>协调中心查缺失与不一致，发问询给站点答疑</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>前瞻收集按协议对符合条件者统一检测，避免&quot;只有医生送检的人才进库&quot;</li><li>前瞻表单加起病前功能状态（如 Barthel 指数），老年转重的重要候选因素</li></ul></div></div>
+</article><article class="paper" data-must="0" id="p26">
+<header><span class="no">26</span><div class="ph"><h3>Vassar：病历回顾方法 </h3>
+<p class="ttl">The retrospective chart review: important methodological considerations</p><p class="meta">J Educ Eval Health Prof 2013 · DOI 10.3352/jeehp.2013.10.12 · <a href="https://www.jeehp.org/journal/view.php?doi=10.3352/jeehp.2013.10.12" target="_blank" rel="noopener">原文页</a> · 阅读依据：出版社全文</p>
+<p class="file"><code>05_数据收集与病例报告表/26_Vassar_chart_review_2013.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>十个常见失误：问题不清、不考虑抽样、变量没有操作化定义、不培训监控摘录员……</li><li>标准摘录表 + 操作手册（信息在病历哪里、决策树）</li><li>组间 Cohen&#x27;s κ、组内 ICC，κ 最低 0.6</li><li>预试约占目标样本 10%</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>复核/裁定补三件事：两人独立复核随机样本并报 κ；复核员对研究假设设盲；先做约 10% 的预试再修订手册</li></ul></div></div>
+</article></section><section class="stage" id="st6"><div class="sh"><span class="sn">第 6 站</span><h2>样本量、验证设计与数据集文档</h2>
+<p class="q">这一站回答：要多少事件、跨院验证怎么解读、数据集说明书写什么</p><p class="dir"><code>06_样本量_验证设计_数据集文档/</code></p></div><article class="paper is-must" data-must="1" id="p27">
+<header><span class="no">27</span><div class="ph"><h3>Riley：开发样本量 <span class="must">必读</span></h3>
+<p class="ttl">Calculating the sample size required for developing a clinical prediction model</p><p class="meta">BMJ 2020 · DOI 10.1136/bmj.m441 · <a href="https://www.bmj.com/content/368/bmj.m441" target="_blank" rel="noopener">原文页</a> · 阅读依据：出版社全文</p>
+<p class="file"><code>06_样本量_验证设计_数据集文档/27_Riley_dev_sample_size_2020.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>&quot;每变量 10 个事件&quot;过于简单，应按候选预测参数计</li><li>二分类四个准则取最大：结局比例精度、平均预测误差、收缩因子 ≥0.9、R² 乐观度 ≤0.05</li><li>例：结局 5%、30 个候选参数 → 至少 5,249 人、263 个事件</li><li>机器学习可能需要多 10 倍以上事件；不建议随机拆分</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>用 pmsampsize 算出 O3 等结局需要的最少事件数，据此决定候选变量个数和还要收多少中心/季节</li></ul></div></div>
+</article><article class="paper" data-must="0" id="p28">
+<header><span class="no">28</span><div class="ph"><h3>Riley：外部验证样本量 </h3>
+<p class="ttl">Minimum sample size for external validation of a clinical prediction model with a binary outcome</p><p class="meta">Stat Med 2021 · DOI 10.1002/sim.9025 · <a href="https://eprints.keele.ac.uk/id/eprint/9707" target="_blank" rel="noopener">原文页</a> · 阅读依据：PDF 首页 + 摘要（未精读）</p>
+<p class="file"><code>06_样本量_验证设计_数据集文档/28_Riley_extval_sample_size_2021.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>按目标精度分别算 O/E、校准斜率、C 统计量、净获益所需样本量</li><li>例：结局 1.8% 时校准与区分度需要 9,835 人（177 个事件），由校准斜率决定</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>给新季节/新中心验证集定最低规模，并说明当前验证集的结论精度有限</li></ul></div></div>
+</article><article class="paper is-must" data-must="1" id="p29">
+<header><span class="no">29</span><div class="ph"><h3>Debray：外部验证怎么解读 <span class="must">必读</span></h3>
+<p class="ttl">A new framework to enhance the interpretation of external validation studies of clinical prediction models</p><p class="meta">J Clin Epidemiol 2015 · DOI 10.1016/j.jclinepi.2014.06.018 · <a href="https://repub.eur.nl/pub/87243" target="_blank" rel="noopener">原文页</a> · 阅读依据：PDF 全文</p>
+<p class="file"><code>06_样本量_验证设计_数据集文档/29_Debray_extval_framework_2015.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>先量化开发与验证样本的相关性：&quot;成员模型&quot;c 统计量、线性预测值均值与 SD（p280–282）</li><li>再评估表现：calibration-in-the-large、校准斜率、c 统计量（p282–283）</li><li>构成相似→检验可重复性；构成不同而表现仍好→支持可迁移性（p283–285）</li><li>建议开发者报告线性预测值的均值和 SD（p285–288）</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>每次 GAM→GD 或新批次验证固定报告成员模型 c 统计量（含/不含结局）与线性预测值分布，再下结论</li></ul></div></div>
+</article><article class="paper" data-must="0" id="p30">
+<header><span class="no">30</span><div class="ph"><h3>Nestor：非平稳 EHR </h3>
+<p class="ttl">Feature Robustness in Non-stationary Health Records: Caveats to Deployable Model Performance in Common Clinical Machine Learning Tasks</p><p class="meta">MLHC 2019 · <a href="https://arxiv.org/abs/1908.00690" target="_blank" rel="noopener">原文页</a> · 阅读依据：PDF 全文（按章节）</p>
+<p class="file"><code>06_样本量_验证设计_数据集文档/30_Nestor_nonstationary_EHR_2019.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>MIMIC-III 2008 年换记录系统，原始 ItemID 表示的模型明显退化</li><li>专家把 ItemID 归并为临床概念并统一单位后，退化小得多</li><li>不按时间切分会高估表现</li><li>临床归并需要针对每个库人工定义</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>统一编码（临床概念 + 统一单位）方向正确；新季节、新批次按时间切分做验证</li><li>保留导出批次和读取器版本，方便按系统变化分层评估</li></ul></div></div>
+</article><article class="paper" data-must="0" id="p31">
+<header><span class="no">31</span><div class="ph"><h3>TRIPOD+AI </h3>
+<p class="ttl">TRIPOD+AI statement: updated guidance for reporting clinical prediction models that use regression or machine learning methods</p><p class="meta">BMJ 2024 · DOI 10.1136/bmj-2023-078378 · <a href="https://www.bmj.com/content/385/bmj-2023-078378" target="_blank" rel="noopener">原文页</a> · 阅读依据：PMC 全文（含清单）</p>
+<p class="file"><code>06_样本量_验证设计_数据集文档/31_TRIPOD+AI_2024.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>27 个主条目、52 个子条目；取代 TRIPOD 2015</li><li>数据条目：来源与代表性、起止日期、中心、纳入标准、治疗处理、预处理与质检</li><li>结局：定义与时间范围、评估者、设盲；预测因子：如何何时测量</li><li>样本量、缺失、跨中心异质性、开发与评估数据差异</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>当作数据说明书目录；我们最缺的是样本量论证、结局判定设盲、t0 前已开始治疗的处理</li></ul></div></div>
+</article><article class="paper" data-must="0" id="p32">
+<header><span class="no">32</span><div class="ph"><h3>PROBAST+AI </h3>
+<p class="ttl">PROBAST+AI: an updated quality, risk of bias, and applicability assessment tool for prediction models using regression or artificial intelligence methods</p><p class="meta">BMJ 2025 · DOI 10.1136/bmj-2024-082505 · <a href="https://www.bmj.com/content/388/bmj-2024-082505" target="_blank" rel="noopener">原文页</a> · 阅读依据：PMC 全文（含信号问题表）</p>
+<p class="file"><code>06_样本量_验证设计_数据集文档/32_PROBAST+AI_2025.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>4 个领域、34 个信号问题；开发评&quot;质量&quot;，评估评&quot;偏倚风险&quot;</li><li>预测因子在模型使用时刻是否可得（2.4）</li><li>结局判定时是否没有使用预测因子（3.3）</li><li>拆分数据时是否避免了泄漏（评估 4.5）</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>当作数据集自查表；复核界面隐藏基线预测变量，或记录复核员是否看过</li></ul></div></div>
+</article><article class="paper is-must" data-must="1" id="p33">
+<header><span class="no">33</span><div class="ph"><h3>Healthsheet <span class="must">必读</span></h3>
+<p class="ttl">Healthsheet: Development of a Transparency Artifact for Health Datasets</p><p class="meta">arXiv 2022（Google Research） · <a href="https://arxiv.org/abs/2202.13028" target="_blank" rel="noopener">原文页</a> · 阅读依据：PDF 全文</p>
+<p class="file"><code>06_样本量_验证设计_数据集文档/33_Healthsheet_2022.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>把 Datasheets 改造成健康数据专用的问卷</li><li>21 次访谈修订；用 MIMIC-III 等三个数据集回填</li><li>章节：版本、动机、构成、采集、人口学、设备、标注与主观性、混杂</li><li>最难填的是&quot;数据怎么来的&quot;，往往哪里都没写</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>给多中心老年流感数据集写一份中文 Healthsheet：纳入标准决定谁被代表、标签主观性与一致性、版本、站点混杂</li></ul></div></div>
+</article></section><section class="stage" id="st7"><div class="sh"><span class="sn">第 7 站</span><h2>面向时序/EHR 基础模型的数据底座</h2>
+<p class="q">这一站回答：任务怎么写成&quot;预测时刻+标签窗&quot;、少样本怎么评</p><p class="dir"><code>07_面向基础模型的数据底座/</code></p></div><article class="paper" data-must="0" id="p34">
+<header><span class="no">34</span><div class="ph"><h3>EHRSHOT </h3>
+<p class="ttl">EHRSHOT: An EHR Benchmark for Few-Shot Evaluation of Foundation Models</p><p class="meta">NeurIPS 2023 D&amp;B · <a href="https://arxiv.org/abs/2307.02028" target="_blank" rel="noopener">原文页</a> · 阅读依据：PDF 全文</p>
+<p class="file"><code>07_面向基础模型的数据底座/34_EHRSHOT_2023.pdf</code></p></div></header>
+<div class="cols"><div><h4>设计要点</h4><ul><li>15 个任务、4 类，每个任务写明&quot;预测时刻 + 标签窗 + 已发生者排除&quot;</li><li>少样本协议：患者级切分，k=1…128，重复 5 次</li><li>同时发布预训练模型权重</li><li>局限：单机构、只有结构化数据、部分任务阳性很少</li></ul></div><div class="prj"><h4>对本项目</h4><ul><li>候选结局表按&quot;预测时刻 + 标签窗 + 排除&quot;格式写</li><li>报告学习曲线，说明&quot;再收多少例会有多大提升&quot;</li></ul></div></div>
+</article></section>
+
+<section class="stage" id="apply"><div class="sh"><span class="sn">落地</span><h2>按项目环节汇总的改动</h2>
+<p class="q">括号里是论文编号。凡是改变转重定义、纳排、t0、窗口、主要结局的（标“需研究者定”），只作为候选方案交给你决定。</p></div>
+<div class="tablebox"><table><thead><tr><th>项目环节</th><th>时机</th><th>建议</th></tr></thead><tbody><tr><th scope="row">收集：前瞻表单与医生导入</th><td><span class="when">现在</span></td><td><ul><li>固定时点采集：t0、第 3/6/9 天、首次需要吸氧/无创/有创/ICU 当天、离院日（23）</li><li>对所有符合病例定义者按协议检测；增加起病前功能状态（25）</li><li>把阴性、疑似一并收集并分层标注病原学证据等级（06、24）</li></ul></td></tr><tr><th scope="row">读取与统一编码：格式库、字典</th><td><span class="when">现在</span></td><td><ul><li>概念字典：每个统一编码在每个中心怎么取、单位、合理范围、允许取值（09、08）</li><li>统一编码与医院原名并列，映射表随导出发布（08、03、10）</li><li>新增&quot;呼吸支持&quot;长表：设备类别 + 起止 + 原文（08、15）</li></ul></td></tr><tr><th scope="row">病例库与导出：std_v3</th><td><span class="when">新数据进来前</span></td><td><ul><li>事件时间加&quot;时间来源&quot;列；治疗加&quot;医嘱/执行/提及&quot;来源类型（01、02、19）</li><li>每个就诊导出数据覆盖窗口与&quot;随访窗是否已满&quot;（05、23）</li><li>版本规则：破坏性变更升主版本；manifest 与主键重复阻断（02、06）</li></ul></td></tr><tr><th scope="row">分级与结局：规则集</th><td><span class="when">需研究者定（A 档）</span></td><td><ul><li>每条判据写成&quot;时间点 + 窗口规则&quot;；中心无关的结局窗口单独成文件（17、18）</li><li>t0 时已达结局、t0 后很快离院/死亡的就诊如何处理，显式写出（11、16、18）</li><li>进 ICU 是否算危重：参照&quot;看支持措施而非科室&quot;的做法（15、16）</li></ul></td></tr><tr><th scope="row">质控与报告：CRF 宽表 A1–A10</th><td><span class="when">现在</span></td><td><ul><li>检查按一致性/完整性/合理性 × 核查/验证归档，带阈值和通过/失败，输出 JSON（20、21）</li><li>按中心统计覆盖率分级、按天非空占比（02、07、17）</li><li>规则抽取验证：两人独立标注抽样文书，报 κ 与错误类型（03、26）</li></ul></td></tr><tr><th scope="row">开发与验证</th><td><span class="when">建模时</span></td><td><ul><li>用 pmsampsize 算最少事件数，决定候选变量个数与还需多少数据（27、28）</li><li>跨院验证先报成员模型 c 统计量与线性预测值分布，再判断可重复性/可迁移性（29、16）</li><li>特征按&quot;生理/医生发起/过程变量&quot;分类，医生发起特征只做对照（14、13、22）</li><li>新季节、新批次按时间切分，只评一次（30、17）</li></ul></td></tr><tr><th scope="row">数据说明书</th><td><span class="when">新数据进来前</span></td><td><ul><li>写一份中文 Healthsheet，按 TRIPOD+AI 数据条目与 PROBAST+AI 信号问题自查（33、31、32）</li></ul></td></tr></tbody></table></div></section>
+
+<section class="small"><h2>说明</h2>
+<p>阅读依据：“PDF 全文”为浏览器逐页读取本地同版 PDF；“PMC 全文”为 Europe PMC 官方接口的全文 XML，按章节引用，页码待补；“摘要”表示未读全文。08 CLIF 的本地文件是 medRxiv 预印本（2024-09-04），期刊版为 Intensive Care Med 2025;51(3):556–569。</p>
+<p>本轮没能读到全文、未收入的论文（以后可补）：</p><ul><li>REDCap（Harris 等，J Biomed Inform 2009）：元数据驱动的数据采集系统，可作为 flucase 的对照</li><li>PheKB（Kirby 等，JAMIA 2016）：电子表型算法的跨机构可移植性</li><li>Hernán &amp; Robins（Am J Epidemiol 2016）：目标试验模拟与时间零点对齐</li><li>Steyerberg &amp; Harrell（J Clin Epidemiol 2016）：内部、内-外与外部验证</li></ul>
+<p>本页不含任何病例内容或真实计数。</p>
+</section>
+</div>
+<script>
+(function(){var a=document.getElementById('f-all'),m=document.getElementById('f-must');
+function set(only){document.body.classList.toggle('only-must',only);a.setAttribute('aria-pressed',String(!only));m.setAttribute('aria-pressed',String(only));try{localStorage.setItem('dsb-only-must',only?'1':'0')}catch(e){}}
+a.addEventListener('click',function(){set(false)});m.addEventListener('click',function(){set(true)});
+try{if(localStorage.getItem('dsb-only-must')==='1')set(true)}catch(e){}})();
+</script>
+</body></html>

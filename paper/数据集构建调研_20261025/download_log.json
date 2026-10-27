@@ -1,0 +1,347 @@
+{
+ "time": "2026-10-24 22:07",
+ "records": [
+  {
+   "no": "01",
+   "file": "01_数据库范本\\01_MIMIC-IV_2023.pdf",
+   "title": "MIMIC-IV, a freely accessible electronic health record dataset",
+   "status": "已下载",
+   "url": "https://www.nature.com/articles/s41597-022-01899-x.pdf?error=cookies_not_supported&code=bdd36a58-d693-4b8b-9254-0e8be2b6f11f",
+   "bytes": 1381608,
+   "sha256": "b8e1dbc0fe547ee24bcabcb7c5e5576a7a19d6966e8b8f2c3c4559d103731a1c",
+   "identity": "与浏览器核对时的 sha256 一致"
+  },
+  {
+   "no": "02",
+   "file": "01_数据库范本\\02_eICU-CRD_2018.pdf",
+   "title": "The eICU Collaborative Research Database, a freely available multi-center database for critical care research",
+   "status": "已下载",
+   "url": "https://www.nature.com/articles/sdata2018178.pdf?error=cookies_not_supported&code=8ca3f4aa-046e-4061-a443-bc8eed8e04d5",
+   "bytes": 495735,
+   "sha256": "babbd43f0f1863d1dbce885c75abb1673bdefe8b1486fbc616292b098ab102d0",
+   "identity": "与浏览器核对时的 sha256 一致"
+  },
+  {
+   "no": "03",
+   "file": "01_数据库范本\\03_PIC_2020.pdf",
+   "title": "PIC, a paediatric-specific intensive care database",
+   "status": "已下载",
+   "url": "https://www.nature.com/articles/s41597-020-0355-4.pdf?error=cookies_not_supported&code=b5727412-06d9-43b7-9d7b-3ab96df4b0f6",
+   "bytes": 1501417,
+   "sha256": "f25dba994a0c4c0dccfac5c23013d1823efd8972d53a3f99e1cfb05a8deb51ac",
+   "identity": "与浏览器核对时的 sha256 一致"
+  },
+  {
+   "no": "04",
+   "file": "01_数据库范本\\04_MIMIC-IV-ED_benchmark_2022.pdf",
+   "title": "Benchmarking emergency department prediction models with machine learning and public electronic health records",
+   "status": "已下载",
+   "url": "https://www.nature.com/articles/s41597-022-01782-9.pdf?error=cookies_not_supported&code=fbb289bc-29fa-4fd0-bb88-5100a1601515",
+   "bytes": 1914254,
+   "sha256": "bece1dbba2dbb8c617965a480f0db5ace678fc122227aea0c074b68a80677273",
+   "identity": "与浏览器核对时的 sha256 一致"
+  },
+  {
+   "no": "05",
+   "file": "02_多中心协调与公共数据模型\\05_OMOP_multiDB_Voss_2015.pdf",
+   "title": "Feasibility and utility of applications of the common data model to multiple, disparate observational health databases",
+   "status": "已下载",
+   "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC4457111.1/PMC4457111.1.pdf",
+   "bytes": 565114,
+   "sha256": "18fa2e385a1924c2d139a0e0a1de0ca8bda2098d583017135291baf072535303",
+   "identity": "未装 pypdf，未读首页"
+  },
+  {
+   "no": "06",
+   "file": "02_多中心协调与公共数据模型\\06_N3C_2021.pdf",
+   "title": "The National COVID Cohort Collaborative (N3C): Rationale, design, infrastructure, and deployment",
+   "status": "已下载",
+   "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC7454687.2/PMC7454687.2.pdf",
+   "bytes": 3782790,
+   "sha256": "6ed6fd8078ef97d4513943461676882fd441105ac9754a33e560216fc38d2ea2",
+   "identity": "未装 pypdf，未读首页"
+  },
+  {
+   "no": "07",
+   "file": "02_多中心协调与公共数据模型\\07_4CE_2020.pdf",
+   "title": "International electronic health record-derived COVID-19 clinical course profiles: the 4CE consortium",
+   "status": "已下载",
+   "url": "https://www.nature.com/articles/s41746-020-00308-0.pdf?error=cookies_not_supported&code=95f0eb2a-621b-4737-8e2f-1294bcb24b3f",
+   "bytes": 2375174,
+   "sha256": "f281e8ca4dc3f80f63e4f07c43163b38ca78a1dd18fa0fa0870b1681420bb13e",
+   "identity": "与浏览器核对时的 sha256 一致"
+  },
+  {
+   "no": "08",
+   "file": "02_多中心协调与公共数据模型\\08_CLIF_2025.pdf",
+   "title": "A common longitudinal intensive care unit data format (CLIF) for critical illness research",
+   "status": "已下载",
+   "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC11398431.1/PMC11398431.1.pdf",
+   "bytes": 2595186,
+   "sha256": "9e0d3eddcd6e0c63da2991c4da8f5720a79dd58063d6d0abeb0835f0c8c54cbd",
+   "identity": "未装 pypdf，未读首页"
+  },
+  {
+   "no": "09",
+   "file": "02_多中心协调与公共数据模型\\09_ricu_2023.pdf",
+   "title": "ricu: R’s interface to intensive care data",
+   "status": "已下载",
+   "url": "https://arxiv.org/pdf/2108.00796v1",
+   "bytes": 647579,
+   "sha256": "11447bb54a79ffaede61872be0baf1b6976d64ea738fb56a46ab3309cbb5ca78",
+   "identity": "与浏览器核对时的 sha256 一致"
+  },
+  {
+   "no": "10",
+   "file": "02_多中心协调与公共数据模型\\10_MEDS_2024.pdf",
+   "title": "Medical Event Data Standard (MEDS): Facilitating Machine Learning for Health",
+   "status": "下载失败",
+   "errors": [
+    "https://openreview.net/pdf?id=IsHy2ebjIG → HTTP Error 403: Forbidden"
+   ],
+   "landing": "https://openreview.net/forum?id=IsHy2ebjIG"
+  },
+  {
+   "no": "11",
+   "file": "03_队列_时间零点_标签\\11_Sherman_cautionary_tale_2017.pdf",
+   "title": "Leveraging Clinical Time-Series Data for Prediction: A Cautionary Tale",
+   "status": "已下载",
+   "url": "https://arxiv.org/pdf/1811.12520v1",
+   "bytes": 307903,
+   "sha256": "3e82f3b0fd5d27c4b1cef6bb75f4f61df049ebaab2da5e1a3b7e100d900e7fe3",
+   "identity": "与浏览器核对时的 sha256 一致"
+  },
+  {
+   "no": "12",
+   "file": "03_队列_时间零点_标签\\12_Lauritsen_framing_2021.pdf",
+   "title": "The Framing of machine learning risk prediction models illustrated by evaluation of sepsis in general wards",
+   "status": "已下载",
+   "url": "https://www.nature.com/articles/s41746-021-00529-x.pdf?error=cookies_not_supported&code=756cf331-19b4-4c79-be39-5571010de1e2",
+   "bytes": 2448996,
+   "sha256": "55b1e8b763f7dc190cecb84496e2114fe8cb96fa0497501e3d4ef3dbf29931f2",
+   "identity": "与浏览器核对时的 sha256 一致"
+  },
+  {
+   "no": "13",
+   "file": "03_队列_时间零点_标签\\13_Agniel_process_bias_2018.pdf",
+   "title": "Biases in electronic health record data due to processes within the healthcare system: retrospective observational study",
+   "status": "下载失败",
+   "errors": [
+    "https://www.bmj.com/content/361/bmj.k1479.full.pdf → HTTP Error 429: Too Many Requests",
+    "https://pmc-oa-opendata.s3.amazonaws.com/PMC5925441.1/PMC5925441.1.pdf → HTTP Error 404: Not Found"
+   ],
+   "landing": "https://www.bmj.com/content/361/bmj.k1479"
+  },
+  {
+   "no": "14",
+   "file": "03_队列_时间零点_标签\\14_Beaulieu-Jones_shoulders_2021.pdf",
+   "title": "Machine learning for patient risk stratification: standing on, or looking over, the shoulders of clinicians?",
+   "status": "已下载",
+   "url": "https://www.nature.com/articles/s41746-021-00426-3.pdf?error=cookies_not_supported&code=cb5d7153-28d5-4736-974f-2b27f66b4522",
+   "bytes": 854621,
+   "sha256": "0b6cc2714086ed3d8760d645d0503a1c555b7d46e7b955a2b1902207d1bcbf54",
+   "identity": "与浏览器核对时的 sha256 一致"
+  },
+  {
+   "no": "15",
+   "file": "03_队列_时间零点_标签\\15_WHO_Clinical_Progression_Scale_2020.pdf",
+   "title": "A minimal common outcome measure set for COVID-19 clinical research",
+   "status": "已下载",
+   "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC7292605.1/PMC7292605.1.pdf",
+   "bytes": 413672,
+   "sha256": "39cff1958780ccb24a2574ea56e46e767c3929cbec5f67bc84c099f42fe45431",
+   "identity": "未装 pypdf，未读首页"
+  },
+  {
+   "no": "16",
+   "file": "03_队列_时间零点_标签\\16_ISARIC_4C_Deterioration_2021.pdf",
+   "title": "Development and validation of the ISARIC 4C Deterioration model for adults hospitalised with COVID-19: a prospective cohort study",
+   "status": "已下载",
+   "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC7832571.1/PMC7832571.1.pdf",
+   "bytes": 834847,
+   "sha256": "4a3291747ba7acdb0ed4657dffdd68916957351a1e9d12609414ad1a3c2c0284",
+   "identity": "未装 pypdf，未读首页"
+  },
+  {
+   "no": "17",
+   "file": "03_队列_时间零点_标签\\17_PhysioNet2019_sepsis_Reyna_2020.pdf",
+   "title": "Early Prediction of Sepsis From Clinical Data: The PhysioNet/Computing in Cardiology Challenge 2019",
+   "status": "已下载",
+   "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC6964870.1/PMC6964870.1.pdf",
+   "bytes": 779559,
+   "sha256": "04befe20e7b0fd7267e33a03d496bdbf2ae623c2c4bf5a9e643abdde6bc67c86",
+   "identity": "未装 pypdf，未读首页"
+  },
+  {
+   "no": "18",
+   "file": "03_队列_时间零点_标签\\18_ACES_2025.pdf",
+   "title": "ACES: Automatic Cohort Extraction System for Event-Stream Datasets",
+   "status": "已下载",
+   "url": "https://arxiv.org/pdf/2406.19653v3",
+   "bytes": 1504051,
+   "sha256": "d2cdb2fb208870787dc9227ede0d6e28a6ac82dc5adc6121bc95e610eb655cb2",
+   "identity": "与浏览器核对时的 sha256 一致"
+  },
+  {
+   "no": "19",
+   "file": "04_数据质量与缺失\\19_Weiskopf_Weng_DQ_2013.pdf",
+   "title": "Methods and dimensions of electronic health record data quality assessment: enabling reuse for clinical research",
+   "status": "已下载",
+   "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC3555312.1/PMC3555312.1.pdf",
+   "bytes": 304918,
+   "sha256": "8d26e2a8cc88ec61eb6f585d93d5c730cdc410bd2b14925a2f8a1e8bafe4dd89",
+   "identity": "未装 pypdf，未读首页"
+  },
+  {
+   "no": "20",
+   "file": "04_数据质量与缺失\\20_Kahn_DQ_framework_2016.pdf",
+   "title": "A Harmonized Data Quality Assessment Terminology and Framework for the Secondary Use of Electronic Health Record Data",
+   "status": "已下载",
+   "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC5051581.1/PMC5051581.1.pdf",
+   "bytes": 355376,
+   "sha256": "e2926566539fc3435a576c1a95badef18604f1b9a4a7a3d092ecbb38e43001c5",
+   "identity": "未装 pypdf，未读首页"
+  },
+  {
+   "no": "21",
+   "file": "04_数据质量与缺失\\21_OHDSI_DQD_Blacketer_2021.pdf",
+   "title": "Increasing trust in real-world evidence through evaluation of observational data quality",
+   "status": "已下载",
+   "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC8449628.1/PMC8449628.1.pdf",
+   "bytes": 404468,
+   "sha256": "fdc05f7f4e093de2c0a9360635282e07b8b63248a792e1a19df054668fc939c2",
+   "identity": "未装 pypdf，未读首页"
+  },
+  {
+   "no": "22",
+   "file": "04_数据质量与缺失\\22_Groenwold_informative_missingness_2020.pdf",
+   "title": "Informative missingness in electronic health record systems: the curse of knowing",
+   "status": "已下载",
+   "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC7371469.2/PMC7371469.2.pdf",
+   "bytes": 1097344,
+   "sha256": "5765dcd9963b039b9cd73baf97e29aff95fbfdb36a142e6dc58dfa2030f53c77",
+   "identity": "未装 pypdf，未读首页"
+  },
+  {
+   "no": "23",
+   "file": "05_数据收集与病例报告表\\23_ISARIC_CCP-UK_Docherty_2020.pdf",
+   "title": "Features of 20 133 UK patients in hospital with covid-19 using the ISARIC WHO Clinical Characterisation Protocol: prospective observational cohort study",
+   "status": "已下载",
+   "url": "https://www.bmj.com/content/bmj/369/bmj.m1985.full.pdf",
+   "bytes": 758354,
+   "sha256": "1b98e7c502d79689bdd47496d3a419b5a7e6d5ef030ff408b07576939429bb0f",
+   "identity": "未装 pypdf，未读首页"
+  },
+  {
+   "no": "24",
+   "file": "05_数据收集与病例报告表\\24_FluSurv-NET_2015.pdf",
+   "title": "The US Influenza Hospitalization Surveillance Network",
+   "status": "已下载",
+   "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC4550140.1/PMC4550140.1.pdf",
+   "bytes": 2443872,
+   "sha256": "ce02d476b5fd6ba201e7a6669d6520a93e34aa041b39bf5b604474f549a69ead",
+   "identity": "未装 pypdf，未读首页"
+  },
+  {
+   "no": "25",
+   "file": "05_数据收集与病例报告表\\25_GIHSN_2015.pdf",
+   "title": "The Global Influenza Hospital Surveillance Network (GIHSN): a new platform to describe the epidemiology of severe influenza",
+   "status": "已下载",
+   "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC4605407.1/PMC4605407.1.pdf",
+   "bytes": 297948,
+   "sha256": "28d8f1aec7e52b10ecff601ad9b0ef8ea8801d69e0c328814cd6f00500323994",
+   "identity": "未装 pypdf，未读首页"
+  },
+  {
+   "no": "26",
+   "file": "05_数据收集与病例报告表\\26_Vassar_chart_review_2013.pdf",
+   "title": "The retrospective chart review: important methodological considerations",
+   "status": "已下载",
+   "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC3853868.1/PMC3853868.1.pdf",
+   "bytes": 225959,
+   "sha256": "9ecadc67fc46846ba6d88c3e818ed1c47c666b83f662761de86893d2d70eaafc",
+   "identity": "未装 pypdf，未读首页"
+  },
+  {
+   "no": "27",
+   "file": "06_样本量_验证设计_数据集文档\\27_Riley_dev_sample_size_2020.pdf",
+   "title": "Calculating the sample size required for developing a clinical prediction model",
+   "status": "下载失败",
+   "errors": [
+    "https://www.bmj.com/content/368/bmj.m441.full.pdf → HTTP Error 429: Too Many Requests"
+   ],
+   "landing": "https://www.bmj.com/content/368/bmj.m441"
+  },
+  {
+   "no": "28",
+   "file": "06_样本量_验证设计_数据集文档\\28_Riley_extval_sample_size_2021.pdf",
+   "title": "Minimum sample size for external validation of a clinical prediction model with a binary outcome",
+   "status": "下载失败",
+   "errors": [
+    "https://onlinelibrary.wiley.com/doi/pdfdirect/10.1002/sim.9025 → HTTP Error 403: Forbidden"
+   ],
+   "landing": "https://eprints.keele.ac.uk/id/eprint/9707"
+  },
+  {
+   "no": "29",
+   "file": "06_样本量_验证设计_数据集文档\\29_Debray_extval_framework_2015.pdf",
+   "title": "A new framework to enhance the interpretation of external validation studies of clinical prediction models",
+   "status": "下载失败",
+   "errors": [
+    "https://repub.eur.nl/pub/87243/REPUB_87243-OA.pdf → <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1000)>"
+   ],
+   "landing": "https://repub.eur.nl/pub/87243"
+  },
+  {
+   "no": "30",
+   "file": "06_样本量_验证设计_数据集文档\\30_Nestor_nonstationary_EHR_2019.pdf",
+   "title": "Feature Robustness in Non-stationary Health Records: Caveats to Deployable Model Performance in Common Clinical Machine Learning Tasks",
+   "status": "已下载",
+   "url": "https://arxiv.org/pdf/1908.00690v1",
+   "bytes": 1642441,
+   "sha256": "df04323a8ee13a374cc80f87a696497a253a00a1186d849702b4419db32c9c8f",
+   "identity": "与浏览器核对时的 sha256 一致"
+  },
+  {
+   "no": "31",
+   "file": "06_样本量_验证设计_数据集文档\\31_TRIPOD+AI_2024.pdf",
+   "title": "TRIPOD+AI statement: updated guidance for reporting clinical prediction models that use regression or machine learning methods",
+   "status": "已下载",
+   "url": "https://www.bmj.com/content/bmj/385/bmj-2023-078378.full.pdf",
+   "bytes": 294051,
+   "sha256": "2602fd57254d13e0d2ec1a3e856c83333c55ec380633912e5f9c9b7595973884",
+   "identity": "未装 pypdf，未读首页"
+  },
+  {
+   "no": "32",
+   "file": "06_样本量_验证设计_数据集文档\\32_PROBAST+AI_2025.pdf",
+   "title": "PROBAST+AI: an updated quality, risk of bias, and applicability assessment tool for prediction models using regression or artificial intelligence methods",
+   "status": "下载失败",
+   "errors": [
+    "https://www.bmj.com/content/388/bmj-2024-082505.full.pdf → HTTP Error 429: Too Many Requests",
+    "https://pmc-oa-opendata.s3.amazonaws.com/PMC11931409.1/PMC11931409.1.pdf → HTTP Error 404: Not Found"
+   ],
+   "landing": "https://www.bmj.com/content/388/bmj-2024-082505"
+  },
+  {
+   "no": "33",
+   "file": "06_样本量_验证设计_数据集文档\\33_Healthsheet_2022.pdf",
+   "title": "Healthsheet: Development of a Transparency Artifact for Health Datasets",
+   "status": "已下载",
+   "url": "https://arxiv.org/pdf/2202.13028v1",
+   "bytes": 399361,
+   "sha256": "a494cc21b5ed4396117ff7d8eb736f36d421f55fb7b0dced30548f68925b8d3b",
+   "identity": "与浏览器核对时的 sha256 一致"
+  },
+  {
+   "no": "34",
+   "file": "07_面向基础模型的数据底座\\34_EHRSHOT_2023.pdf",
+   "title": "EHRSHOT: An EHR Benchmark for Few-Shot Evaluation of Foundation Models",
+   "status": "已下载",
+   "url": "https://arxiv.org/pdf/2307.02028v3",
+   "bytes": 11492701,
+   "sha256": "b2efe2c602fcce4d0aca05c4275e68982a12d20528794cffe7bde329345cae18",
+   "identity": "与浏览器核对时的 sha256 一致"
+  }
+ ]
+}

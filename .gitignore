@@ -1,5 +1,9 @@
 .DS_Store
 tmp/
+
+# Python 字节码缓存
+__pycache__/
+*.pyc
 *.pdf
 paper/首次调研阅读/阅读证据/
 paper/首次调研阅读/检索记录/

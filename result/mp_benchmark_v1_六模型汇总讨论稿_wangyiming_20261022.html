@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>六模型汇总讨论稿</title>
+<meta name="description" content="写给梁睿颖：BRITS、mTAND、Raindrop 已补到 5 个 seed 并按 FF-LSTM / GRU-D 分支的格式导出；五个模型的并排预览，以及需要一起定的五件事。只含聚合量。">
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --surface-2: #f0efec;
+  --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11, 11, 11, 0.10);
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #6e6d68;
+  --good: #0ca30c; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
+  --shadow: 0 1px 2px rgba(11, 11, 11, .04), 0 6px 20px rgba(11, 11, 11, .04);
+  --radius: 14px;
+  --font: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, "SFMono-Regular", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --surface-2: #232321;
+    --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255, 255, 255, 0.10);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #a9a89f;
+    --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --surface-2: #232321;
+  --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255, 255, 255, 0.10);
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #a9a89f;
+  --shadow: none;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 64px; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+html, body { margin: 0; }
+body { background: var(--page); color: var(--ink); font: 16px/1.75 var(--font); -webkit-text-size-adjust: 100%; overflow-x: hidden; }
+a { color: var(--s1); text-underline-offset: 2px; }
+code, .mono { font-family: var(--mono); font-size: .86em; background: var(--surface-2); padding: 0 .3em; border-radius: 4px; word-break: break-all; }
+strong { font-weight: 650; }
+p { margin: .6em 0; }
+ul, ol { padding-left: 1.3em; margin: .5em 0; }
+li { margin: .25em 0; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+.muted { color: var(--ink-2); }
+.small { font-size: 13.5px; }
+
+.topbar { position: sticky; top: 0; z-index: 30; background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: saturate(1.2) blur(8px); border-bottom: 1px solid var(--border); }
+.topbar .wrap { display: flex; align-items: center; gap: 12px; height: 52px; }
+.brand { font-weight: 700; font-size: 15px; white-space: nowrap; }
+.navlinks { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; flex: 1; min-width: 0; mask-image: linear-gradient(90deg, #000 92%, transparent); }
+.navlinks::-webkit-scrollbar { display: none; }
+.navlinks a { color: var(--ink-2); text-decoration: none; font-size: 14px; padding: 6px 10px; border-radius: 8px; white-space: nowrap; }
+.navlinks a:hover { background: var(--surface-2); color: var(--ink); }
+.navlinks a.active { color: var(--ink); background: var(--surface-2); font-weight: 600; }
+.tbtn { border: 1px solid var(--border); background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; padding: 5px 10px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
+.tbtn:hover { background: var(--surface-2); }
+.tbtn[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.progress { position: absolute; left: 0; bottom: -1px; height: 2px; background: var(--s1); width: 0; }
+
+.hero { padding: 52px 0 26px; }
+.eyebrow { font-size: 13px; letter-spacing: .06em; color: var(--ink-2); font-weight: 600; }
+.hero h1 { font-size: clamp(27px, 4.4vw, 42px); line-height: 1.24; margin: 10px 0 14px; letter-spacing: -0.01em; }
+.hero .lead { font-size: clamp(16px, 2vw, 18px); color: var(--ink-2); max-width: 860px; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--ink-2); margin-top: 14px; }
+
+/* 进度卡 */
+.status { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 24px; }
+.mcard { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; box-shadow: var(--shadow); border-top: 4px solid var(--c, var(--muted)); }
+.mcard .mname { font-weight: 700; font-size: 15.5px; }
+.mcard .owner { font-size: 12.5px; color: var(--ink-2); }
+.pips { display: flex; gap: 5px; margin: 9px 0 5px; }
+.pip { width: 15px; height: 15px; border-radius: 50%; border: 2px solid var(--c, var(--muted)); }
+.pip.on { background: var(--c, var(--muted)); }
+.mcard .st { font-size: 12.5px; color: var(--ink-2); }
+
+/* 需要回复的事 */
+.asks { margin-top: 22px; background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--s1); border-radius: 12px; padding: 14px 18px; box-shadow: var(--shadow); }
+.asks h3 { margin: 0 0 6px; font-size: 16.5px; }
+.asks ol { margin: 0; }
+.asks li { margin: .35em 0; }
+.tag { display: inline-block; font-size: 12px; font-weight: 650; padding: 0 8px; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); margin-left: 6px; vertical-align: 1px; white-space: nowrap; }
+.tag.hot { background: color-mix(in srgb, var(--critical) 16%, transparent); color: var(--critical); }
+
+section.slide { padding: 50px 0 18px; border-top: 1px solid var(--border); }
+.sec-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.sec-no { font-size: 14px; font-weight: 700; color: var(--s1); font-variant-numeric: tabular-nums; }
+h2 { font-size: clamp(22px, 3vw, 29px); line-height: 1.32; margin: 0; letter-spacing: -0.005em; }
+h3 { font-size: 18.5px; margin: 28px 0 8px; line-height: 1.4; }
+.sec-lead { font-size: 17px; color: var(--ink-2); max-width: 880px; margin: 10px 0 16px; }
+.takeaway { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--s1); border-radius: 10px; padding: 12px 16px; margin: 16px 0; box-shadow: var(--shadow); }
+.takeaway .tk-label { font-size: 12.5px; font-weight: 700; color: var(--ink-2); letter-spacing: .04em; }
+.takeaway ul { margin: .3em 0 .1em; }
+.callout { border-radius: 10px; padding: 10px 14px; margin: 14px 0; background: var(--surface-2); font-size: 14.5px; }
+.callout .cl-title { font-weight: 650; }
+.callout.warn { border-left: 3px solid var(--warning); }
+.callout.info { border-left: 3px solid var(--s1); }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+.grid-2 > * { min-width: 0; }
+@media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
+
+/* 提议与提问 */
+.propose { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 16px 0; }
+@media (max-width: 760px) { .propose { grid-template-columns: 1fr; } }
+.pbox { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; box-shadow: var(--shadow); }
+.pbox .plabel { font-size: 12.5px; font-weight: 700; letter-spacing: .04em; color: var(--ink-2); }
+.pbox.me { border-top: 3px solid var(--s3); }
+.pbox.you { border-top: 3px solid var(--s1); }
+.pbox p, .pbox li { font-size: 14.8px; }
+.formula { font-family: var(--mono); font-size: 14px; background: var(--surface-2); border-radius: 8px; padding: 10px 12px; margin: 10px 0; overflow-x: auto; white-space: nowrap; }
+
+/* 对齐清单 */
+.badge { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; padding: 2px 10px 2px 4px; border-radius: 999px; background: var(--surface-2); color: var(--ink); white-space: nowrap; }
+.badge .ico { width: 18px; height: 18px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 11px; font-weight: 800; color: #fff; line-height: 1; }
+.badge.good .ico { background: var(--good); }
+.badge.warn .ico { background: var(--warning); color: #0b0b0b; }
+.badge.new .ico { background: var(--s1); }
+
+/* 流程图 */
+.flow { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 10px; align-items: center; margin: 16px 0; }
+.flow .node { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; box-shadow: var(--shadow); font-size: 14px; }
+.flow .node b { display: block; font-size: 14.5px; margin-bottom: 2px; }
+.flow .node.pending { border-style: dashed; color: var(--ink-2); }
+.flow .arrow { font-size: 22px; color: var(--muted); text-align: center; }
+.flow .stack { display: grid; gap: 10px; }
+@media (max-width: 760px) { .flow { grid-template-columns: 1fr; } .flow .arrow { transform: rotate(90deg); } }
+
+/* 表述卡 */
+.says { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 12px; }
+.say { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); border-top: 4px solid var(--c, var(--muted)); }
+.say h4 { margin: 0 0 6px; font-size: 16px; }
+.say .do, .say .dont { font-size: 14.3px; margin: 6px 0; padding-left: 26px; position: relative; }
+.say .do::before, .say .dont::before { position: absolute; left: 0; top: 2px; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 800; color: #fff; }
+.say .do::before { content: "✓"; background: var(--good); }
+.say .dont::before { content: "✕"; background: var(--critical); }
+
+/* 图表 */
+figure.fig { margin: 18px 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 16px 12px; box-shadow: var(--shadow); min-width: 0; }
+.fig-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.fig-title { font-weight: 650; font-size: 16px; line-height: 1.45; margin: 0; }
+.fig-sub { font-size: 14px; color: var(--ink-2); margin: 3px 0 0; line-height: 1.6; }
+.fig-tools { display: flex; gap: 6px; flex-shrink: 0; }
+.fig-controls { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 12px 0 2px; align-items: center; }
+.seg-btns { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--border); border-radius: 9px; overflow: hidden; }
+.seg-btns button { border: 0; background: var(--surface); color: var(--ink-2); font: inherit; font-size: 13px; padding: 5px 10px; cursor: pointer; border-right: 1px solid var(--border); min-height: 30px; }
+.seg-btns button:last-child { border-right: 0; }
+.seg-btns button:hover { background: var(--surface-2); color: var(--ink); }
+.seg-btns button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 10px 0 2px; font-size: 13px; color: var(--ink-2); }
+.legend .li { display: inline-flex; align-items: center; gap: 6px; }
+.legend .sw { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.legend .sw.tick { width: 2px; height: 14px; border-radius: 1px; background: var(--ink); }
+.legend .sw.ring { background: transparent !important; border: 2px solid var(--critical); width: 12px; height: 12px; }
+.plot { width: 100%; margin-top: 8px; position: relative; }
+.plot svg { display: block; width: 100%; height: auto; overflow: visible; }
+.plot svg text { font-family: var(--font); }
+.fig-note { font-size: 13px; color: var(--ink-2); margin: 8px 0 0; }
+.src { font-size: 12px; color: var(--muted); margin: 8px 0 0; line-height: 1.6; }
+.tablewrap { overflow-x: auto; margin-top: 10px; }
+.tablewrap[hidden] { display: none; }
+.hit { fill: transparent; cursor: default; }
+.hit:focus { outline: none; }
+.hit:focus-visible { outline: 2px solid var(--s1); outline-offset: -2px; }
+
+table.data { width: 100%; border-collapse: collapse; font-size: 13.5px; line-height: 1.55; }
+table.data th, table.data td { padding: 7px 9px; border-bottom: 1px solid var(--grid); text-align: left; vertical-align: top; }
+table.data th { font-weight: 600; color: var(--ink-2); background: var(--surface-2); font-size: 12.5px; white-space: nowrap; }
+table.data td.num, table.data th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+table.data tr.grp td { background: var(--surface-2); font-weight: 650; color: var(--ink); }
+.tbl { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin: 14px 0; }
+.tbl table.data th:first-child, .tbl table.data td:first-child { padding-left: 14px; }
+#tblAlign td:first-child { min-width: 150px; font-weight: 600; }
+#tblAlign td:nth-child(2), #tblAlign td:nth-child(3) { min-width: 170px; }
+#tblReply td:first-child { min-width: 150px; font-weight: 600; }
+#tblReply td:nth-child(2) { min-width: 260px; }
+.mdot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+.box { display: inline-block; width: 13px; height: 13px; border: 1.5px solid var(--ink-2); border-radius: 3px; vertical-align: -2px; margin-right: 6px; }
+
+#tt { position: fixed; z-index: 100; display: none; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 6px 24px rgba(0, 0, 0, .14); padding: 8px 11px; font-size: 13px; line-height: 1.5; max-width: 340px; }
+#tt .tt-title { font-size: 12.5px; color: var(--ink-2); margin-bottom: 3px; }
+#tt .tt-row { display: flex; gap: 8px; justify-content: space-between; }
+#tt .tt-lab { color: var(--ink-2); }
+#tt .tt-val { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+#tt .tt-note { color: var(--ink-2); font-size: 12px; margin-top: 3px; }
+
+dl.gloss { display: grid; grid-template-columns: minmax(120px, 190px) 1fr; gap: 6px 16px; margin: 10px 0; font-size: 14.5px; }
+dl.gloss dt { font-weight: 650; }
+dl.gloss dd { margin: 0; color: var(--ink-2); }
+@media (max-width: 600px) { dl.gloss { grid-template-columns: 1fr; } dl.gloss dd { margin-bottom: 8px; } }
+.foot { padding: 36px 0 60px; color: var(--ink-2); font-size: 13px; border-top: 1px solid var(--border); margin-top: 30px; }
+
+@media print {
+  .topbar, .fig-tools, .fig-controls { display: none !important; }
+  figure.fig, .pbox, .say, .mcard { break-inside: avoid; box-shadow: none; }
+  .tablewrap[hidden] { display: block !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">六模型汇总讨论稿</div>
+    <nav class="navlinks" aria-label="章节导航">
+      <a href="#top">概要</a>
+      <a href="#s-align">对齐</a>
+      <a href="#s-preview">五模型</a>
+      <a href="#s-d1">①比较</a>
+      <a href="#s-d2">②校准</a>
+      <a href="#s-d3">③预算</a>
+      <a href="#s-d4">④总表</a>
+      <a href="#s-d5">⑤表述</a>
+      <a href="#s-check">已核对</a>
+      <a href="#s-reply">回复</a>
+      <a href="#s-appx">附录</a>
+    </nav>
+    <button id="themeBtn" class="tbtn" type="button" title="切换主题：跟随系统 → 浅色 → 深色">主题·系统</button>
+  </div>
+  <div class="progress" aria-hidden="true"></div>
+</div>
+
+<main>
+<header class="hero" id="top">
+  <div class="wrap">
+    <div class="eyebrow">MC-MED 观测删减敏感性实验 · benchmark v1 · 王一鸣 → 梁睿颖 · <span id="dateText"></span></div>
+    <h1>六模型汇总：<br>我这边已经和你对齐，还有五件事想一起定</h1>
+    <p class="lead">BRITS、mTAND、Raindrop 已经补跑到和你一样的 5 个 seed（2026–2030），并按你 <code>aggregate_five_seed.py</code> 的格式和公式导出。下面先列出对齐了哪些地方，再把五个模型放在一起看，最后是需要我们一起定的五件事。每件事都附上我的提议，你回复同意或改哪里即可。</p>
+    <div class="meta">
+      <span>全部为聚合量；逐患者预测只留在服务器 <code>derived/</code></span>
+      <span>你的数字取自你的 <code>five_seed_summary/five_seed_all_results.csv</code>，我没有读你的逐患者预测</span>
+    </div>
+    <div class="status" id="status"></div>
+    <div class="asks">
+      <h3>想请你回复的五件事（详见各节，末尾有回复模板）</h3>
+      <ol>
+        <li><a href="#s-d1">模型之间怎么比</a>：我提议沿用你的"按 seed 配对的差值"，扩展到三种扰动和所有模型。<span class="tag">确认方法</span></li>
+        <li><a href="#s-d2">校准口径</a>：v1 不动、标注"加权口径"；要不要另做一个统一再校准的 v1.1？<span class="tag">二选一</span></li>
+        <li><a href="#s-d3">训练预算</a>：只有 Raindrop 有 seed 撞到 30 epoch 上限，我提议不改、写进局限。<span class="tag">确认</span></li>
+        <li><a href="#s-d4">六模型总表</a>：谁来拼、OPL-MT-MNAR 什么时候能出？正式版要求周一前交主结果。<span class="tag hot">最急</span></li>
+        <li><a href="#s-d5">PPT 表述</a>：Raindrop、mTAND、BRITS 各有一句需要说清楚的话。<span class="tag">看一眼</span></li>
+      </ol>
+    </div>
+  </div>
+</header>
+
+<!-- ================= 01 对齐 ================= -->
+<section class="slide" id="s-align">
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-no">01</span><h2>我这边做了哪些对齐</h2></div>
+    <p class="sec-lead">10-21 我只跑了 3 个 seed，汇总格式也和你不同。10-22 先把下面的决定写进方案锁，再补跑；已有的 9 个 run 没有动。</p>
+    <div class="tbl"><table class="data" id="tblAlign">
+      <thead><tr><th>项目</th><th>你的分支（FF-LSTM / GRU-D）</th><th>我的分支（BRITS / mTAND / Raindrop）</th><th>状态</th></tr></thead>
+      <tbody>
+        <tr><td>训练 seed</td><td>2026–2030（5 个）</td><td>10-21 只有 2026–2028；10-22 补跑 2029、2030，共 15 个 run</td><td><span class="badge new"><span class="ico">↑</span>已补齐</span></td></tr>
+        <tr><td>汇总表格式</td><td><code>five_seed_all_results.csv</code> 等 4 个文件</td><td>同名、同列名、同变体名（Original / Drop20 / Drop40 / Continuous5min）</td><td><span class="badge new"><span class="ico">↑</span>已改成你的格式</span></td></tr>
+        <tr><td>指标公式</td><td>sklearn 的 AUROC、AUPRC、Brier；|Δp| 取绝对值；Pearson 相关；Flip Rate 用 <code>&gt;=</code> 冻结阈值</td><td>导出脚本逐行照搬你的公式，并和每个 run 自己的 <code>results.json</code> 交叉核对：<span id="maxDiffText"></span></td><td><span class="badge good"><span class="ico">✓</span>一致</span></td></tr>
+        <tr><td><code>common/metrics.py</code></td><td>10-21 20:25 版</td><td>我的 <code>metrics_v2.py</code> 与你现在的文件 sha256 相同</td><td><span class="badge good"><span class="ico">✓</span>一致</span></td></tr>
+        <tr><td>checkpoint 与阈值</td><td>最大 Original Validation AUPRC 选 checkpoint；最大验证集 F1 选阈值</td><td>同一规则（在验证集的全部不同概率值上穷举）</td><td><span class="badge good"><span class="ico">✓</span>一致</span></td></tr>
+        <tr><td>训练预算与加权</td><td>最多 30 epoch、patience 6；pos_weight = 7.081</td><td>同左</td><td><span class="badge good"><span class="ico">✓</span>一致</span></td></tr>
+        <tr><td>数据与切分</td><td>唯一 frozen benchmark；train/val/test 的 MRN 交集为 0</td><td>同一 benchmark，checksum 通过；MRN 交集 <span id="overlapText"></span></td><td><span class="badge good"><span class="ico">✓</span>一致</span></td></tr>
+        <tr><td>§19 公平性检查</td><td>—</td><td><span id="checksText"></span></td><td><span class="badge good"><span class="ico">✓</span>通过</span></td></tr>
+        <tr><td>bootstrap CI</td><td>只有 seed 2026 有（2027–2030 的 bootstrap 文件为空）</td><td>每个 seed 都有；汇总时和你一样只报 seed 2026 的 CI</td><td><span class="badge good"><span class="ico">✓</span>按你的做</span></td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout info"><span class="cl-title">文件在哪：</span>服务器 <code>wangyiming/docs/basemodel/result/week04/mp_benchmark_v1_five_seed_summary/</code>。<code>wangyiming/</code> 子目录是我三个模型的四个文件，和你的同名同格式，可以直接拼到你的表里；<code>five_model/</code> 子目录是把你的 CSV 和我的合在一起算出的五模型表（本页的图都来自这里）。</div>
+  </div>
+</section>
+
+<!-- ================= 02 五模型 ================= -->
+<section class="slide" id="s-preview">
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-no">02</span><h2>五个模型放在一起看</h2></div>
+    <p class="sec-lead">每个点是一个 seed，竖线是 5 个 seed 的均值。这一节只描述，不做检验；OPL-MT-MNAR 出来后同样加一行。</p>
+
+    <figure class="fig">
+      <div class="fig-head">
+        <div><p class="fig-title">原始测试集上的区分度</p><p class="fig-sub">同一个测试集（5,236 例，阳性 12.0%），每个模型 5 个 seed。</p></div>
+        <div class="fig-tools"><button class="tbtn" data-table="orig">表格</button></div>
+      </div>
+      <div class="fig-controls"><div class="seg-btns" data-ctl="origMetric"><button data-v="AUPRC" aria-pressed="true">AUPRC</button><button data-v="AUROC" aria-pressed="false">AUROC</button></div></div>
+      <div class="legend" id="lgOrig"></div>
+      <div class="plot" id="figOrig"></div>
+      <div class="tablewrap" id="tw-orig" hidden></div>
+    </figure>
+    <div class="takeaway"><div class="tk-label">看到的</div><ul id="tkOrig"><li>原始 AUPRC：BRITS 0.314 ± 0.003 最高，GRU-D 0.298 ± 0.002 第二；FF-LSTM 0.275、mTAND 0.273、Raindrop 0.269 三者接近。AUROC 的前两名相同（BRITS 0.734、GRU-D 0.728），mTAND 最低（0.692）。</li><li>Raindrop 的 seed 间差异最大（AUPRC 的 SD 为 0.013，其余四个模型 ≤ 0.003），只看一个 seed 容易把它的位置看错。</li><li>五个模型都没有在本数据上调参，差异不能直接归因于结构。</li></ul></div>
+
+    <figure class="fig">
+      <div class="fig-head">
+        <div><p class="fig-title">删减后，区分度掉了多少</p><p class="fig-sub">Δ = 扰动后 − 原始；越往左掉得越多。虚线是 0。</p></div>
+        <div class="fig-tools"><button class="tbtn" data-table="delta">表格</button></div>
+      </div>
+      <div class="fig-controls"><div class="seg-btns" data-ctl="deltaMetric"><button data-v="Delta_AUPRC" aria-pressed="true">ΔAUPRC</button><button data-v="Delta_AUROC" aria-pressed="false">ΔAUROC</button></div></div>
+      <div class="legend" id="lgDelta"></div>
+      <div class="plot" id="figDelta"></div>
+      <div class="tablewrap" id="tw-delta" hidden></div>
+    </figure>
+    <div class="takeaway"><div class="tk-label">看到的</div><ul id="tkDelta"><li>随机删 40% 时，五个模型的 ΔAUPRC 都为负：GRU-D −0.036、BRITS −0.033、mTAND −0.024、Raindrop −0.024、FF-LSTM −0.016。原始区分度最高的两个模型掉得最多。</li><li>随机删 20% 时方向相同，幅度约为删 40% 时的三分之一到一半。</li><li>删连续 5 分钟时，AUPRC 和 AUROC 不一致：Raindrop 的 ΔAUPRC 只有 −0.001，ΔAUROC 却是 −0.020，和 GRU-D 一样；mTAND 两项都接近 0（ΔAUPRC +0.004）。只报 AUPRC 会漏掉这类变化。</li></ul></div>
+
+    <figure class="fig">
+      <div class="fig-head">
+        <div><p class="fig-title">个体层面：每个病人的预测动了多少</p><p class="fig-sub">Mean |Δp|：同一病人扰动前后概率之差的绝对值，取平均；Flip Rate：冻结阈值下判定结果改变的病人比例。</p></div>
+        <div class="fig-tools"><button class="tbtn" data-table="drift">表格</button></div>
+      </div>
+      <div class="fig-controls"><div class="seg-btns" data-ctl="driftMetric"><button data-v="Mean_abs_DeltaP" aria-pressed="true">Mean |Δp|</button><button data-v="Flip_Rate" aria-pressed="false">Flip Rate</button></div></div>
+      <div class="legend" id="lgDrift"></div>
+      <div class="plot" id="figDrift"></div>
+      <div class="tablewrap" id="tw-drift" hidden></div>
+    </figure>
+    <div class="takeaway"><div class="tk-label">看到的</div><ul id="tkDrift"><li>drop40 下，Mean |Δp| 最大的是 GRU-D（0.071）和 BRITS（0.064），最小的是 mTAND（0.035）；Flip Rate 最高的是 Raindrop（9.7%）和 BRITS（9.2%），最低的是 mTAND（6.2%）和 FF-LSTM（6.4%）。</li><li>两项的排序不完全一致：GRU-D 的 |Δp| 最大，Flip Rate（7.3%）却低于 Raindrop 和 BRITS，所以两项都要报。</li><li>BRITS 的 seed 间波动最大：drop40 的 Flip Rate SD 为 2.7 个百分点，GRU-D 只有 0.2。</li></ul></div>
+  </div>
+</section>
+
+<!-- ================= 03 D1 比较方法 ================= -->
+<section class="slide" id="s-d1">
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-no">03</span><h2>待定①：模型之间怎么比</h2></div>
+    <p class="sec-lead">你在 <code>paired_seed_model_comparison.csv</code> 里已经用了一种方法：同一个 seed 下，拿 GRU-D 的 Δ 减去 LSTM 的 Δ。我觉得这个方法好，因为它把训练随机性算进去了，而 10-21 的结果显示，seed 之间的差异比单个 run 的 bootstrap CI 还大。</p>
+    <div class="formula">差值(模型, seed s, 扰动 v) = Δ指标(模型, s, v) − Δ指标(FF-LSTM, s, v)　　差值 &lt; 0 ⇒ 这个 seed 下该模型比 LSTM 掉得多</div>
+    <figure class="fig">
+      <div class="fig-head">
+        <div><p class="fig-title">各模型相对 FF-LSTM 的配对差值（每个点一个 seed）</p><p class="fig-sub">左边：比 LSTM 掉得多；右边：比 LSTM 掉得少。行尾数字是 5 个 seed 里差值 &lt; 0 的个数。</p></div>
+        <div class="fig-tools"><button class="tbtn" data-table="paired">表格</button></div>
+      </div>
+      <div class="fig-controls"><div class="seg-btns" data-ctl="pairMetric"><button data-v="Delta_AUPRC" aria-pressed="true">ΔAUPRC 的差</button><button data-v="Delta_AUROC" aria-pressed="false">ΔAUROC 的差</button></div></div>
+      <div class="legend" id="lgPaired"></div>
+      <div class="plot" id="figPaired"></div>
+      <div class="tablewrap" id="tw-paired" hidden></div>
+    </figure>
+    <div class="takeaway"><div class="tk-label">看到的</div><ul id="tkPaired"><li>drop40 时，四个模型的 ΔAUPRC 在 5 个 seed 里都比 FF-LSTM 更负（都是 5/5）：平均多掉 GRU-D 0.020、BRITS 0.017、mTAND 0.008、Raindrop 0.008。</li><li>continuous5min 下分成两组：GRU-D、BRITS 的 ΔAUPRC 比 LSTM 更负（4/5、5/5），mTAND、Raindrop 则 5 个 seed 都比 LSTM 掉得少（0/5）。换成 ΔAUROC，Raindrop 又是 5/5 比 LSTM 掉得多。</li><li>按你的条件，GRU-D 和 BRITS 几乎每个 seed 都是"原始更强、掉得也更多"；mTAND、Raindrop 原始就不比 LSTM 强（0/5、1/5），所以几乎不满足。</li></ul></div>
+    <h3>你定义的"原始更强、且掉得更多"条件</h3>
+    <p class="muted small">按你 <code>five_seed_sanity.json</code> 里 <code>condition</code> 的定义：同一个 seed 下，原始 AUROC 和 AUPRC 都高于 LSTM，并且该扰动下 ΔAUROC 和 ΔAUPRC 都比 LSTM 更负。表中是满足条件的 seed 数（满分 5）。</p>
+    <div class="tbl"><table class="data" id="tblCond"></table></div>
+    <div class="propose">
+      <div class="pbox me"><div class="plabel">我的提议</div>
+        <ul>
+          <li>六模型统一用你的方法，覆盖从 drop40、continuous5min 扩大到三种扰动，把 drop20 也加上。</li>
+          <li>每个模型都和 FF-LSTM 比，报 5 个 seed 差值的均值 ± SD，以及差值 &lt; 0 的 seed 数。</li>
+          <li>n = 5，不做显著性检验，表述用"5 个 seed 中 k 个"。</li>
+          <li>这一方法已经写进我的方案锁（10-22），计算在登记之后。</li>
+        </ul>
+      </div>
+      <div class="pbox you"><div class="plabel">想问你</div>
+        <ul>
+          <li>同意这样统一吗？参照模型用 FF-LSTM 可以吗？</li>
+          <li>要不要另外补一个"同一套 bootstrap 下的配对 CI"（只做 seed 2026）？我倾向不加，避免两套口径。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 04 D2 校准 ================= -->
+<section class="slide" id="s-d2">
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-no">04</span><h2>待定②：校准口径</h2></div>
+    <p class="sec-lead">两边都用了 pos_weight ≈ 7.08 的加权 BCE。它不影响排序，但会把预测概率整体推高，所以五个模型的 Brier 都比"所有人一律预测患病率"还差。</p>
+    <figure class="fig">
+      <div class="fig-head">
+        <div><p class="fig-title">原始测试集上的 Brier（越小越好）</p><p class="fig-sub">虚线：对每个人都预测患病率 12.0% 时的 Brier（<span id="briefBase"></span>）。五个模型都在虚线右边。</p></div>
+        <div class="fig-tools"><button class="tbtn" data-table="brier">表格</button></div>
+      </div>
+      <div class="legend" id="lgBrier"></div>
+      <div class="plot" id="figBrier"></div>
+      <div class="tablewrap" id="tw-brier" hidden></div>
+    </figure>
+    <div class="grid-2">
+      <figure class="fig">
+        <p class="fig-title">再校准做的是什么</p>
+        <p class="fig-sub">在 Original Validation 上拟合一条单调曲线，把概率往下压。病人之间的排序不变，只是数值变小。</p>
+        <div class="plot" id="figPlatt"></div>
+      </figure>
+      <div>
+        <h3 style="margin-top:18px">会变的和不会变的</h3>
+        <div class="tbl"><table class="data">
+          <thead><tr><th>指标</th><th>Platt（严格单调）</th><th>Isotonic（分段常数）</th></tr></thead>
+          <tbody>
+            <tr><td>AUROC、AUPRC、ΔAUROC、ΔAUPRC</td><td>不变</td><td>基本不变（会产生并列值）</td></tr>
+            <tr><td>Flip Rate</td><td>不变：阈值在校准后的验证集上按同一 F1 规则重选，判定与原来完全一样</td><td>可能变</td></tr>
+            <tr><td>Brier、ECE、ΔBrier</td><td>变（变好）</td><td>变（变好）</td></tr>
+            <tr><td>Mean |Δp|、Median |Δp|</td><td>变（数值缩小）</td><td>变</td></tr>
+          </tbody>
+        </table></div>
+        <p class="small muted">我 10-21 的报告里写的是"会改变 Flip Rate"，用 Platt 时这句不对，会在报告里更正。</p>
+      </div>
+    </div>
+    <div class="propose">
+      <div class="pbox me"><div class="plabel">我的提议</div>
+        <ul>
+          <li><strong>v1 不动</strong>：所有 Brier、ECE、ΔBrier 标注"pos_weight 加权口径下"，不拿来比较模型的校准能力。</li>
+          <li>如果 PPT 或论文需要"概率可以直接读"，再登记 <strong>v1.1</strong>：六个模型统一在 Original Validation 上做 Platt，测试集只用来评价。只用新的预测文件，不重新训练。</li>
+          <li>v1.1 的主要变化是 |Δp| 变小，排序类指标和 Flip Rate 不变，所以主要结论不受影响。</li>
+        </ul>
+      </div>
+      <div class="pbox you"><div class="plabel">想问你</div>
+        <ul>
+          <li>要做 v1.1 吗？还是先只做 v1 加标注？</li>
+          <li>如果做：用 Platt 可以吗？谁来写统一的脚本？我可以写好，两边都用同一份。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 05 D3 训练预算 ================= -->
+<section class="slide" id="s-d3">
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-no">05</span><h2>待定③：训练预算</h2></div>
+    <p class="sec-lead">六个模型共用"最多 30 epoch、patience 6"。如果一个 run 训练到第 30 epoch 还在变好，它是被上限截断的，不是早停。</p>
+    <figure class="fig">
+      <div class="fig-head">
+        <div><p class="fig-title">每个 run 训练了多少 epoch，最好的 epoch 在哪</p><p class="fig-sub">横条：实际训练的 epoch 数；圆点：验证 AUPRC 最高的 epoch（被选中的 checkpoint）；红圈：训练满 30 epoch 才停。</p></div>
+        <div class="fig-tools"><button class="tbtn" data-table="budget">表格</button></div>
+      </div>
+      <div class="legend" id="lgBudget"></div>
+      <div class="plot" id="figBudget"></div>
+      <div class="tablewrap" id="tw-budget" hidden></div>
+    </figure>
+    <div class="takeaway"><div class="tk-label">看到的</div><ul id="tkBudget"><li>25 个 run 里只有 Raindrop seed 2028 训练满了 30 epoch，而且第 30 epoch 就是最佳，说明它是被上限截断的；其余 24 个都早停了，包括 10-22 新跑的 6 个。</li><li>mTAND 在 seed 2026、2028 的最佳 epoch 是 3，之后 6 个 epoch 验证 AUPRC 都没再提高。这不是预算不够，但说明它的训练很早就停滞了。</li></ul></div>
+    <div class="propose">
+      <div class="pbox me"><div class="plabel">我的提议</div>
+        <ul>
+          <li>不改预算，保持预登记结果，在局限里写明哪些 run 撞到了上限。</li>
+          <li>如果以后要放宽，就登记新版本，六个模型一起放宽、一起重跑，不单独给某个模型补跑。</li>
+        </ul>
+      </div>
+      <div class="pbox you"><div class="plabel">想问你</div>
+        <ul><li>同意保持现状吗？</li></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 06 D4 总表 ================= -->
+<section class="slide" id="s-d4">
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-no">06</span><h2>待定④：六模型总表怎么拼</h2></div>
+    <p class="sec-lead">现在五个模型都有 5 个 seed，只差 OPL-MT-MNAR。正式版 §18 要求周一前交六模型主结果。</p>
+    <div class="flow">
+      <div class="stack">
+        <div class="node"><b>你的 aggregate_five_seed.py</b>FF-LSTM、GRU-D：5 seed × 4 套 test</div>
+        <div class="node pending"><b>OPL-MT-MNAR</b>还没有结果</div>
+      </div>
+      <div class="arrow" aria-hidden="true">→</div>
+      <div class="node"><b>六模型总表</b>同一套列名：<code>five_seed_all_results.csv</code>、<code>five_seed_mean_std.csv</code>、<code>policy_shift_degradation_five_seed.csv</code>、<code>paired_seed_model_comparison.csv</code></div>
+      <div class="arrow" aria-hidden="true">←</div>
+      <div class="node"><b>我的 export_five_seed.py</b>BRITS、mTAND、Raindrop：5 seed × 4 套 test，已按你的格式导出</div>
+    </div>
+    <div class="propose">
+      <div class="pbox me"><div class="plabel">我的提议</div>
+        <ul>
+          <li>总表由你来拼：在你的 <code>aggregate_five_seed.py</code> 里读我的 <code>wangyiming/five_seed_all_results.csv</code>，按行拼上即可，列完全一样。</li>
+          <li>如果你更方便，也可以由我来拼：OPL 出来后，把它加到你的 <code>five_seed_all_results.csv</code> 里，我重跑 <code>export_five_seed.py</code>，几分钟就能出六模型表。</li>
+          <li>建议总表里加一列"冻结阈值下阳性预测率的变化"（见下一节），这是报警率层面最直观的结果。</li>
+        </ul>
+      </div>
+      <div class="pbox you"><div class="plabel">想问你</div>
+        <ul>
+          <li>OPL-MT-MNAR 预计什么时候能有 5 个 seed？</li>
+          <li>总表你拼还是我拼？最终放在哪个目录？</li>
+          <li>周一要交的是什么形式：CSV、PPT 还是报告？</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 07 D5 表述 ================= -->
+<section class="slide" id="s-d5">
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-no">07</span><h2>待定⑤：PPT 里怎么说</h2></div>
+    <p class="sec-lead">下面几句话关系到别人会不会误解我这三个模型的结果，想和你统一说法。</p>
+    <div class="says" id="says">
+      <div class="say" data-model="Raindrop">
+        <h4>Raindrop：图结构实际上退化了</h4>
+        <p class="do">"Raindrop（PyPOTS 实现）：变量之间的关系只通过 Transformer 间接建模。"</p>
+        <p class="dont">"Raindrop 通过图神经网络建模了变量之间的关系。"</p>
+        <p class="small muted">PyPOTS 和官方 Raindrop_v2 调用观测传播层时，边权全为 1、<code>use_beta=False</code>，推导下来每个变量只做 <code>relu(Linear(x))</code>，变量之间不传消息。我有单元测试对照原版。</p>
+      </div>
+      <div class="say" data-model="mTAND">
+        <h4>mTAND：用的是判别式的 mTAND-Enc</h4>
+        <p class="do">"mTAND-Enc，时间按固定 15 分钟窗口缩放。"</p>
+        <p class="dont">"mTAND 对不规则采样更稳健。"</p>
+        <p class="small muted">它的漂移最小，但在 seed 2027、2029、2030 中，有观测被删、而每个变量的末次观测都还在的 visit 里，有 10%–73% 预测完全不变（seed 2026、2028 只有 1%–2%），像是主要看末次值。这只是事后观察，没有检验。</p>
+      </div>
+      <div class="say" data-model="BRITS">
+        <h4>BRITS：离线双向模型</h4>
+        <p class="do">"BRITS 在固定的 15 分钟 landmark 上离线预测，用到窗口内的全部观测。"</p>
+        <p class="dont">"BRITS 可以做在线、逐分钟的实时预测。"</p>
+        <p class="small muted">它从窗口两端双向插补，用到了窗口内"后面"的观测，符合正式版 §14 的离线设定。</p>
+      </div>
+    </div>
+    <figure class="fig">
+      <div class="fig-head">
+        <div><p class="fig-title">建议加进总表的一列：drop40 时阳性预测率的变化</p><p class="fig-sub">冻结阈值下被判为阳性的比例，扰动后减去原始，单位为百分点。drop40 时 BRITS 平均升高 3.4 个百分点，mTAND 降低 1.8，Raindrop 降低 7.3，三个模型各自 5 个 seed 方向都一致。阈值冻结时，这就是报警率的变化。你的两个模型我没有这一列，所以图里只有我的三个。</p></div>
+        <div class="fig-tools"><button class="tbtn" data-table="ppr">表格</button></div>
+      </div>
+      <div class="fig-controls"><div class="seg-btns" data-ctl="pprVar"><button data-v="drop20" aria-pressed="false">drop20</button><button data-v="drop40" aria-pressed="true">drop40</button><button data-v="continuous5min" aria-pressed="false">continuous5min</button></div></div>
+      <div class="legend" id="lgPpr"></div>
+      <div class="plot" id="figPpr"></div>
+      <div class="tablewrap" id="tw-ppr" hidden></div>
+    </figure>
+  </div>
+</section>
+
+<!-- ================= 08 核对 ================= -->
+<section class="slide" id="s-check">
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-no">08</span><h2>我已经核对过、不用你再确认的</h2></div>
+    <p class="sec-lead">下面几项我从你的代码和聚合文件里核对过（只读代码和汇总表，没读逐患者文件）。如果我理解错了，告诉我一声。</p>
+    <div class="tbl"><table class="data">
+      <thead><tr><th>核对项</th><th>你的分支</th><th>我的分支</th></tr></thead>
+      <tbody>
+        <tr><td>阈值规则</td><td>FF-LSTM：<code>choose_f1_threshold</code>，在验证集预测概率上穷举 F1；GRU-D：<code>choose_threshold</code>，同一规则</td><td>同一规则</td></tr>
+        <tr><td>扰动后重算派生特征（§19 最后一条）</td><td>FF-LSTM 按每套 test 各自构建输入（<code>build_lstm_split("test", variant)</code>）；GRU-D 的 <code>tensor_audit</code> 检查扰动后的 mask 和 δ 确实与原始不同，否则报错</td><td>BRITS 的 mask 和 δ、mTAND 与 Raindrop 的时间戳和长度，都从每套 test 自己的观测文件重算</td></tr>
+        <tr><td>LSTM 参考值</td><td>CSV 中 FF-LSTM seed 2026 的 AUPRC 为 <span id="lstmCheck"></span>，与你的 <code>results.json</code> 一致</td><td>我 10-21 报告引用的 LSTM 参考值就是这个</td></tr>
+        <tr><td>训练预算</td><td>FF-LSTM、GRU-D 的 10 个 run 都在 30 epoch 之前早停</td><td>见第 05 节</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<!-- ================= 09 回复模板 ================= -->
+<section class="slide" id="s-reply">
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-no">09</span><h2>回复模板</h2></div>
+    <p class="sec-lead">直接在微信里按编号回一句就行，比如"1 同意；2 先不做 v1.1；3 同意；4 我拼，OPL 周日出；5 同意"。</p>
+    <div class="tbl"><table class="data" id="tblReply">
+      <thead><tr><th>事项</th><th>选项</th><th>我的倾向</th></tr></thead>
+      <tbody>
+        <tr><td>① 比较方法</td><td><span class="box"></span>按 seed 配对差值，三种扰动，参照 FF-LSTM　<span class="box"></span>另有想法</td><td>前者</td></tr>
+        <tr><td>② 校准口径</td><td><span class="box"></span>只做 v1 + 标注　<span class="box"></span>另做 v1.1（Platt）　<span class="box"></span>v1.1 用 isotonic</td><td>v1 + 标注；需要可读概率时再做 v1.1（Platt）</td></tr>
+        <tr><td>③ 训练预算</td><td><span class="box"></span>保持，写进局限　<span class="box"></span>登记新版本，六模型一起放宽</td><td>保持</td></tr>
+        <tr><td>④ 总表</td><td><span class="box"></span>你拼　<span class="box"></span>我拼　OPL 预计：____　周一交付形式：____</td><td>你拼（你的脚本只需多读一个 CSV）</td></tr>
+        <tr><td>⑤ PPT 表述</td><td><span class="box"></span>同意　<span class="box"></span>要改：____　<span class="box"></span>总表加"阳性预测率变化"列</td><td>同意，并加列</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<!-- ================= 附录 ================= -->
+<section class="slide" id="s-appx">
+  <div class="wrap">
+    <div class="sec-head"><span class="sec-no">附录</span><h2>五模型数值表与说明</h2></div>
+    <h3>A1 五个 seed 的均值 ± SD</h3>
+    <p class="muted small">与 <code>five_model/five_seed_mean_std.csv</code>、<code>policy_shift_degradation_five_seed.csv</code> 相同（SD 为 ddof=1），这里保留 3 位小数。</p>
+    <div class="tbl" id="tblMean"></div>
+    <h3>A2 名词</h3>
+    <dl class="gloss">
+      <dt>Δ（ΔAUPRC 等）</dt><dd>扰动后的指标减原始指标，同一个 checkpoint、同一批病人。负数表示变差。</dd>
+      <dt>Mean |Δp|</dt><dd>每个病人扰动前后预测概率之差的绝对值，再对 5,236 人取平均。</dd>
+      <dt>Flip Rate</dt><dd>在验证集上选好的阈值固定不动，扰动前后判定（阳性 / 阴性）不同的病人比例。</dd>
+      <dt>配对差值</dt><dd>同一个 seed 下，某模型的 Δ 减 FF-LSTM 的 Δ；小于 0 表示该模型掉得更多。</dd>
+      <dt>pos_weight</dt><dd>BCE 里给阳性样本的权重，取训练集阴性数 / 阳性数 ≈ 7.08。</dd>
+      <dt>再校准</dt><dd>在验证集上拟合一个单调函数，把预测概率映射到更接近真实发生率的数值。</dd>
+    </dl>
+    <h3>A3 来源与复现</h3>
+    <ul class="small">
+      <li>五模型表：<code>docs/basemodel/result/week04/mp_benchmark_v1_five_seed_summary/five_model/</code>（服务器 <code>wangyiming/</code> 下）。</li>
+      <li>我的导出脚本：<code>basemodel/experiments/mp_benchmark_v1/export_five_seed.py</code>；方法登记在执行方案 §8，sha256 写在 <code>logs/2026-10-21/mp_benchmark_v1_plan_lock.txt</code>。</li>
+      <li>你的数字来自 <code>five_seed_summary/five_seed_all_results.csv</code>（sha256 <span id="srcSha" class="mono"></span>），只读这一个聚合文件和训练日志的行数。</li>
+      <li>我的完整结果报告（10-21，3 seed 版）：<code>docs/basemodel/result/week04/mp_benchmark_v1_三模型结果报告_wangyiming_20261021.md</code>。</li>
+    </ul>
+  </div>
+</section>
+</main>
+
+<footer class="foot"><div class="wrap">王一鸣 · 生成时间：2026-10-22 17:13（北京时间） · 只含聚合量，可以转发；逐患者数据只在服务器上。</div></footer>
+
+<script>
+const DATA = {"date": "2026-10-22", "models": ["FF-LSTM", "GRU-D", "BRITS", "mTAND", "Raindrop"], "seeds": [2026, 2027, 2028, 2029, 2030], "rows": [{"Model": "FF-LSTM", "Seed": 2026, "Variant": "Original", "AUROC": 0.708719992556293, "AUPRC": 0.2750189817002869, "Brier": 0.2190980166224535, "Delta_AUROC": 0.0, "Delta_AUPRC": 0.0, "Delta_Brier": 0.0, "Mean_abs_DeltaP": 0.0, "Median_abs_DeltaP": 0.0, "Correlation": 1.0, "Flip_Rate": 0.0}, {"Model": "FF-LSTM", "Seed": 2026, "Variant": "Drop20", "AUROC": 0.7020359917016452, "AUPRC": 0.2693449343445727, "Brier": 0.2154425244148708, "Delta_AUROC": -0.0066840008546478, "Delta_AUPRC": -0.0056740473557142, "Delta_Brier": -0.0036554922075827, "Mean_abs_DeltaP": 0.022277974407945, "Median_abs_DeltaP": 0.0094247749999999, "Correlation": 0.951248471002061, "Flip_Rate": 0.0437356760886172}, {"Model": "FF-LSTM", "Seed": 2026, "Variant": "Drop40", "AUROC": 0.6892846804375246, "AUPRC": 0.2611355552991903, "Brier": 0.2120028270530251, "Delta_AUROC": -0.0194353121187684, "Delta_AUPRC": -0.0138834264010966, "Delta_Brier": -0.0070951895694284, "Mean_abs_DeltaP": 0.0392542146944232, "Median_abs_DeltaP": 0.0206460099999999, "Correlation": 0.8951672040556864, "Flip_Rate": 0.0674178762414056}, {"Model": "FF-LSTM", "Seed": 2026, "Variant": "Continuous5min", "AUROC": 0.702407143201759, "AUPRC": 0.2722135023468919, "Brier": 0.2166270829580339, "Delta_AUROC": -0.006312849354534, "Delta_AUPRC": -0.002805479353395, "Delta_Brier": -0.0024709336644196, "Mean_abs_DeltaP": 0.0292555752521008, "Median_abs_DeltaP": 0.0108338, "Correlation": 0.9261102016772244, "Flip_Rate": 0.043353705118411}, {"Model": "GRU-D", "Seed": 2026, "Variant": "Original", "AUROC": 0.7308569223028625, "AUPRC": 0.2976663895734444, "Brier": 0.1998621843852498, "Delta_AUROC": 0.0, "Delta_AUPRC": 0.0, "Delta_Brier": 0.0, "Mean_abs_DeltaP": 0.0, "Median_abs_DeltaP": 0.0, "Correlation": 1.0, "Flip_Rate": 0.0}, {"Model": "GRU-D", "Seed": 2026, "Variant": "Drop20", "AUROC": 0.7094714278821964, "AUPRC": 0.2753545861151174, "Brier": 0.2136248621472483, "Delta_AUROC": -0.021385494420666, "Delta_AUPRC": -0.022311803458327, "Delta_Brier": 0.0137626777619984, "Mean_abs_DeltaP": 0.051035053749045, "Median_abs_DeltaP": 0.0357109299999999, "Correlation": 0.9157464210805726, "Flip_Rate": 0.0469824293353705}, {"Model": "GRU-D", "Seed": 2026, "Variant": "Drop40", "AUROC": 0.6921284521914135, "AUPRC": 0.2584577259934704, "Brier": 0.2187544827646982, "Delta_AUROC": -0.0387284701114489, "Delta_AUPRC": -0.0392086635799739, "Delta_Brier": 0.0188922983794483, "Mean_abs_DeltaP": 0.0755532129278074, "Median_abs_DeltaP": 0.059612825, "Correlation": 0.8284909631599843, "Flip_Rate": 0.0742933537051184}, {"Model": "GRU-D", "Seed": 2026, "Variant": "Continuous5min", "AUROC": 0.7082518316343762, "AUPRC": 0.2863221669877855, "Brier": 0.2055335001847652, "Delta_AUROC": -0.0226050906684862, "Delta_AUPRC": -0.0113442225856588, "Delta_Brier": 0.0056713157995153, "Mean_abs_DeltaP": 0.0503715144453781, "Median_abs_DeltaP": 0.028077335, "Correlation": 0.8863371642004878, "Flip_Rate": 0.0496562261268143}, {"Model": "FF-LSTM", "Seed": 2027, "Variant": "Original", "AUROC": 0.7152783808558885, "AUPRC": 0.2796896022373442, "Brier": 0.2309694202390225, "Delta_AUROC": 0.0, "Delta_AUPRC": 0.0, "Delta_Brier": 0.0, "Mean_abs_DeltaP": 0.0, "Median_abs_DeltaP": 0.0, "Correlation": 1.0, "Flip_Rate": 0.0}, {"Model": "FF-LSTM", "Seed": 2027, "Variant": "Drop20", "AUROC": 0.7082952532583449, "AUPRC": 0.2739616756354048, "Brier": 0.2263945763389198, "Delta_AUROC": -0.0069831275975436, "Delta_AUPRC": -0.0057279266019394, "Delta_Brier": -0.0045748439001027, "Mean_abs_DeltaP": 0.0228713246772345, "Median_abs_DeltaP": 0.0092570899999999, "Correlation": 0.9550095209085416, "Flip_Rate": 0.0276928953399541}, {"Model": "FF-LSTM", "Seed": 2027, "Variant": "Drop40", "AUROC": 0.6915687957047055, "AUPRC": 0.2605936781595948, "Brier": 0.2222789858920652, "Delta_AUROC": -0.0237095851511829, "Delta_AUPRC": -0.0190959240777494, "Delta_Brier": -0.0086904343469572, "Mean_abs_DeltaP": 0.0412139179870129, "Median_abs_DeltaP": 0.02170571, "Correlation": 0.8963519480814679, "Flip_Rate": 0.0536669213139801}, {"Model": "FF-LSTM", "Seed": 2027, "Variant": "Continuous5min", "AUROC": 0.7050975608075044, "AUPRC": 0.2726762107500601, "Brier": 0.2285489248400897, "Delta_AUROC": -0.010180820048384, "Delta_AUPRC": -0.007013391487284, "Delta_Brier": -0.0024204953989327, "Mean_abs_DeltaP": 0.0309416359663865, "Median_abs_DeltaP": 0.0119515999999999, "Correlation": 0.9251700291806456, "Flip_Rate": 0.0401069518716577}, {"Model": "GRU-D", "Seed": 2027, "Variant": "Original", "AUROC": 0.7274047308893161, "AUPRC": 0.2960550217275489, "Brier": 0.2197791568378669, "Delta_AUROC": 0.0, "Delta_AUPRC": 0.0, "Delta_Brier": 0.0, "Mean_abs_DeltaP": 0.0, "Median_abs_DeltaP": 0.0, "Correlation": 1.0, "Flip_Rate": 0.0}, {"Model": "GRU-D", "Seed": 2027, "Variant": "Drop20", "AUROC": 0.7115115549766006, "AUPRC": 0.2751464153388586, "Brier": 0.2277801973413153, "Delta_AUROC": -0.0158931759127155, "Delta_AUPRC": -0.0209086063886902, "Delta_Brier": 0.0080010405034484, "Mean_abs_DeltaP": 0.0484036478626814, "Median_abs_DeltaP": 0.034904135, "Correlation": 0.9276040134580308, "Flip_Rate": 0.0431627196333078}, {"Model": "GRU-D", "Seed": 2027, "Variant": "Drop40", "AUROC": 0.6949007161121794, "AUPRC": 0.2615907270866241, "Brier": 0.2267255339539161, "Delta_AUROC": -0.0325040147771367, "Delta_AUPRC": -0.0344642946409247, "Delta_Brier": 0.0069463771160492, "Mean_abs_DeltaP": 0.071670800577731, "Median_abs_DeltaP": 0.05570027, "Correlation": 0.850218776142001, "Flip_Rate": 0.0733384262796027}, {"Model": "GRU-D", "Seed": 2027, "Variant": "Continuous5min", "AUROC": 0.7097707269331238, "AUPRC": 0.2916021493790046, "Brier": 0.216641172479307, "Delta_AUROC": -0.0176340039561923, "Delta_AUPRC": -0.0044528723485443, "Delta_Brier": -0.0031379843585598, "Mean_abs_DeltaP": 0.0512216346008403, "Median_abs_DeltaP": 0.0314878999999999, "Correlation": 0.8977076356745222, "Flip_Rate": 0.0536669213139801}, {"Model": "FF-LSTM", "Seed": 2028, "Variant": "Original", "AUROC": 0.717093129044931, "AUPRC": 0.2782849708485915, "Brier": 0.2051982201496791, "Delta_AUROC": 0.0, "Delta_AUPRC": 0.0, "Delta_Brier": 0.0, "Mean_abs_DeltaP": 0.0, "Median_abs_DeltaP": 0.0, "Correlation": 1.0, "Flip_Rate": 0.0}, {"Model": "FF-LSTM", "Seed": 2028, "Variant": "Drop20", "AUROC": 0.7088152788977798, "AUPRC": 0.2721351297859219, "Brier": 0.2024329436144726, "Delta_AUROC": -0.0082778501471512, "Delta_AUPRC": -0.0061498410626695, "Delta_Brier": -0.0027652765352065, "Mean_abs_DeltaP": 0.0257109561268143, "Median_abs_DeltaP": 0.0108098, "Correlation": 0.9484005956395472, "Flip_Rate": 0.0443086325439266}, {"Model": "FF-LSTM", "Seed": 2028, "Variant": "Drop40", "AUROC": 0.6897609398369277, "AUPRC": 0.260498313417481, "Brier": 0.1999406311456527, "Delta_AUROC": -0.0273321892080034, "Delta_AUPRC": -0.0177866574311105, "Delta_Brier": -0.0052575890040263, "Mean_abs_DeltaP": 0.0451123834854851, "Median_abs_DeltaP": 0.024706485, "Correlation": 0.8848369720464218, "Flip_Rate": 0.0741023682200152}, {"Model": "FF-LSTM", "Seed": 2028, "Variant": "Continuous5min", "AUROC": 0.7047091785042285, "AUPRC": 0.2725685052243928, "Brier": 0.2051993400244174, "Delta_AUROC": -0.0123839505407025, "Delta_AUPRC": -0.0057164656241986, "Delta_Brier": 1.119874738303439e-06, "Mean_abs_DeltaP": 0.0349292002559205, "Median_abs_DeltaP": 0.0154841, "Correlation": 0.9182098068861152, "Flip_Rate": 0.0525210084033613}, {"Model": "GRU-D", "Seed": 2028, "Variant": "Original", "AUROC": 0.7277538269613824, "AUPRC": 0.2972867574719186, "Brier": 0.2161642704799418, "Delta_AUROC": 0.0, "Delta_AUPRC": 0.0, "Delta_Brier": 0.0, "Mean_abs_DeltaP": 0.0, "Median_abs_DeltaP": 0.0, "Correlation": 1.0, "Flip_Rate": 0.0}, {"Model": "GRU-D", "Seed": 2028, "Variant": "Drop20", "AUROC": 0.7112065697606297, "AUPRC": 0.278949850156989, "Brier": 0.2236719971476702, "Delta_AUROC": -0.0165472572007526, "Delta_AUPRC": -0.0183369073149295, "Delta_Brier": 0.0075077266677283, "Mean_abs_DeltaP": 0.0444702926986249, "Median_abs_DeltaP": 0.03200032, "Correlation": 0.9337733235336612, "Flip_Rate": 0.0464094728800611}, {"Model": "GRU-D", "Seed": 2028, "Variant": "Drop40", "AUROC": 0.6942292317129486, "AUPRC": 0.2601110239401598, "Brier": 0.225336835977853, "Delta_AUROC": -0.0335245952484337, "Delta_AUPRC": -0.0371757335317587, "Delta_Brier": 0.0091725654979111, "Mean_abs_DeltaP": 0.0664617058651642, "Median_abs_DeltaP": 0.0513775949999999, "Correlation": 0.8621032844045717, "Flip_Rate": 0.0702826585179526}, {"Model": "GRU-D", "Seed": 2028, "Variant": "Continuous5min", "AUROC": 0.7091306025956482, "AUPRC": 0.2875330759610379, "Brier": 0.2231700155568553, "Delta_AUROC": -0.0186232243657341, "Delta_AUPRC": -0.0097536815108806, "Delta_Brier": 0.0070057450769134, "Mean_abs_DeltaP": 0.0470563296027501, "Median_abs_DeltaP": 0.02655484, "Correlation": 0.9037321646691874, "Flip_Rate": 0.0443086325439266}, {"Model": "FF-LSTM", "Seed": 2029, "Variant": "Original", "AUROC": 0.7042218913908015, "AUPRC": 0.2725623361916586, "Brier": 0.2072408154482203, "Delta_AUROC": 0.0, "Delta_AUPRC": 0.0, "Delta_Brier": 0.0, "Mean_abs_DeltaP": 0.0, "Median_abs_DeltaP": 0.0, "Correlation": 1.0, "Flip_Rate": 0.0}, {"Model": "FF-LSTM", "Seed": 2029, "Variant": "Drop20", "AUROC": 0.6992249584737643, "AUPRC": 0.264275322941098, "Brier": 0.2047381334003195, "Delta_AUROC": -0.0049969329170371, "Delta_AUPRC": -0.0082870132505606, "Delta_Brier": -0.0025026820479007, "Mean_abs_DeltaP": 0.020217664828113, "Median_abs_DeltaP": 0.0075121999999999, "Correlation": 0.9588700916751244, "Flip_Rate": 0.0307486631016042}, {"Model": "FF-LSTM", "Seed": 2029, "Variant": "Drop40", "AUROC": 0.6895166070480878, "AUPRC": 0.254320170686274, "Brier": 0.2022521090990562, "Delta_AUROC": -0.0147052843427136, "Delta_AUPRC": -0.0182421655053846, "Delta_Brier": -0.004988706349164, "Mean_abs_DeltaP": 0.0362970930557677, "Median_abs_DeltaP": 0.0185450799999999, "Correlation": 0.9100700614012142, "Flip_Rate": 0.0605423987776928}, {"Model": "FF-LSTM", "Seed": 2029, "Variant": "Continuous5min", "AUROC": 0.6960205460096907, "AUPRC": 0.266899029040507, "Brier": 0.206061193524376, "Delta_AUROC": -0.0082013453811108, "Delta_AUPRC": -0.0056633071511515, "Delta_Brier": -0.0011796219238442, "Mean_abs_DeltaP": 0.0268043572326203, "Median_abs_DeltaP": 0.0092879449999999, "Correlation": 0.9387952694225667, "Flip_Rate": 0.0402979373567608}, {"Model": "GRU-D", "Seed": 2029, "Variant": "Original", "AUROC": 0.7261699715347132, "AUPRC": 0.299570619010955, "Brier": 0.2127339379035072, "Delta_AUROC": 0.0, "Delta_AUPRC": 0.0, "Delta_Brier": 0.0, "Mean_abs_DeltaP": 0.0, "Median_abs_DeltaP": 0.0, "Correlation": 1.0, "Flip_Rate": 0.0}, {"Model": "GRU-D", "Seed": 2029, "Variant": "Drop20", "AUROC": 0.7102430232477996, "AUPRC": 0.2797102622313964, "Brier": 0.2253537903019987, "Delta_AUROC": -0.0159269482869135, "Delta_AUPRC": -0.0198603567795586, "Delta_Brier": 0.0126198523984914, "Mean_abs_DeltaP": 0.0461498949407944, "Median_abs_DeltaP": 0.0321250499999999, "Correlation": 0.922175030301361, "Flip_Rate": 0.0462184873949579}, {"Model": "GRU-D", "Seed": 2029, "Variant": "Drop40", "AUROC": 0.6912765612830745, "AUPRC": 0.2642081581159761, "Brier": 0.2293995627879231, "Delta_AUROC": -0.0348934102516387, "Delta_AUPRC": -0.0353624608949789, "Delta_Brier": 0.0166656248844159, "Mean_abs_DeltaP": 0.0679847921524064, "Median_abs_DeltaP": 0.0523271699999999, "Correlation": 0.842672583311377, "Flip_Rate": 0.0716195569136745}, {"Model": "GRU-D", "Seed": 2029, "Variant": "Continuous5min", "AUROC": 0.7054616476783215, "AUPRC": 0.2892763779808793, "Brier": 0.2199217685380547, "Delta_AUROC": -0.0207083238563916, "Delta_AUPRC": -0.0102942410300757, "Delta_Brier": 0.0071878306345474, "Mean_abs_DeltaP": 0.047050737538197, "Median_abs_DeltaP": 0.024202265, "Correlation": 0.885813160230276, "Flip_Rate": 0.0529029793735676}, {"Model": "FF-LSTM", "Seed": 2030, "Variant": "Original", "AUROC": 0.7084088042511838, "AUPRC": 0.2718466500655249, "Brier": 0.210825238004207, "Delta_AUROC": 0.0, "Delta_AUPRC": 0.0, "Delta_Brier": 0.0, "Mean_abs_DeltaP": 0.0, "Median_abs_DeltaP": 0.0, "Correlation": 1.0, "Flip_Rate": 0.0}, {"Model": "FF-LSTM", "Seed": 2030, "Variant": "Drop20", "AUROC": 0.7007164567954841, "AUPRC": 0.268207023333334, "Brier": 0.2075413353060488, "Delta_AUROC": -0.0076923474556996, "Delta_AUPRC": -0.0036396267321909, "Delta_Brier": -0.0032839026981582, "Mean_abs_DeltaP": 0.0215696170588235, "Median_abs_DeltaP": 0.0086002449999999, "Correlation": 0.9578254406570184, "Flip_Rate": 0.0374331550802139}, {"Model": "FF-LSTM", "Seed": 2030, "Variant": "Drop40", "AUROC": 0.69049100896691, "AUPRC": 0.2599382159229399, "Brier": 0.204148473825358, "Delta_AUROC": -0.0179177952842738, "Delta_AUPRC": -0.011908434142585, "Delta_Brier": -0.0066767641788489, "Mean_abs_DeltaP": 0.0385776280309396, "Median_abs_DeltaP": 0.020161035, "Correlation": 0.9036318786850054, "Flip_Rate": 0.0620702826585179}, {"Model": "FF-LSTM", "Seed": 2030, "Variant": "Continuous5min", "AUROC": 0.6991231244270759, "AUPRC": 0.2673679010973571, "Brier": 0.2099669880137242, "Delta_AUROC": -0.0092856798241078, "Delta_AUPRC": -0.0044787489681678, "Delta_Brier": -0.0008582499904828, "Mean_abs_DeltaP": 0.0290030646447669, "Median_abs_DeltaP": 0.010423965, "Correlation": 0.931156346653122, "Flip_Rate": 0.042016806722689}, {"Model": "GRU-D", "Seed": 2030, "Variant": "Original", "AUROC": 0.7281577169875042, "AUPRC": 0.3018442856394793, "Brier": 0.2038633788634168, "Delta_AUROC": 0.0, "Delta_AUPRC": 0.0, "Delta_Brier": 0.0, "Mean_abs_DeltaP": 0.0, "Median_abs_DeltaP": 0.0, "Correlation": 1.0, "Flip_Rate": 0.0}, {"Model": "GRU-D", "Seed": 2030, "Variant": "Drop20", "AUROC": 0.7108288705553143, "AUPRC": 0.2812540027843088, "Brier": 0.2145336708973971, "Delta_AUROC": -0.0173288464321899, "Delta_AUPRC": -0.0205902828551705, "Delta_Brier": 0.0106702920339803, "Mean_abs_DeltaP": 0.0487108685168067, "Median_abs_DeltaP": 0.034939285, "Correlation": 0.9233413179607972, "Flip_Rate": 0.0464094728800611}, {"Model": "GRU-D", "Seed": 2030, "Variant": "Drop40", "AUROC": 0.6941622038886476, "AUPRC": 0.2657663705353394, "Brier": 0.2172890359175297, "Delta_AUROC": -0.0339955130988566, "Delta_AUPRC": -0.0360779151041399, "Delta_Brier": 0.0134256570541128, "Mean_abs_DeltaP": 0.0720958473212375, "Median_abs_DeltaP": 0.056031185, "Correlation": 0.8437084228344517, "Flip_Rate": 0.0758212375859434}, {"Model": "GRU-D", "Seed": 2030, "Variant": "Continuous5min", "AUROC": 0.7064498342396734, "AUPRC": 0.2950589666794453, "Brier": 0.2150194131218086, "Delta_AUROC": -0.0217078827478307, "Delta_AUPRC": -0.006785318960034, "Delta_Brier": 0.0111560342583917, "Mean_abs_DeltaP": 0.0509019345416348, "Median_abs_DeltaP": 0.02619876, "Correlation": 0.8894086689550887, "Flip_Rate": 0.0496562261268143}, {"Model": "BRITS", "Seed": 2026, "Variant": "Original", "AUROC": 0.7333693457119423, "AUPRC": 0.3175148894485395, "Brier": 0.1834122306900391, "Delta_AUROC": 0.0, "Delta_AUPRC": 0.0, "Delta_Brier": 0.0, "Mean_abs_DeltaP": 0.0, "Median_abs_DeltaP": 0.0, "Correlation": 1.0, "Flip_Rate": 0.0}, {"Model": "BRITS", "Seed": 2026, "Variant": "Drop20", "AUROC": 0.7196689618096479, "AUPRC": 0.2989918845646061, "Brier": 0.20598976650146256, "Delta_AUROC": -0.013700383902294444, "Delta_AUPRC": -0.01852300488393338, "Delta_Brier": 0.022577535811423466, "Mean_abs_DeltaP": 0.05281426657113617, "Median_abs_DeltaP": 0.035815924406051663, "Correlation": 0.9388251560989412, "Flip_Rate": 0.07925897631779985}, {"Model": "BRITS", "Seed": 2026, "Variant": "Drop40", "AUROC": 0.7027064422526863, "AUPRC": 0.28089038817345263, "Brier": 0.22325235396174675, "Delta_AUROC": -0.03066290345925604, "Delta_AUPRC": -0.036624501275086874, "Delta_Brier": 0.03984012327170766, "Mean_abs_DeltaP": 0.08610322186118596, "Median_abs_DeltaP": 0.06666217744350436, "Correlation": 0.8698453520484523, "Flip_Rate": 0.13445378151260504}, {"Model": "BRITS", "Seed": 2026, "Variant": "Continuous5min", "AUROC": 0.7128107575350301, "AUPRC": 0.30607936109572764, "Brier": 0.1939912068243594, "Delta_AUROC": -0.02055858817691225, "Delta_AUPRC": -0.011435528352811863, "Delta_Brier": 0.010578976134320323, "Mean_abs_DeltaP": 0.05068025633129252, "Median_abs_DeltaP": 0.029705747961997986, "Correlation": 0.9195785418284297, "Flip_Rate": 0.06913674560733385}, {"Model": "BRITS", "Seed": 2027, "Variant": "Original", "AUROC": 0.7265614553825583, "AUPRC": 0.31030232527782436, "Brier": 0.2013083212534011, "Delta_AUROC": 0.0, "Delta_AUPRC": 0.0, "Delta_Brier": 0.0, "Mean_abs_DeltaP": 0.0, "Median_abs_DeltaP": 0.0, "Correlation": 0.9999999999999999, "Flip_Rate": 0.0}, {"Model": "BRITS", "Seed": 2027, "Variant": "Drop20", "AUROC": 0.7160451515966062, "AUPRC": 0.2969630718551486, "Brier": 0.21400626290779987, "Delta_AUROC": -0.010516303785952141, "Delta_AUPRC": -0.013339253422675779, "Delta_Brier": 0.012697941654398776, "Mean_abs_DeltaP": 0.03411703364392835, "Median_abs_DeltaP": 0.024735555052757263, "Correlation": 0.9644040145164082, "Flip_Rate": 0.04373567608861727}, {"Model": "BRITS", "Seed": 2027, "Variant": "Drop40", "AUROC": 0.706616456106252, "AUPRC": 0.2797360461389624, "Brier": 0.22116895806536152, "Delta_AUROC": -0.01994499927630633, "Delta_AUPRC": -0.03056627913886195, "Delta_Brier": 0.01986063681196043, "Mean_abs_DeltaP": 0.05507392310761513, "Median_abs_DeltaP": 0.04404187202453613, "Correlation": 0.9191396550713444, "Flip_Rate": 0.07142857142857142}, {"Model": "BRITS", "Seed": 2027, "Variant": "Continuous5min", "AUROC": 0.710800267422065, "AUPRC": 0.2999937575843879, "Brier": 0.20975930585585736, "Delta_AUROC": -0.015761187960493306, "Delta_AUPRC": -0.010308567693436466, "Delta_Brier": 0.008450984602456274, "Mean_abs_DeltaP": 0.040791144373992456, "Median_abs_DeltaP": 0.025759637355804443, "Correlation": 0.9312228893025206, "Flip_Rate": 0.04373567608861727}, {"Model": "BRITS", "Seed": 2028, "Variant": "Original", "AUROC": 0.7373446643094927, "AUPRC": 0.31263739857900064, "Brier": 0.20329038921677972, "Delta_AUROC": 0.0, "Delta_AUPRC": 0.0, "Delta_Brier": 0.0, "Mean_abs_DeltaP": 0.0, "Median_abs_DeltaP": 0.0, "Correlation": 1.0, "Flip_Rate": 0.0}, {"Model": "BRITS", "Seed": 2028, "Variant": "Drop20", "AUROC": 0.7250687509046172, "AUPRC": 0.29696914001498365, "Brier": 0.21872635387933867, "Delta_AUROC": -0.01227591340487555, "Delta_AUPRC": -0.01566825856401699, "Delta_Brier": 0.015435964662558949, "Mean_abs_DeltaP": 0.04230736998017277, "Median_abs_DeltaP": 0.03118720650672914, "Correlation": 0.9563764429280867, "Flip_Rate": 0.050229182582123756}, {"Model": "BRITS", "Seed": 2028, "Variant": "Drop40", "AUROC": 0.7098596378774407, "AUPRC": 0.2832862447290242, "Brier": 0.22671296294088714, "Delta_AUROC": -0.027485026432052084, "Delta_AUPRC": -0.02935115384997644, "Delta_Brier": 0.023422573724107415, "Mean_abs_DeltaP": 0.0662623047928281, "Median_abs_DeltaP": 0.05274540185928345, "Correlation": 0.9052603937311378, "Flip_Rate": 0.08594346829640948}, {"Model": "BRITS", "Seed": 2028, "Variant": "Continuous5min", "AUROC": 0.7236024095555141, "AUPRC": 0.3064839394905877, "Brier": 0.20467999363922987, "Delta_AUROC": -0.013742254753978611, "Delta_AUPRC": -0.006153459088412916, "Delta_Brier": 0.001389604422450147, "Mean_abs_DeltaP": 0.04340957611588643, "Median_abs_DeltaP": 0.026435121893882765, "Correlation": 0.9320218092988001, "Flip_Rate": 0.05213903743315508}, {"Model": "BRITS", "Seed": 2029, "Variant": "Original", "AUROC": 0.7383742047984341, "AUPRC": 0.3150525594752315, "Brier": 0.22691391086556298, "Delta_AUROC": 0.0, "Delta_AUPRC": 0.0, "Delta_Brier": 0.0, "Mean_abs_DeltaP": 0.0, "Median_abs_DeltaP": 0.0, "Correlation": 1.0, "Flip_Rate": 0.0}, {"Model": "BRITS", "Seed": 2029, "Variant": "Drop20", "AUROC": 0.7272801521824535, "AUPRC": 0.2978230591976194, "Brier": 0.24620478275681368, "Delta_AUROC": -0.01109405261598062, "Delta_AUPRC": -0.017229500277612053, "Delta_Brier": 0.0192908718912507, "Mean_abs_DeltaP": 0.03945254461627775, "Median_abs_DeltaP": 0.028871774673461942, "Correlation": 0.9505711742396208, "Flip_Rate": 0.058823529411764705}, {"Model": "BRITS", "Seed": 2029, "Variant": "Drop40", "AUROC": 0.7098461978509742, "AUPRC": 0.28151290666533063, "Brier": 0.25856043331896245, "Delta_AUROC": -0.028528006947459827, "Delta_AUPRC": -0.033539652809900844, "Delta_Brier": 0.03164652245339947, "Mean_abs_DeltaP": 0.06298930641915436, "Median_abs_DeltaP": 0.050887778401374845, "Correlation": 0.8923914561929879, "Flip_Rate": 0.09950343773873185}, {"Model": "BRITS", "Seed": 2029, "Variant": "Continuous5min", "AUROC": 0.7206449145007547, "AUPRC": 0.302834745033276, "Brier": 0.237188628017568, "Delta_AUROC": -0.017729290297679334, "Delta_AUPRC": -0.012217814441955466, "Delta_Brier": 0.010274717152005008, "Mean_abs_DeltaP": 0.04159742957756572, "Median_abs_DeltaP": 0.025160111486911788, "Correlation": 0.9182515849559291, "Flip_Rate": 0.06512605042016807}, {"Model": "BRITS", "Seed": 2030, "Variant": "Original", "AUROC": 0.7357373749905232, "AUPRC": 0.31487200259469045, "Brier": 0.22290965603297425, "Delta_AUROC": 0.0, "Delta_AUPRC": 0.0, "Delta_Brier": 0.0, "Mean_abs_DeltaP": 0.0, "Median_abs_DeltaP": 0.0, "Correlation": 0.9999999999999998, "Flip_Rate": 0.0}, {"Model": "BRITS", "Seed": 2030, "Variant": "Drop20", "AUROC": 0.724358152582208, "AUPRC": 0.30153299559130187, "Brier": 0.23588129030126387, "Delta_AUROC": -0.011379222408315126, "Delta_AUPRC": -0.013339007003388581, "Delta_Brier": 0.012971634268289622, "Mean_abs_DeltaP": 0.03190389333322724, "Median_abs_DeltaP": 0.023849844932556152, "Correlation": 0.9600118330941003, "Flip_Rate": 0.04316271963330787}, {"Model": "BRITS", "Seed": 2030, "Variant": "Drop40", "AUROC": 0.7105335345891143, "AUPRC": 0.28116192594998674, "Brier": 0.243445561171621, "Delta_AUROC": -0.025203840401408883, "Delta_AUPRC": -0.03371007664470371, "Delta_Brier": 0.020535905138646754, "Mean_abs_DeltaP": 0.05113400013176788, "Median_abs_DeltaP": 0.04179632663726804, "Correlation": 0.9120202832761504, "Flip_Rate": 0.06856378915202445}, {"Model": "BRITS", "Seed": 2030, "Variant": "Continuous5min", "AUROC": 0.719520776902453, "AUPRC": 0.3003261565128826, "Brier": 0.23395365084176103, "Delta_AUROC": -0.01621659808807019, "Delta_AUPRC": -0.014545846081807867, "Delta_Brier": 0.011043994808786789, "Mean_abs_DeltaP": 0.036141916469160706, "Median_abs_DeltaP": 0.02367754280567172, "Correlation": 0.9358491200672838, "Flip_Rate": 0.04106187929717341}, {"Model": "mTAND", "Seed": 2026, "Variant": "Original", "AUROC": 0.6899318694042967, "AUPRC": 0.2691573253478342, "Brier": 0.22189499777781063, "Delta_AUROC": 0.0, "Delta_AUPRC": 0.0, "Delta_Brier": 0.0, "Mean_abs_DeltaP": 0.0, "Median_abs_DeltaP": 0.0, "Correlation": 1.0, "Flip_Rate": 0.0}, {"Model": "mTAND", "Seed": 2026, "Variant": "Drop20", "AUROC": 0.684080116342383, "AUPRC": 0.261749840505878, "Brier": 0.22059553086685674, "Delta_AUROC": -0.005851753061913767, "Delta_AUPRC": -0.007407484841956191, "Delta_Brier": -0.0012994669109538948, "Mean_abs_DeltaP": 0.01757559218679429, "Median_abs_DeltaP": 0.0034503340721130094, "Correlation": 0.9601269824413676, "Flip_Rate": 0.03418640183346066}, {"Model": "mTAND", "Seed": 2026, "Variant": "Drop40", "AUROC": 0.6808927623734398, "AUPRC": 0.24881875266515174, "Brier": 0.21865699458776713, "Delta_AUROC": -0.009039107030856974, "Delta_AUPRC": -0.020338572682682465, "Delta_Brier": -0.003238003190043498, "Mean_abs_DeltaP": 0.03234241604861911, "Median_abs_DeltaP": 0.012538015842437744, "Correlation": 0.9171884248261808, "Flip_Rate": 0.06340718105423988}, {"Model": "mTAND", "Seed": 2026, "Variant": "Continuous5min", "AUROC": 0.6914831586129893, "AUPRC": 0.27378384538799616, "Brier": 0.21923969002357474, "Delta_AUROC": 0.001551289208692519, "Delta_AUPRC": 0.004626520040161952, "Delta_Brier": -0.0026553077542358916, "Mean_abs_DeltaP": 0.014366340017368813, "Median_abs_DeltaP": 0.00012674927711489592, "Correlation": 0.9633780629179178, "Flip_Rate": 0.023300229182582125}, {"Model": "mTAND", "Seed": 2027, "Variant": "Original", "AUROC": 0.6924732405626892, "AUPRC": 0.27410627431161233, "Brier": 0.21788255689497585, "Delta_AUROC": 0.0, "Delta_AUPRC": 0.0, "Delta_Brier": 0.0, "Mean_abs_DeltaP": 0.0, "Median_abs_DeltaP": 0.0, "Correlation": 1.0, "Flip_Rate": 0.0}, {"Model": "mTAND", "Seed": 2027, "Variant": "Drop20", "AUROC": 0.6842053842813722, "AUPRC": 0.2612860340977529, "Brier": 0.21884210127889667, "Delta_AUROC": -0.008267856281316988, "Delta_AUPRC": -0.012820240213859413, "Delta_Brier": 0.0009595443839208184, "Mean_abs_DeltaP": 0.021774068269864395, "Median_abs_DeltaP": 0.0023651570081711093, "Correlation": 0.9439629461272038, "Flip_Rate": 0.03170359052711994}, {"Model": "mTAND", "Seed": 2027, "Variant": "Drop40", "AUROC": 0.674812184245532, "AUPRC": 0.2453590284556387, "Brier": 0.21839500657318545, "Delta_AUROC": -0.017661056317157198, "Delta_AUPRC": -0.02874724585597363, "Delta_Brier": 0.0005124496782095977, "Mean_abs_DeltaP": 0.04034332855909813, "Median_abs_DeltaP": 0.018443733453750583, "Correlation": 0.8783516890374664, "Flip_Rate": 0.0599694423223835}, {"Model": "mTAND", "Seed": 2027, "Variant": "Continuous5min", "AUROC": 0.6904758458601272, "AUPRC": 0.27734495219979355, "Brier": 0.21773799125654986, "Delta_AUROC": -0.0019973947025619943, "Delta_AUPRC": 0.0032386778881812184, "Delta_Brier": -0.0001445656384259919, "Mean_abs_DeltaP": 0.016514063316893268, "Median_abs_DeltaP": 0.0, "Correlation": 0.9496744915668868, "Flip_Rate": 0.01776165011459129}, {"Model": "mTAND", "Seed": 2028, "Variant": "Original", "AUROC": 0.6898808662269367, "AUPRC": 0.2702731648403333, "Brier": 0.20618404259377981, "Delta_AUROC": 0.0, "Delta_AUPRC": 0.0, "Delta_Brier": 0.0, "Mean_abs_DeltaP": 0.0, "Median_abs_DeltaP": 0.0, "Correlation": 1.0, "Flip_Rate": 0.0}, {"Model": "mTAND", "Seed": 2028, "Variant": "Drop20", "AUROC": 0.6840835625030154, "AUPRC": 0.26417111966244344, "Brier": 0.20589529073339538, "Delta_AUROC": -0.005797303723921288, "Delta_AUPRC": -0.00610204517788987, "Delta_Brier": -0.0002887518603844341, "Mean_abs_DeltaP": 0.014430555083125124, "Median_abs_DeltaP": 0.0027883946895599365, "Correlation": 0.9626134027623942, "Flip_Rate": 0.03991596638655462}, {"Model": "mTAND", "Seed": 2028, "Variant": "Drop40", "AUROC": 0.6806113833578011, "AUPRC": 0.252144210106011, "Brier": 0.20524119702573151, "Delta_AUROC": -0.009269482869135537, "Delta_AUPRC": -0.0181289547343223, "Delta_Brier": -0.0009428455680483006, "Mean_abs_DeltaP": 0.02677133860674134, "Median_abs_DeltaP": 0.01058608293533328, "Correlation": 0.9208307359938753, "Flip_Rate": 0.06741787624140565}, {"Model": "mTAND", "Seed": 2028, "Variant": "Continuous5min", "AUROC": 0.6897900598942717, "AUPRC": 0.2735059458761757, "Brier": 0.20495152841925626, "Delta_AUROC": -9.080633266500548e-05, "Delta_AUPRC": 0.0032327810358424025, "Delta_Brier": -0.0012325141745235524, "Mean_abs_DeltaP": 0.012040642348407697, "Median_abs_DeltaP": 6.572902202603426e-05, "Correlation": 0.9657088352144308, "Flip_Rate": 0.03189457601222307}, {"Model": "mTAND", "Seed": 2029, "Variant": "Original", "AUROC": 0.6942402594269724, "AUPRC": 0.2775374559297204, "Brier": 0.2311309992743573, "Delta_AUROC": 0.0, "Delta_AUPRC": 0.0, "Delta_Brier": 0.0, "Mean_abs_DeltaP": 0.0, "Median_abs_DeltaP": 0.0, "Correlation": 1.0, "Flip_Rate": 0.0}, {"Model": "mTAND", "Seed": 2029, "Variant": "Drop20", "AUROC": 0.6880294164271585, "AUPRC": 0.2667795712625444, "Brier": 0.23047960121594993, "Delta_AUROC": -0.0062108429998138925, "Delta_AUPRC": -0.010757884667175976, "Delta_Brier": -0.0006513980584073598, "Mean_abs_DeltaP": 0.020271433982642393, "Median_abs_DeltaP": 0.0021377950906753262, "Correlation": 0.9497836403943986, "Flip_Rate": 0.030175706646294882}, {"Model": "mTAND", "Seed": 2029, "Variant": "Drop40", "AUROC": 0.6799388651103806, "AUPRC": 0.24896828206341926, "Brier": 0.22894614251136888, "Delta_AUROC": -0.014301394316591831, "Delta_AUPRC": -0.028569173866301145, "Delta_Brier": -0.0021848567629884075, "Mean_abs_DeltaP": 0.03738272857458834, "Median_abs_DeltaP": 0.01619584858417511, "Correlation": 0.8952049191607434, "Flip_Rate": 0.057295645530939646}, {"Model": "mTAND", "Seed": 2029, "Variant": "Continuous5min", "AUROC": 0.695205356712087, "AUPRC": 0.28135989830920693, "Brier": 0.22943375640431912, "Delta_AUROC": 0.0009650972851146244, "Delta_AUPRC": 0.0038224423794865348, "Delta_Brier": -0.001697242870038168, "Mean_abs_DeltaP": 0.014819852666284767, "Median_abs_DeltaP": 5.960464477539063e-08, "Correlation": 0.9566533809124322, "Flip_Rate": 0.017188693659281894}, {"Model": "mTAND", "Seed": 2030, "Variant": "Original", "AUROC": 0.6946436325289994, "AUPRC": 0.27427238499181106, "Brier": 0.22119535410282068, "Delta_AUROC": 0.0, "Delta_AUPRC": 0.0, "Delta_Brier": 0.0, "Mean_abs_DeltaP": 0.0, "Median_abs_DeltaP": 0.0, "Correlation": 0.9999999999999998, "Flip_Rate": 0.0}, {"Model": "mTAND", "Seed": 2030, "Variant": "Drop20", "AUROC": 0.6879317177732289, "AUPRC": 0.2598491495256238, "Brier": 0.22166094650278992, "Delta_AUROC": -0.006711914755770487, "Delta_AUPRC": -0.014423235466187234, "Delta_Brier": 0.00046559239996923907, "Mean_abs_DeltaP": 0.021759917955302025, "Median_abs_DeltaP": 0.0022881627082824707, "Correlation": 0.946089004061282, "Flip_Rate": 0.033995416348357524}, {"Model": "mTAND", "Seed": 2030, "Variant": "Drop40", "AUROC": 0.6801051423608958, "AUPRC": 0.24799713317762495, "Brier": 0.2214298680756718, "Delta_AUROC": -0.014538490168103602, "Delta_AUPRC": -0.026275251814186107, "Delta_Brier": 0.00023451397285112474, "Mean_abs_DeltaP": 0.04000590745049455, "Median_abs_DeltaP": 0.017455831170082134, "Correlation": 0.8889452171025507, "Flip_Rate": 0.06283422459893048}, {"Model": "mTAND", "Seed": 2030, "Variant": "Continuous5min", "AUROC": 0.694194425490561, "AUPRC": 0.2796093808534055, "Brier": 0.22128334702592514, "Delta_AUROC": -0.00044920703843842613, "Delta_AUPRC": 0.005336995861594418, "Delta_Brier": 8.799292310446294e-05, "Mean_abs_DeltaP": 0.016466183612098943, "Median_abs_DeltaP": 0.0, "Correlation": 0.9535632975549397, "Flip_Rate": 0.022345301757066463}, {"Model": "Raindrop", "Seed": 2026, "Variant": "Original", "AUROC": 0.7116843799323174, "AUPRC": 0.2688030938084944, "Brier": 0.19292553982090768, "Delta_AUROC": 0.0, "Delta_AUPRC": 0.0, "Delta_Brier": 0.0, "Mean_abs_DeltaP": 0.0, "Median_abs_DeltaP": 0.0, "Correlation": 1.0, "Flip_Rate": 0.0}, {"Model": "Raindrop", "Seed": 2026, "Variant": "Drop20", "AUROC": 0.7039220754157793, "AUPRC": 0.2641783815136245, "Brier": 0.19016063438047354, "Delta_AUROC": -0.007762304516538032, "Delta_AUPRC": -0.0046247122948698816, "Delta_Brier": -0.0027649054404341455, "Mean_abs_DeltaP": 0.02813540025122572, "Median_abs_DeltaP": 0.0172613263130188, "Correlation": 0.9547669703449942, "Flip_Rate": 0.05213903743315508}, {"Model": "Raindrop", "Seed": 2026, "Variant": "Drop40", "AUROC": 0.6857935474088318, "AUPRC": 0.24444183545966475, "Brier": 0.1875182328933569, "Delta_AUROC": -0.025890832523485563, "Delta_AUPRC": -0.02436125834882963, "Delta_Brier": -0.005407306927550787, "Mean_abs_DeltaP": 0.04766977218963701, "Median_abs_DeltaP": 0.03151035308837888, "Correlation": 0.8854089322750928, "Flip_Rate": 0.09434682964094729}, {"Model": "Raindrop", "Seed": 2026, "Variant": "Continuous5min", "AUROC": 0.6932427682319128, "AUPRC": 0.27285501724223604, "Brier": 0.20268285089327231, "Delta_AUROC": -0.018441611700404592, "Delta_AUPRC": 0.0040519234337416665, "Delta_Brier": 0.009757311072364633, "Mean_abs_DeltaP": 0.04486631351040009, "Median_abs_DeltaP": 0.02999146282672885, "Correlation": 0.9003589540501961, "Flip_Rate": 0.06264323911382735}, {"Model": "Raindrop", "Seed": 2027, "Variant": "Original", "AUROC": 0.7124678645521024, "AUPRC": 0.2782819581526533, "Brier": 0.21513379411853864, "Delta_AUROC": 0.0, "Delta_AUPRC": 0.0, "Delta_Brier": 0.0, "Mean_abs_DeltaP": 0.0, "Median_abs_DeltaP": 0.0, "Correlation": 0.9999999999999998, "Flip_Rate": 0.0}, {"Model": "Raindrop", "Seed": 2027, "Variant": "Drop20", "AUROC": 0.7073406667631592, "AUPRC": 0.2688388853367884, "Brier": 0.20539736922901655, "Delta_AUROC": -0.005127197788943216, "Delta_AUPRC": -0.009443072815864872, "Delta_Brier": -0.009736424889522088, "Mean_abs_DeltaP": 0.028842791607582085, "Median_abs_DeltaP": 0.016656488180160522, "Correlation": 0.9600864717398211, "Flip_Rate": 0.05557677616501146}, {"Model": "Raindrop", "Seed": 2027, "Variant": "Drop40", "AUROC": 0.6925251052802073, "AUPRC": 0.2552606102132287, "Brier": 0.19582249065122165, "Delta_AUROC": -0.01994275927189515, "Delta_AUPRC": -0.023021347939424563, "Delta_Brier": -0.019311303467316993, "Mean_abs_DeltaP": 0.052409824294111396, "Median_abs_DeltaP": 0.03393365442752841, "Correlation": 0.8878309959196292, "Flip_Rate": 0.10962566844919786}, {"Model": "Raindrop", "Seed": 2027, "Variant": "Continuous5min", "AUROC": 0.6922675047729325, "AUPRC": 0.27555810293850835, "Brier": 0.22279519334579329, "Delta_AUROC": -0.020200359779169896, "Delta_AUPRC": -0.0027238552141449213, "Delta_Brier": 0.007661399227254645, "Mean_abs_DeltaP": 0.046817366944482255, "Median_abs_DeltaP": 0.03335109353065491, "Correlation": 0.8986331408299867, "Flip_Rate": 0.0748663101604278}, {"Model": "Raindrop", "Seed": 2028, "Variant": "Original", "AUROC": 0.6795585812845908, "AUPRC": 0.24943939568592635, "Brier": 0.21537816329279372, "Delta_AUROC": 0.0, "Delta_AUPRC": 0.0, "Delta_Brier": 0.0, "Mean_abs_DeltaP": 0.0, "Median_abs_DeltaP": 0.0, "Correlation": 1.0, "Flip_Rate": 0.0}, {"Model": "Raindrop", "Seed": 2028, "Variant": "Drop20", "AUROC": 0.6769491484537077, "AUPRC": 0.243182267675915, "Brier": 0.20987790445382432, "Delta_AUROC": -0.002609432830883107, "Delta_AUPRC": -0.0062571280100113535, "Delta_Brier": -0.005500258838969402, "Mean_abs_DeltaP": 0.022619670044952352, "Median_abs_DeltaP": 0.012496501207351712, "Correlation": 0.96814713305316, "Flip_Rate": 0.03666921313980138}, {"Model": "Raindrop", "Seed": 2028, "Variant": "Drop40", "AUROC": 0.6609648215922641, "AUPRC": 0.22837186027079445, "Brier": 0.20510870609948934, "Delta_AUROC": -0.018593759692326683, "Delta_AUPRC": -0.0210675354151319, "Delta_Brier": -0.010269457193304382, "Mean_abs_DeltaP": 0.04067838306960666, "Median_abs_DeltaP": 0.025439679622650146, "Correlation": 0.9141032639844506, "Flip_Rate": 0.07047364400305577}, {"Model": "Raindrop", "Seed": 2028, "Variant": "Continuous5min", "AUROC": 0.6583028348117362, "AUPRC": 0.25209391902648814, "Brier": 0.22436280779534187, "Delta_AUROC": -0.021255746472854553, "Delta_AUPRC": 0.002654523340561793, "Delta_Brier": 0.008984644502548156, "Mean_abs_DeltaP": 0.04646265268826685, "Median_abs_DeltaP": 0.033461362123489435, "Correlation": 0.882196289899727, "Flip_Rate": 0.047173414820473644}, {"Model": "Raindrop", "Seed": 2029, "Variant": "Original", "AUROC": 0.7123911874780308, "AUPRC": 0.28166783853373845, "Brier": 0.20289240626386248, "Delta_AUROC": 0.0, "Delta_AUPRC": 0.0, "Delta_Brier": 0.0, "Mean_abs_DeltaP": 0.0, "Median_abs_DeltaP": 0.0, "Correlation": 1.0, "Flip_Rate": 0.0}, {"Model": "Raindrop", "Seed": 2029, "Variant": "Drop20", "AUROC": 0.708135696021063, "AUPRC": 0.27213753886346637, "Brier": 0.19395810703637661, "Delta_AUROC": -0.004255491456967797, "Delta_AUPRC": -0.00953029967027208, "Delta_Brier": -0.00893429922748587, "Mean_abs_DeltaP": 0.028290235228990216, "Median_abs_DeltaP": 0.013839930295944214, "Correlation": 0.9553893874955499, "Flip_Rate": 0.05309396485867074}, {"Model": "Raindrop", "Seed": 2029, "Variant": "Drop40", "AUROC": 0.6906040430356539, "AUPRC": 0.2554701876187237, "Brier": 0.18511960143413267, "Delta_AUROC": -0.021787144442376838, "Delta_AUPRC": -0.026197650915014747, "Delta_Brier": -0.017772804829729816, "Mean_abs_DeltaP": 0.05000756375884354, "Median_abs_DeltaP": 0.029538795351982117, "Correlation": 0.8921457942167054, "Flip_Rate": 0.1033231474407945}, {"Model": "Raindrop", "Seed": 2029, "Variant": "Continuous5min", "AUROC": 0.6953271784904438, "AUPRC": 0.27668908312568413, "Brier": 0.20588632510842095, "Delta_AUROC": -0.017064008987586976, "Delta_AUPRC": -0.004978755408054314, "Delta_Brier": 0.002993918844558463, "Mean_abs_DeltaP": 0.041888860904528404, "Median_abs_DeltaP": 0.02582572400569913, "Correlation": 0.9093861956364219, "Flip_Rate": 0.06818181818181818}, {"Model": "Raindrop", "Seed": 2030, "Variant": "Original", "AUROC": 0.7103658788743461, "AUPRC": 0.2677351162475722, "Brier": 0.20362648564547497, "Delta_AUROC": 0.0, "Delta_AUPRC": 0.0, "Delta_Brier": 0.0, "Mean_abs_DeltaP": 0.0, "Median_abs_DeltaP": 0.0, "Correlation": 1.0, "Flip_Rate": 0.0}, {"Model": "Raindrop", "Seed": 2030, "Variant": "Drop20", "AUROC": 0.7036084747982272, "AUPRC": 0.2555039720556861, "Brier": 0.19388811879176243, "Delta_AUROC": -0.006757404076118911, "Delta_AUPRC": -0.01223114419188609, "Delta_Brier": -0.009738366853712543, "Mean_abs_DeltaP": 0.027210341224331632, "Median_abs_DeltaP": 0.015253722667694092, "Correlation": 0.9624396808422843, "Flip_Rate": 0.05443086325439267}, {"Model": "Raindrop", "Seed": 2030, "Variant": "Drop40", "AUROC": 0.6850703706001144, "AUPRC": 0.24312415996181477, "Brier": 0.1852523131454909, "Delta_AUROC": -0.02529550827423166, "Delta_AUPRC": -0.024610956285757407, "Delta_Brier": -0.018374172499984076, "Mean_abs_DeltaP": 0.04891742000639484, "Median_abs_DeltaP": 0.029836818575859042, "Correlation": 0.8973503159306888, "Flip_Rate": 0.10943468296409473}, {"Model": "Raindrop", "Seed": 2030, "Variant": "Continuous5min", "AUROC": 0.6873467320058723, "AUPRC": 0.26614803249945695, "Brier": 0.2066328335160271, "Delta_AUROC": -0.02301914686847384, "Delta_AUPRC": -0.0015870837481152256, "Delta_Brier": 0.003006347870552123, "Mean_abs_DeltaP": 0.041367869807095635, "Median_abs_DeltaP": 0.027836814522743225, "Correlation": 0.9091917975453795, "Flip_Rate": 0.07811306340718105}], "budget": [{"Model": "FF-LSTM", "Seed": 2026, "epochs_run": 23, "best_epoch": 17, "max_epochs": 30, "stopped_at_cap": false}, {"Model": "GRU-D", "Seed": 2026, "epochs_run": 23, "best_epoch": 17, "max_epochs": 30, "stopped_at_cap": false}, {"Model": "FF-LSTM", "Seed": 2027, "epochs_run": 24, "best_epoch": 18, "max_epochs": 30, "stopped_at_cap": false}, {"Model": "GRU-D", "Seed": 2027, "epochs_run": 26, "best_epoch": 20, "max_epochs": 30, "stopped_at_cap": false}, {"Model": "FF-LSTM", "Seed": 2028, "epochs_run": 27, "best_epoch": 21, "max_epochs": 30, "stopped_at_cap": false}, {"Model": "GRU-D", "Seed": 2028, "epochs_run": 22, "best_epoch": 16, "max_epochs": 30, "stopped_at_cap": false}, {"Model": "FF-LSTM", "Seed": 2029, "epochs_run": 19, "best_epoch": 13, "max_epochs": 30, "stopped_at_cap": false}, {"Model": "GRU-D", "Seed": 2029, "epochs_run": 21, "best_epoch": 15, "max_epochs": 30, "stopped_at_cap": false}, {"Model": "FF-LSTM", "Seed": 2030, "epochs_run": 20, "best_epoch": 14, "max_epochs": 30, "stopped_at_cap": false}, {"Model": "GRU-D", "Seed": 2030, "epochs_run": 24, "best_epoch": 18, "max_epochs": 30, "stopped_at_cap": false}, {"Model": "BRITS", "Seed": 2026, "epochs_run": 23, "best_epoch": 17, "max_epochs": 30, "stopped_at_cap": false}, {"Model": "BRITS", "Seed": 2027, "epochs_run": 15, "best_epoch": 9, "max_epochs": 30, "stopped_at_cap": false}, {"Model": "BRITS", "Seed": 2028, "epochs_run": 22, "best_epoch": 16, "max_epochs": 30, "stopped_at_cap": false}, {"Model": "BRITS", "Seed": 2029, "epochs_run": 18, "best_epoch": 12, "max_epochs": 30, "stopped_at_cap": false}, {"Model": "BRITS", "Seed": 2030, "epochs_run": 14, "best_epoch": 8, "max_epochs": 30, "stopped_at_cap": false}, {"Model": "mTAND", "Seed": 2026, "epochs_run": 9, "best_epoch": 3, "max_epochs": 30, "stopped_at_cap": false}, {"Model": "mTAND", "Seed": 2027, "epochs_run": 24, "best_epoch": 18, "max_epochs": 30, "stopped_at_cap": false}, {"Model": "mTAND", "Seed": 2028, "epochs_run": 9, "best_epoch": 3, "max_epochs": 30, "stopped_at_cap": false}, {"Model": "mTAND", "Seed": 2029, "epochs_run": 16, "best_epoch": 10, "max_epochs": 30, "stopped_at_cap": false}, {"Model": "mTAND", "Seed": 2030, "epochs_run": 23, "best_epoch": 17, "max_epochs": 30, "stopped_at_cap": false}, {"Model": "Raindrop", "Seed": 2026, "epochs_run": 29, "best_epoch": 23, "max_epochs": 30, "stopped_at_cap": false}, {"Model": "Raindrop", "Seed": 2027, "epochs_run": 27, "best_epoch": 21, "max_epochs": 30, "stopped_at_cap": false}, {"Model": "Raindrop", "Seed": 2028, "epochs_run": 30, "best_epoch": 30, "max_epochs": 30, "stopped_at_cap": true}, {"Model": "Raindrop", "Seed": 2029, "epochs_run": 29, "best_epoch": 23, "max_epochs": 30, "stopped_at_cap": false}, {"Model": "Raindrop", "Seed": 2030, "epochs_run": 21, "best_epoch": 15, "max_epochs": 30, "stopped_at_cap": false}], "condition": {"GRU-D": {"Drop20": {"stronger_original_both_metrics": 5, "larger_degradation_both_metrics": 5, "combined_condition": 5, "per_seed": {"2026": true, "2027": true, "2028": true, "2029": true, "2030": true}}, "Drop40": {"stronger_original_both_metrics": 5, "larger_degradation_both_metrics": 5, "combined_condition": 5, "per_seed": {"2026": true, "2027": true, "2028": true, "2029": true, "2030": true}}, "Continuous5min": {"stronger_original_both_metrics": 5, "larger_degradation_both_metrics": 4, "combined_condition": 4, "per_seed": {"2026": true, "2027": false, "2028": true, "2029": true, "2030": true}}}, "BRITS": {"Drop20": {"stronger_original_both_metrics": 5, "larger_degradation_both_metrics": 5, "combined_condition": 5, "per_seed": {"2026": true, "2027": true, "2028": true, "2029": true, "2030": true}}, "Drop40": {"stronger_original_both_metrics": 5, "larger_degradation_both_metrics": 4, "combined_condition": 4, "per_seed": {"2026": true, "2027": false, "2028": true, "2029": true, "2030": true}}, "Continuous5min": {"stronger_original_both_metrics": 5, "larger_degradation_both_metrics": 5, "combined_condition": 5, "per_seed": {"2026": true, "2027": true, "2028": true, "2029": true, "2030": true}}}, "mTAND": {"Drop20": {"stronger_original_both_metrics": 0, "larger_degradation_both_metrics": 2, "combined_condition": 0, "per_seed": {"2026": false, "2027": false, "2028": false, "2029": false, "2030": false}}, "Drop40": {"stronger_original_both_metrics": 0, "larger_degradation_both_metrics": 0, "combined_condition": 0, "per_seed": {"2026": false, "2027": false, "2028": false, "2029": false, "2030": false}}, "Continuous5min": {"stronger_original_both_metrics": 0, "larger_degradation_both_metrics": 0, "combined_condition": 0, "per_seed": {"2026": false, "2027": false, "2028": false, "2029": false, "2030": false}}}, "Raindrop": {"Drop20": {"stronger_original_both_metrics": 1, "larger_degradation_both_metrics": 0, "combined_condition": 0, "per_seed": {"2026": false, "2027": false, "2028": false, "2029": false, "2030": false}}, "Drop40": {"stronger_original_both_metrics": 1, "larger_degradation_both_metrics": 3, "combined_condition": 1, "per_seed": {"2026": false, "2027": false, "2028": false, "2029": true, "2030": false}}, "Continuous5min": {"stronger_original_both_metrics": 1, "larger_degradation_both_metrics": 0, "combined_condition": 0, "per_seed": {"2026": false, "2027": false, "2028": false, "2029": false, "2030": false}}}}, "prev": 0.12032085561497326, "ppr": {"BRITS": {"2026": {"original": 0.2614591291061879, "drop20": 0.3048128342245989, "drop40": 0.34014514896867837, "continuous5min": 0.26986249045072574}, "2027": {"original": 0.18659281894576013, "drop20": 0.19938884644766997, "drop40": 0.2026355996944232, "continuous5min": 0.18792971734148206}, "2028": {"original": 0.22555385790679908, "drop20": 0.239877769289534, "drop40": 0.24579831932773108, "continuous5min": 0.21428571428571427}, "2029": {"original": 0.2362490450725745, "drop20": 0.2614591291061879, "drop40": 0.2761650114591291, "continuous5min": 0.24598930481283424}, "2030": {"original": 0.1567990832696715, "drop20": 0.1697860962566845, "drop40": 0.16997708174178763, "continuous5min": 0.16080977845683728}}, "mTAND": {"2026": {"original": 0.23128342245989306, "drop20": 0.22116119174942706, "drop40": 0.20683728036669213, "continuous5min": 0.21753246753246752}, "2027": {"original": 0.15660809778456838, "drop20": 0.1508785332314744, "drop40": 0.14056531703590527, "continuous5min": 0.14954163483575247}, "2028": {"original": 0.27234530175706645, "drop20": 0.264514896867838, "drop40": 0.25038197097020626, "continuous5min": 0.26031321619556913}, "2029": {"original": 0.1776165011459129, "drop20": 0.17074102368220015, "drop40": 0.1627196333078686, "continuous5min": 0.16883116883116883}, "2030": {"original": 0.20397249809014514, "drop20": 0.19633307868601987, "drop40": 0.19194041252864782, "continuous5min": 0.19728800611153552}}, "Raindrop": {"2026": {"original": 0.19155844155844157, "drop20": 0.16730328495034377, "drop40": 0.14037433155080214, "continuous5min": 0.19919786096256684}, "2027": {"original": 0.2274637127578304, "drop20": 0.19098548510313215, "drop40": 0.14381207028265852, "continuous5min": 0.23242933537051183}, "2028": {"original": 0.13980137509549273, "drop20": 0.10886172650878534, "drop40": 0.07314744079449961, "continuous5min": 0.13731856378915203}, "2029": {"original": 0.21906035141329258, "drop20": 0.18315508021390375, "drop40": 0.14209320091673033, "continuous5min": 0.20741023682200152}, "2030": {"original": 0.2809396485867074, "drop20": 0.23911382734912145, "drop40": 0.19442322383498853, "continuous5min": 0.2799847211611918}}}, "checks": {"passed": 15, "total": 15}, "export": {"n_runs": 15, "max_abs_diff": 5.551115123125783e-17, "mrn_split_overlap": {"train_val": 0, "train_test": 0, "val_test": 0}, "their_sha": "2671028bf810a020daa9a2d2bda66cc7eb9efa6b8234e1883118f594461ef830"}};
+</script>
+<script>
+'use strict';
+const SVGNS = 'http://www.w3.org/2000/svg';
+const MINUS = '−';
+const FONT = 'system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
+const MODELS = DATA.models;
+const SEEDS = DATA.seeds;
+const PERT = ['Drop20', 'Drop40', 'Continuous5min'];
+const VNAME = { Original: 'Original', Drop20: 'drop20（随机删 20%）', Drop40: 'drop40（随机删 40%）', Continuous5min: 'continuous5min（删连续 5 分钟）' };
+const COLOR = { 'FF-LSTM': '--s6', 'GRU-D': '--s5', BRITS: '--s1', mTAND: '--s2', Raindrop: '--s3', 'OPL-MT-MNAR': '--s4' };
+const OWNER = { 'FF-LSTM': '梁睿颖', 'GRU-D': '梁睿颖', 'OPL-MT-MNAR': '梁睿颖', BRITS: '王一鸣', mTAND: '王一鸣', Raindrop: '王一鸣' };
+
+const mean = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+const sd = (a) => { const m = mean(a); return Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / (a.length - 1)); };
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const col = (m) => css(COLOR[m]);
+const row = (m, s, v) => DATA.rows.find((r) => r.Model === m && r.Seed === s && r.Variant === v);
+const vals = (m, v, k) => SEEDS.map((s) => row(m, s, v)[k]);
+
+function S(tag, attrs, parent) {
+  const e = document.createElementNS(SVGNS, tag);
+  if (attrs) for (const k in attrs) if (attrs[k] !== undefined && attrs[k] !== null) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function T(parent, x, y, text, attrs) { const t = S('text', Object.assign({ x, y }, attrs || {}), parent); t.textContent = text; return t; }
+function H(tag, cls, parent, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined && text !== null) e.textContent = text;
+  if (parent) parent.appendChild(e);
+  return e;
+}
+const measure = (() => { const ctx = document.createElement('canvas').getContext('2d'); return (t, size = 12, w = 400) => { ctx.font = `${w} ${size}px ${FONT}`; return ctx.measureText(String(t)).width; }; })();
+function f(v, d = 3) { if (v === null || v === undefined || Number.isNaN(v)) return '—'; const s = Math.abs(v).toFixed(d); return (v < 0 && Number(s) !== 0 ? MINUS : '') + s; }
+function fs(v, d = 3) {
+  if (v === null || v === undefined || Number.isNaN(v)) return '—';
+  let s = Math.abs(v).toFixed(d);
+  while (Number(s) === 0 && v !== 0 && d < 6) s = Math.abs(v).toFixed(++d);
+  return (Number(s) === 0 ? '±' : v < 0 ? MINUS : '+') + s;
+}
+function pct(v, d = 1) { return (v * 100).toFixed(d) + '%'; }
+function fmtInt(v) { return Number(v).toLocaleString('en-US'); }
+
+function niceStep(range, count) { const raw = Math.abs(range) / Math.max(1, count) || 1; const p = 10 ** Math.floor(Math.log10(raw)); const m = raw / p; return (m >= 7.5 ? 10 : m >= 3.5 ? 5 : m >= 1.5 ? 2 : 1) * p; }
+function niceDomain(lo, hi, count = 5) { if (lo === hi) { lo -= 1; hi += 1; } const st = niceStep(hi - lo, count); return [Math.floor(lo / st + 1e-9) * st, Math.ceil(hi / st - 1e-9) * st]; }
+function ticks(lo, hi, count = 5) { const st = niceStep(hi - lo, count); const out = []; for (let v = Math.ceil(lo / st - 1e-9) * st; v <= hi + st * 1e-6; v += st) out.push(+v.toFixed(12)); return { values: out, step: st }; }
+const decimalsFor = (st) => Math.max(0, Math.ceil(-Math.log10(st) - 1e-9));
+function lin(d0, d1, r0, r1) { const k = (r1 - r0) / ((d1 - d0) || 1); return (v) => r0 + (v - d0) * k; }
+
+const TT = (() => {
+  let box = null;
+  const ensure = () => { if (!box) { box = H('div', null, document.body); box.id = 'tt'; box.setAttribute('role', 'tooltip'); } return box; };
+  function fill(spec) {
+    const b = ensure(); b.textContent = '';
+    if (spec.title) H('div', 'tt-title', b, spec.title);
+    (spec.rows || []).forEach(([k, v]) => { const r = H('div', 'tt-row', b); H('span', 'tt-lab', r, k); H('span', 'tt-val', r, v); });
+    if (spec.note) H('div', 'tt-note', b, spec.note);
+  }
+  function place(x, y) { const b = ensure(); const w = b.offsetWidth, h = b.offsetHeight; let L = x + 14, Tp = y + 14; if (L + w > innerWidth - 8) L = x - w - 14; if (Tp + h > innerHeight - 8) Tp = y - h - 14; b.style.left = Math.max(8, L) + 'px'; b.style.top = Math.max(8, Tp) + 'px'; }
+  return {
+    bind(el, spec) {
+      el.setAttribute('tabindex', '0');
+      el.setAttribute('aria-label', [spec.title, ...(spec.rows || []).map((r) => r.join(' '))].join('；'));
+      el.addEventListener('mouseenter', (e) => { fill(spec); ensure().style.display = 'block'; place(e.clientX, e.clientY); });
+      el.addEventListener('mousemove', (e) => place(e.clientX, e.clientY));
+      el.addEventListener('mouseleave', () => { ensure().style.display = 'none'; });
+      el.addEventListener('focus', () => { fill(spec); ensure().style.display = 'block'; const r = el.getBoundingClientRect(); place(r.left + r.width / 2, r.top + r.height / 2); });
+      el.addEventListener('blur', () => { ensure().style.display = 'none'; });
+    },
+  };
+})();
+
+function xAxis(g, x, dom, y0, y1, opts = {}) {
+  const tk = ticks(dom[0], dom[1], opts.count || 5);
+  const d = opts.dec !== undefined ? opts.dec : decimalsFor(tk.step);
+  tk.values.forEach((v) => {
+    S('line', { x1: x(v), x2: x(v), y1: y0, y2: y1, stroke: css('--grid'), 'stroke-width': 1 }, g);
+    T(g, x(v), y1 + 15, opts.fmt ? opts.fmt(v) : f(v, d), { 'text-anchor': 'middle', 'font-size': 11, fill: css('--muted') });
+  });
+  if (opts.title) T(g, (x(dom[0]) + x(dom[1])) / 2, y1 + 32, opts.title, { 'text-anchor': 'middle', 'font-size': 11.5, fill: css('--ink-2') });
+}
+function newSvg(el, W, H0) { el.textContent = ''; return S('svg', { width: W, height: H0, viewBox: `0 0 ${W} ${H0}`, role: 'img' }, el); }
+function layoutRows(rows, top, rowH = 22, hdrH = 26) {
+  let y = top, last = null; const hdrs = [];
+  rows.forEach((r) => {
+    if (r.group !== undefined && r.group !== last) { hdrs.push({ text: r.group, y: y + 16 }); y += hdrH; last = r.group; }
+    r._y = y + rowH / 2; y += rowH;
+  });
+  return { hdrs, bottom: y };
+}
+function drawFrame(svg, rows, W, opts) {
+  const fsz = 12;
+  const labW = Math.min(W * 0.4, Math.max(60, ...rows.map((r) => measure(r.label, fsz))) + 12);
+  const L = labW + 10, R = W - 16 - (opts.rightPad || 0);
+  const lay = layoutRows(rows, 4);
+  const x = lin(opts.dom[0], opts.dom[1], L, R);
+  const g = S('g', null, svg);
+  xAxis(g, x, opts.dom, 4, lay.bottom + 4, { title: opts.xTitle, fmt: opts.tickFmt, count: opts.count || (W < 520 ? 4 : 6) });
+  lay.hdrs.forEach((h) => T(g, 2, h.y, h.text, { 'font-size': 12.5, 'font-weight': 650, fill: css('--ink') }));
+  rows.forEach((r) => T(g, labW, r._y + 4, r.label, { 'text-anchor': 'end', 'font-size': fsz, fill: css('--ink-2') }));
+  (opts.refs || []).forEach((rf) => {
+    if (rf.v < opts.dom[0] || rf.v > opts.dom[1]) return;
+    S('line', { x1: x(rf.v), x2: x(rf.v), y1: 4, y2: lay.bottom + 4, stroke: css('--axis'), 'stroke-width': 1.5, 'stroke-dasharray': '4 3' }, g);
+    if (rf.label) T(g, x(rf.v) + 4, 14, rf.label, { 'font-size': 11, fill: css('--muted') });
+  });
+  return { g, x, L, R, bottom: lay.bottom };
+}
+function setHeight(svg, h) { svg.setAttribute('height', h); const vb = svg.getAttribute('viewBox').split(' '); vb[3] = h; svg.setAttribute('viewBox', vb.join(' ')); }
+
+/* 每行 5 个 seed 点 + 均值竖线（可选行尾文字） */
+function drawStrip(el, spec, W) {
+  const svg = newSvg(el, W, 100);
+  const all = spec.rows.flatMap((r) => r.pts.map((p) => p.v)).concat((spec.refs || []).map((r) => r.v));
+  const dom = spec.dom || niceDomain(Math.min(...all, spec.zero ? 0 : Infinity), Math.max(...all, spec.zero ? 0 : -Infinity), 5);
+  const rightPad = spec.rows.some((r) => r.tail) ? 34 : 0;
+  const fr = drawFrame(svg, spec.rows, W, { dom, refs: spec.refs, xTitle: spec.xTitle, tickFmt: spec.tickFmt, rightPad });
+  spec.rows.forEach((r) => {
+    const c = col(r.model), vs = r.pts.map((p) => p.v), m = mean(vs);
+    S('line', { x1: fr.x(Math.min(...vs)), x2: fr.x(Math.max(...vs)), y1: r._y, y2: r._y, stroke: c, 'stroke-width': 1.5, opacity: 0.45 }, fr.g);
+    r.pts.forEach((p) => S('circle', { cx: fr.x(p.v), cy: r._y, r: 3.6, fill: c, opacity: 0.85 }, fr.g));
+    S('line', { x1: fr.x(m), x2: fr.x(m), y1: r._y - 8, y2: r._y + 8, stroke: css('--ink'), 'stroke-width': 2 }, fr.g);
+    if (r.tail) T(fr.g, W - 4, r._y + 4, r.tail, { 'text-anchor': 'end', 'font-size': 11.5, 'font-weight': 650, fill: css('--ink-2') });
+    const hit = S('rect', { class: 'hit', x: fr.L - 4, y: r._y - 11, width: fr.R - fr.L + 8, height: 22 }, fr.g);
+    TT.bind(hit, r.tip);
+  });
+  setHeight(svg, fr.bottom + 44);
+}
+
+/* 训练预算：横条 = 实际 epoch，圆点 = 最佳 epoch */
+function drawBudget(el, W) {
+  const svg = newSvg(el, W, 100);
+  const rows = MODELS.flatMap((m) => SEEDS.map((s) => { const b = DATA.budget.find((r) => r.Model === m && r.Seed === s); return { group: m, model: m, label: `seed ${s}`, b }; }));
+  const fr = drawFrame(svg, rows, W, { dom: [0, 30], refs: [{ v: 30, label: '上限 30' }], xTitle: 'epoch', count: 6 });
+  rows.forEach((r) => {
+    const c = col(r.model), b = r.b;
+    S('rect', { x: fr.x(0), y: r._y - 4, width: fr.x(b.epochs_run) - fr.x(0), height: 8, rx: 3, fill: c, opacity: 0.28 }, fr.g);
+    S('circle', { cx: fr.x(b.best_epoch), cy: r._y, r: 4.6, fill: c }, fr.g);
+    if (b.stopped_at_cap) S('circle', { cx: fr.x(b.epochs_run), cy: r._y, r: 8, fill: 'none', stroke: css('--critical'), 'stroke-width': 2 }, fr.g);
+    const hit = S('rect', { class: 'hit', x: fr.L - 4, y: r._y - 11, width: fr.R - fr.L + 8, height: 22 }, fr.g);
+    TT.bind(hit, { title: `${r.model} · ${r.label}`, rows: [['实际训练', `${b.epochs_run} epoch`], ['最佳 epoch', String(b.best_epoch)], ['停止原因', b.stopped_at_cap ? '到上限（30）' : '早停（patience 6）']] });
+  });
+  setHeight(svg, fr.bottom + 44);
+}
+
+/* 再校准示意：左轴原始概率，右轴校准后概率，连线不交叉 = 排序不变 */
+function drawPlatt(el, W) {
+  const Hh = 230, svg = newSvg(el, W, Hh);
+  const L = 70, R = W - 70, Tp = 24, B = Hh - 34;
+  const y = lin(0, 1, B, Tp);
+  const ps = [0.08, 0.2, 0.31, 0.45, 0.58, 0.72, 0.86];
+  const platt = (p) => 1 / (1 + Math.exp(-(1.25 * Math.log(p / (1 - p)) - 2.0)));
+  [[L, '原始概率（加权训练）'], [R, '校准后概率']].forEach(([x, t]) => {
+    S('line', { x1: x, x2: x, y1: Tp, y2: B, stroke: css('--axis'), 'stroke-width': 2 }, svg);
+    T(svg, x, B + 22, t, { 'text-anchor': 'middle', 'font-size': 12, fill: css('--ink-2') });
+    [0, 0.5, 1].forEach((v) => T(svg, x + (x === L ? -8 : 8), y(v) + 4, v.toFixed(1), { 'text-anchor': x === L ? 'end' : 'start', 'font-size': 11, fill: css('--muted') }));
+  });
+  const thr = 0.45;
+  ps.forEach((p) => {
+    const q = platt(p), pos = p >= thr;
+    const c = pos ? css('--critical') : css('--s1');
+    S('line', { x1: L, x2: R, y1: y(p), y2: y(q), stroke: c, 'stroke-width': 1.6, opacity: 0.6 }, svg);
+    S('circle', { cx: L, cy: y(p), r: 5, fill: c }, svg);
+    S('circle', { cx: R, cy: y(q), r: 5, fill: c }, svg);
+  });
+  S('line', { x1: L - 26, x2: L + 26, y1: y(thr), y2: y(thr), stroke: css('--ink'), 'stroke-width': 1.5, 'stroke-dasharray': '4 3' }, svg);
+  T(svg, L + 30, y(thr) - 5, '阈值', { 'font-size': 11, fill: css('--ink-2') });
+  S('line', { x1: R - 26, x2: R + 26, y1: y(platt(thr)), y2: y(platt(thr)), stroke: css('--ink'), 'stroke-width': 1.5, 'stroke-dasharray': '4 3' }, svg);
+  T(svg, R - 30, y(platt(thr)) - 5, '重选的阈值', { 'text-anchor': 'end', 'font-size': 11, fill: css('--ink-2') });
+  T(svg, W / 2, 14, '连线互不交叉：谁高谁低不变，阈值两侧的人也不变', { 'text-anchor': 'middle', 'font-size': 12, 'font-weight': 600, fill: css('--ink') });
+}
+
+const FIGS = [];
+function register(id, draw) {
+  const el = document.getElementById(id);
+  const item = { el, draw, w: 0 };
+  FIGS.push(item);
+  new ResizeObserver(() => requestAnimationFrame(() => { const w = Math.floor(el.clientWidth); if (w && w !== item.w) { item.w = w; draw(el, w); } })).observe(el);
+  return item;
+}
+function redraw(item) { const w = Math.floor(item.el.clientWidth); if (w) { item.w = w; item.draw(item.el, w); } }
+function redrawAll() { FIGS.forEach(redraw); }
+function buildTable(host, head, rows, numCols = []) {
+  host.textContent = '';
+  const t = H('table', 'data', host);
+  const tr = H('tr', null, H('thead', null, t));
+  head.forEach((h, i) => H('th', numCols.includes(i) ? 'num' : null, tr, h));
+  const tb = H('tbody', null, t);
+  rows.forEach((r) => {
+    if (r.group) { const g = H('tr', 'grp', tb); const td = H('td', null, g, r.group); td.colSpan = head.length; return; }
+    const tr2 = H('tr', null, tb);
+    r.forEach((c, i) => {
+      const td = H('td', numCols.includes(i) ? 'num' : null, tr2);
+      if (c && typeof c === 'object' && c.model) { td.style.whiteSpace = 'nowrap'; const d = H('span', 'mdot', td); d.dataset.model = c.model; d.style.background = col(c.model); td.appendChild(document.createTextNode(c.text)); }
+      else td.textContent = c;
+    });
+  });
+  return t;
+}
+function legend(id, items) {
+  const host = document.getElementById(id); host.textContent = '';
+  items.forEach((it) => {
+    const li = H('span', 'li', host);
+    const sw = H('span', 'sw ' + (it.cls || ''), li); if (it.color) sw.style.background = it.color;
+    li.appendChild(document.createTextNode(it.text));
+  });
+}
+const mLegend = (ms, extra = []) => [...ms.map((m) => ({ color: col(m), text: m })), ...extra];
+const MEANTICK = { cls: 'tick', text: '5 seed 均值' };
+const STATE = { origMetric: 'AUPRC', deltaMetric: 'Delta_AUPRC', driftMetric: 'Mean_abs_DeltaP', pairMetric: 'Delta_AUPRC', pprVar: 'drop40' };
+const OURS = ['BRITS', 'mTAND', 'Raindrop'];
+const OTHERS = MODELS.filter((m) => m !== 'FF-LSTM');
+
+/* ---------- 顶部：日期、进度卡、对齐表中的数字 ---------- */
+document.getElementById('dateText').textContent = DATA.date;
+(function status() {
+  const host = document.getElementById('status');
+  [...MODELS, 'OPL-MT-MNAR'].forEach((m) => {
+    const done = MODELS.includes(m) ? SEEDS.length : 0;
+    const c = H('div', 'mcard', host); c.style.setProperty('--c', `var(${COLOR[m]})`);
+    H('div', 'mname', c, m); H('div', 'owner', c, OWNER[m]);
+    const pips = H('div', 'pips', c); for (let i = 0; i < 5; i++) H('span', 'pip' + (i < done ? ' on' : ''), pips);
+    H('div', 'st', c, done ? `5 seed 完成` : '还没有结果');
+  });
+})();
+document.getElementById('maxDiffText').textContent = `${DATA.export.n_runs} 个 run 的最大差 ${DATA.export.max_abs_diff.toExponential(0)}`;
+document.getElementById('overlapText').textContent = Object.values(DATA.export.mrn_split_overlap).every((v) => v === 0) ? '为 0' : JSON.stringify(DATA.export.mrn_split_overlap);
+document.getElementById('checksText').textContent = `${DATA.checks.passed} / ${DATA.checks.total} 个 run 全部通过（含 10-22 新跑的 6 个）`;
+document.getElementById('briefBase').textContent = `${f(DATA.prev * (1 - DATA.prev), 3)}`;
+document.getElementById('lstmCheck').textContent = f(row('FF-LSTM', 2026, 'Original').AUPRC, 4);
+document.getElementById('srcSha').textContent = DATA.export.their_sha.slice(0, 12) + '…';
+
+/* ---------- 图：原始区分度 ---------- */
+register('figOrig', (el, W) => {
+  const k = STATE.origMetric;
+  drawStrip(el, { rows: MODELS.map((m) => { const v = vals(m, 'Original', k); return { model: m, label: m, pts: v.map((x, i) => ({ v: x, s: SEEDS[i] })), tip: { title: `${m} · Original ${k}`, rows: [...SEEDS.map((s, i) => [`seed ${s}`, f(v[i])]), ['均值 ± SD', `${f(mean(v))} ± ${f(sd(v))}`]] } }; }), xTitle: k }, W);
+});
+/* ---------- 图：Δ ---------- */
+register('figDelta', (el, W) => {
+  const k = STATE.deltaMetric, name = k === 'Delta_AUPRC' ? 'ΔAUPRC' : 'ΔAUROC';
+  drawStrip(el, { zero: true, refs: [{ v: 0 }], xTitle: name, rows: PERT.flatMap((v) => MODELS.map((m) => { const x = vals(m, v, k); return { group: VNAME[v], model: m, label: m, pts: x.map((y) => ({ v: y })), tip: { title: `${m} · ${VNAME[v]}`, rows: [...SEEDS.map((s, i) => [`seed ${s}`, fs(x[i])]), ['均值 ± SD', `${fs(mean(x))} ± ${f(sd(x))}`]] } }; })) }, W);
+});
+/* ---------- 图：漂移 ---------- */
+register('figDrift', (el, W) => {
+  const k = STATE.driftMetric, isF = k === 'Flip_Rate', fmt = isF ? (v) => pct(v) : (v) => f(v);
+  drawStrip(el, { zero: true, xTitle: isF ? 'Flip Rate' : 'Mean |Δp|', tickFmt: isF ? (v) => (v * 100).toFixed(0) + '%' : undefined, rows: PERT.flatMap((v) => MODELS.map((m) => { const x = vals(m, v, k); return { group: VNAME[v], model: m, label: m, pts: x.map((y) => ({ v: y })), tip: { title: `${m} · ${VNAME[v]}`, rows: [...SEEDS.map((s, i) => [`seed ${s}`, fmt(x[i])]), ['均值 ± SD', `${fmt(mean(x))} ± ${fmt(sd(x))}`]] } }; })) }, W);
+});
+/* ---------- 图：配对差值 ---------- */
+const pairDiffs = (m, v, k) => SEEDS.map((s) => row(m, s, v)[k] - row('FF-LSTM', s, v)[k]);
+register('figPaired', (el, W) => {
+  const k = STATE.pairMetric, name = k === 'Delta_AUPRC' ? 'ΔAUPRC 的差（模型 − FF-LSTM）' : 'ΔAUROC 的差（模型 − FF-LSTM）';
+  drawStrip(el, { zero: true, refs: [{ v: 0 }], xTitle: name, rows: PERT.flatMap((v) => OTHERS.map((m) => { const d = pairDiffs(m, v, k), n = d.filter((x) => x < 0).length; return { group: VNAME[v], model: m, label: m, tail: `${n}/5`, pts: d.map((y) => ({ v: y })), tip: { title: `${m} − FF-LSTM · ${VNAME[v]}`, rows: [...SEEDS.map((s, i) => [`seed ${s}`, fs(d[i])]), ['均值 ± SD', `${fs(mean(d))} ± ${f(sd(d))}`], ['差值 < 0 的 seed', `${n} / 5`]] } }; })) }, W);
+});
+/* ---------- 图：Brier ---------- */
+register('figBrier', (el, W) => {
+  const base = DATA.prev * (1 - DATA.prev);
+  drawStrip(el, { refs: [{ v: base, label: '一律报患病率' }], dom: [0.08, niceDomain(0.08, Math.max(...MODELS.flatMap((m) => vals(m, 'Original', 'Brier'))), 4)[1]], xTitle: 'Brier（原始测试集）', rows: MODELS.map((m) => { const v = vals(m, 'Original', 'Brier'); return { model: m, label: m, pts: v.map((x) => ({ v: x })), tip: { title: `${m} · Original Brier`, rows: [...SEEDS.map((s, i) => [`seed ${s}`, f(v[i])]), ['均值 ± SD', `${f(mean(v))} ± ${f(sd(v))}`], ['一律报患病率', f(base)]] } }; }) }, W);
+});
+register('figPlatt', drawPlatt);
+register('figBudget', drawBudget);
+/* ---------- 图：阳性预测率变化（只有我的三个模型） ---------- */
+const pprChange = (m, s, v) => (DATA.ppr[m][s][v] - DATA.ppr[m][s].original) * 100;
+register('figPpr', (el, W) => {
+  const v = STATE.pprVar;
+  drawStrip(el, { zero: true, refs: [{ v: 0 }], xTitle: '阳性预测率变化（百分点）', tickFmt: (x) => fs(x, 0), rows: OURS.map((m) => { const d = SEEDS.map((s) => pprChange(m, s, v)); return { model: m, label: m, pts: d.map((y) => ({ v: y })), tip: { title: `${m} · ${v}`, rows: [...SEEDS.map((s, i) => [`seed ${s}`, fs(d[i], 1) + ' pp']), ['均值 ± SD', `${fs(mean(d), 1)} ± ${f(sd(d), 1)} pp`]] } }; }) }, W);
+});
+
+/* ---------- 表 ---------- */
+const TABLES = {
+  orig(host) { const k = STATE.origMetric; buildTable(host, ['模型', ...SEEDS.map(String), '均值 ± SD'], MODELS.map((m) => { const v = vals(m, 'Original', k); return [{ model: m, text: m }, ...v.map((x) => f(x)), `${f(mean(v))} ± ${f(sd(v))}`]; }), [1, 2, 3, 4, 5, 6]); },
+  delta(host) { const k = STATE.deltaMetric; buildTable(host, ['扰动', '模型', ...SEEDS.map(String), '均值 ± SD'], PERT.flatMap((v) => MODELS.map((m) => { const x = vals(m, v, k); return [v, { model: m, text: m }, ...x.map((y) => fs(y)), `${fs(mean(x))} ± ${f(sd(x))}`]; })), [2, 3, 4, 5, 6, 7]); },
+  drift(host) { const k = STATE.driftMetric, fmt = k === 'Flip_Rate' ? (v) => pct(v) : (v) => f(v); buildTable(host, ['扰动', '模型', ...SEEDS.map(String), '均值 ± SD'], PERT.flatMap((v) => MODELS.map((m) => { const x = vals(m, v, k); return [v, { model: m, text: m }, ...x.map(fmt), `${fmt(mean(x))} ± ${fmt(sd(x))}`]; })), [2, 3, 4, 5, 6, 7]); },
+  paired(host) { const k = STATE.pairMetric; buildTable(host, ['扰动', '模型', ...SEEDS.map(String), '均值 ± SD', '< 0'], PERT.flatMap((v) => OTHERS.map((m) => { const d = pairDiffs(m, v, k); return [v, { model: m, text: m }, ...d.map((y) => fs(y)), `${fs(mean(d))} ± ${f(sd(d))}`, `${d.filter((x) => x < 0).length}/5`]; })), [2, 3, 4, 5, 6, 7, 8]); },
+  brier(host) { buildTable(host, ['模型', ...SEEDS.map(String), '均值 ± SD'], MODELS.map((m) => { const v = vals(m, 'Original', 'Brier'); return [{ model: m, text: m }, ...v.map((x) => f(x)), `${f(mean(v))} ± ${f(sd(v))}`]; }), [1, 2, 3, 4, 5, 6]); },
+  budget(host) { buildTable(host, ['模型', 'seed', '实际 epoch', '最佳 epoch', '停止原因'], MODELS.flatMap((m) => SEEDS.map((s) => { const b = DATA.budget.find((r) => r.Model === m && r.Seed === s); return [{ model: m, text: m }, String(s), String(b.epochs_run), String(b.best_epoch), b.stopped_at_cap ? '到上限' : '早停']; })), [1, 2, 3]); },
+  ppr(host) { const v = STATE.pprVar; buildTable(host, ['模型', 'seed', 'Original', v, '变化（百分点）'], OURS.flatMap((m) => SEEDS.map((s) => [{ model: m, text: m }, String(s), pct(DATA.ppr[m][s].original), pct(DATA.ppr[m][s][v]), fs(pprChange(m, s, v), 1)])), [1, 2, 3, 4]); },
+};
+(function condTable() {
+  const t = document.getElementById('tblCond');
+  const tmp = H('div'); buildTable(tmp, ['模型', '原始两项都高于 LSTM 的 seed 数', ...PERT.map((v) => `${v}：满足条件`)], OTHERS.map((m) => [{ model: m, text: m }, `${DATA.condition[m].Drop40.stronger_original_both_metrics} / 5`, ...PERT.map((v) => `${DATA.condition[m][v].combined_condition} / 5`)]), [1, 2, 3, 4]);
+  const tb = tmp.firstChild; while (tb.firstChild) t.appendChild(tb.firstChild);
+})();
+(function meanTable() {
+  const host = document.getElementById('tblMean');
+  const rows = [];
+  ['Original', ...PERT].forEach((v) => {
+    rows.push({ group: VNAME[v] });
+    MODELS.forEach((m) => {
+      const ms = (k, g = f) => { const x = vals(m, v, k); return `${g(mean(x))} ± ${f(sd(x))}`; };
+      rows.push(v === 'Original'
+        ? [{ model: m, text: m }, ms('AUPRC'), ms('AUROC'), ms('Brier'), '—', '—']
+        : [{ model: m, text: m }, ms('Delta_AUPRC', fs), ms('Delta_AUROC', fs), ms('Delta_Brier', fs), ms('Mean_abs_DeltaP'), (() => { const x = vals(m, v, 'Flip_Rate'); return `${pct(mean(x))} ± ${pct(sd(x))}`; })()]);
+    });
+  });
+  buildTable(host, ['模型', 'AUPRC / ΔAUPRC', 'AUROC / ΔAUROC', 'Brier / ΔBrier', 'Mean |Δp|', 'Flip Rate'], rows, [1, 2, 3, 4, 5]);
+})();
+
+document.querySelectorAll('[data-table]').forEach((btn) => {
+  btn.setAttribute('aria-pressed', 'false');
+  btn.addEventListener('click', () => {
+    const tw = document.getElementById('tw-' + btn.dataset.table);
+    const show = tw.hidden;
+    tw.hidden = !show; btn.setAttribute('aria-pressed', String(show));
+    if (show) TABLES[btn.dataset.table](tw);
+  });
+});
+const CTL = { origMetric: ['figOrig', 'orig'], deltaMetric: ['figDelta', 'delta'], driftMetric: ['figDrift', 'drift'], pairMetric: ['figPaired', 'paired'], pprVar: ['figPpr', 'ppr'] };
+document.querySelectorAll('[data-ctl]').forEach((grp) => {
+  grp.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+    grp.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    STATE[grp.dataset.ctl] = b.dataset.v;
+    const [figId, tk] = CTL[grp.dataset.ctl];
+    redraw(FIGS.find((x) => x.el.id === figId));
+    const tw = document.getElementById('tw-' + tk); if (!tw.hidden) TABLES[tk](tw);
+  }));
+});
+
+/* ---------- 主题、导航 ---------- */
+(function () {
+  const btn = document.getElementById('themeBtn'), root = document.documentElement;
+  const NAMES = { system: '主题·系统', light: '主题·浅色', dark: '主题·深色' };
+  let mode = 'system';
+  try { mode = localStorage.getItem('mp-discuss-theme') || 'system'; } catch (e) { /* 存储不可用时跟随系统 */ }
+  const apply = () => { if (mode === 'system') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', mode); btn.textContent = NAMES[mode]; };
+  apply();
+  btn.addEventListener('click', () => {
+    mode = mode === 'system' ? 'light' : mode === 'light' ? 'dark' : 'system';
+    try { localStorage.setItem('mp-discuss-theme', mode); } catch (e) { /* 忽略 */ }
+    apply(); refreshColors();
+  });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', refreshColors);
+  function refreshColors() {
+    redrawAll();
+    legend('lgOrig', mLegend(MODELS, [MEANTICK]));
+    legend('lgDelta', mLegend(MODELS, [MEANTICK]));
+    legend('lgDrift', mLegend(MODELS, [MEANTICK]));
+    legend('lgPaired', mLegend(OTHERS, [MEANTICK]));
+    legend('lgBrier', mLegend(MODELS, [MEANTICK]));
+    legend('lgBudget', mLegend(MODELS, [{ cls: 'ring', text: '训练满 30 epoch' }]));
+    legend('lgPpr', mLegend(OURS, [MEANTICK]));
+    document.querySelectorAll('.mdot').forEach((d) => { d.style.background = col(d.dataset.model); });
+    document.querySelectorAll('.say').forEach((s) => s.style.setProperty('--c', `var(${COLOR[s.dataset.model]})`));
+  }
+  refreshColors();
+
+  const links = [...document.querySelectorAll('.navlinks a')];
+  const secs = links.map((a) => document.querySelector(a.getAttribute('href')));
+  const io = new IntersectionObserver((ents) => ents.forEach((en) => { if (en.isIntersecting) links.forEach((a) => a.classList.toggle('active', a.getAttribute('href') === '#' + en.target.id)); }), { rootMargin: '-45% 0px -50% 0px' });
+  secs.forEach((s) => s && io.observe(s));
+  const bar = document.querySelector('.progress');
+  addEventListener('scroll', () => { const h = document.documentElement.scrollHeight - innerHeight; bar.style.width = (h > 0 ? (scrollY / h) * 100 : 0) + '%'; }, { passive: true });
+})();
+</script>
+</body>
+</html>

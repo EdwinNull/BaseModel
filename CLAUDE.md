@@ -53,7 +53,8 @@ python PPT/build_data_alignment_presentation.py   # 由 数据对齐五页.pptx 
 flucase/backend/.venv/Scripts/python.exe scripts/crf_wide/build_crf_workbook.py --input data/export   # 标准导出 → CRF 宽表 xlsx + 聚合报告 md（研究者跑；Claude 只看报告）
 flucase/backend/.venv/Scripts/python.exe -m pytest scripts/crf_wide -q -p no:cacheprovider          # 上面脚本的测试（虚构数据）
 flucase/backend/.venv/Scripts/python.exe scripts/flucase_raw_scan/gam_raw_probe.py "data/GAM- 护理记录" --out <报告.md>   # GAM 三源结构扫描（研究者跑，只出结构与计数）
-flucase/backend/.venv/Scripts/python.exe scripts/flucase_raw_scan/gd_v04_probe.py <GD原始导出目录> --out <报告.md>       # 规则集 v0.4 在 GD 上要核对的名称与计数（要 flucase gd_raw-6）
+flucase/backend/.venv/Scripts/python.exe scripts/flucase_raw_scan/gd_v04_probe.py <GD原始导出文件夹或压缩包> --out <报告.md>   # 规则集 v0.4 在 GD 上要核对的名称与计数（要 flucase gd_raw-6）
+flucase/backend/.venv/Scripts/python.exe scripts/flucase_raw_scan/gam_raw_check.py <护理记录文件夹> <住院.xlsx> <门诊.xlsx> ... --out <报告.md>   # GAM 整套用 gam_raw 读一遍，只出挂接与计数
 python scripts/tcm_mapping/split_tcm_mapping.py   # 证型对应表拆开“¤”、去重，列出待 GD 补填的证候（只含写法与次数）
 ```
 

@@ -10,8 +10,9 @@
 名称目录是医院的项目目录（医嘱、检验、检查、科室名称），不含病例；名称里有 ≥6 位连续数字或人称、联系方式类的词的整条不列。
 住院数 1–4 写成 "<5"。
 
-要用含 v0.4 读取器（gd_raw-6）的 flucase：合并 flucase 分支 feat/v04-gam-20261027 后，在 BaseModel 根目录运行
-  flucase/backend/.venv/Scripts/python.exe scripts/flucase_raw_scan/gd_v04_probe.py <GD原始导出目录> --out 报告.md
+要用含 v0.4 读取器（gd_raw-6）的 flucase（flucase main 10-27 起）。路径给 GD 原始导出的文件夹或压缩包（导入 flucase 时用的那一套，
+可以给几个）；压缩包解到旁边的临时文件夹，读完删掉。在 BaseModel 根目录运行：
+  flucase/backend/.venv/Scripts/python.exe scripts/flucase_raw_scan/gd_v04_probe.py "data/GD原始导出.zip" --out tmp/gd_v04_probe.md
 """
 from __future__ import annotations
 
@@ -39,17 +40,28 @@ def ok_name(s: str) -> bool:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("root", type=Path)
+    ap.add_argument("root", type=Path, nargs="+", help="GD 原始导出的文件夹或压缩包（可以给几个）")
     ap.add_argument("--out", type=Path)
     a = ap.parse_args()
-    from flucase.pipeline.extract.lexicon import ICU_WARD_DEPTS, is_icu_dept, is_icu_ward_dept
-    from flucase.repo.reader import ReadContext
-    from flucase.repo.readers.gd_raw import BUNDLE_EXT, GdRawReader, _rows
+    from bundle_files import bundle_files
+    from flucase.repo.readers.gd_raw import GdRawReader
     reader = GdRawReader()
     if reader.reader_version < "gd_raw-6":
         sys.exit(f"flucase 的 GD 读取器是 {reader.reader_version}，要 gd_raw-6 以上（合并 feat/v04-gam-20261027 后再跑）")
-    files = [(p, p.relative_to(a.root).as_posix()) for p in sorted(a.root.rglob("*")) if p.suffix.lower() in BUNDLE_EXT]
-    print(f"…读取 {len(files)} 个文件（和导入时一样，较慢）", file=sys.stderr)
+    with bundle_files(a.root) as files:
+        rep = probe(reader, files)
+    if a.out:
+        a.out.write_text(rep, encoding="utf-8")
+        print(f"报告已写到 {a.out}", file=sys.stderr)
+    print(rep)
+
+
+def probe(reader, files) -> str:
+    from flucase.pipeline.extract.lexicon import ICU_WARD_DEPTS, is_icu_dept, is_icu_ward_dept
+    from flucase.repo.reader import ReadContext
+    from flucase.repo.readers.gd_raw import _rows
+    print(f"…读取 {len(files)} 个 xlsx（和导入时一样，较慢）", file=sys.stderr)
+    roles = Counter(reader.role_label(t.role) for p, d in files for t in reader.tables(p, d))
     res = reader.read_bundle(files, ReadContext())
     encs = {e.key: e for e in res.encounters}
     by_enct = {e.extra.get("enct_id"): e.key for e in res.encounters if e.extra.get("enct_id")}
@@ -95,7 +107,11 @@ def main() -> None:
     L: list[str] = []
     w = L.append
     w("# GD 原始导出：规则集 v0.4 的核对（只含名称目录与计数）\n")
-    w(f"- 读取器 {reader.reader_version}；住院 {len(encs)} 次；住院数 1–4 写成 \"<5\"\n")
+    w(f"- 读取器 {reader.reader_version}；xlsx {len(files)} 个；住院 {len(encs)} 次；住院数 1–4 写成 \"<5\"")
+    w("- 认出的表：" + ("、".join(f"{k} {v}" for k, v in roles.most_common()) or "（没有）") + "\n")
+    if not encs:
+        w("**没有读到住院**：要有“入院记录”表（ENCT_UUID、住院号、入院时间、性别、主诉、现病史）。请确认给的是 GD 原始导出的文件夹或压缩包"
+          "（导入 flucase 时用的那一套）。\n")
     w("## 1 ICU（D76）\n")
     w("### 1.1 名称里带“监护 / 重症 / ICU”的医嘱\n")
     w("| 医嘱名称 | 行数 | 住院数 |")
@@ -147,11 +163,7 @@ def main() -> None:
         lo = {k for k in ks if any(r.code == "EXT_PAO2" and r.value_num is not None and r.value_num < 60 for r in recs[k])}
         sp = {k for k in ks if any(r.code == "VS006" and r.o2 == "空气" and r.value_num is not None and r.value_num <= 93 for r in recs[k])}
         w(f"| {name} | {c5(len(ks))} | {c5(len(pa))} | {c5(len(lo))} | {c5(len(sp))} |")
-    rep = "\n".join(L)
-    if a.out:
-        a.out.write_text(rep, encoding="utf-8")
-        print(f"报告已写到 {a.out}", file=sys.stderr)
-    print(rep)
+    return "\n".join(L)
 
 
 if __name__ == "__main__":

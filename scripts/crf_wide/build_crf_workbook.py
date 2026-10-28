@@ -562,13 +562,17 @@ def build_sheets(d: Data, o: Options) -> list[Sheet]:
     txt = ft["value_text"].astype(object).fillna("").astype(str)
     meth = np.select([txt.str.contains("核酸|PCR", regex=True).to_numpy(bool), txt.str.contains("抗原", regex=False).to_numpy(bool)],
                      ["核酸", "抗原"], "其他或未写明")
+    # flucase gd_raw-6 / gam_*-4 起读取器把方法写进中文名“流感检测（抗原 / 核酸 / NGS）”（D80：两项只写型别的认作抗原、加 NGS），有就用它
+    lab_meth = ft["label"].astype(object).fillna("").astype(str).str.extract(r"流感检测（(.+)）", expand=False)
+    meth = np.where(lab_meth.notna().to_numpy(), lab_meth.fillna("").to_numpy(), meth)
     sh.add("flu_confirmed", e["flu_confirmed"], "病原学确诊", "yes 检测阳性 / no 只有阴性 / unrecorded 来源没有检测记录（D16）")
     sh.add("flu_test_pos_n", fpos.groupby("encounter_id").size(), "阳性检测条数", "", count=True)
     sh.add("flu_test_neg_n", fneg.groupby("encounter_id").size(), "阴性检测条数", "", count=True)
     fp = fpos.sort_values("t_rel_h", na_position="last").drop_duplicates("encounter_id").set_index("encounter_id")
     sh.add("flu_pos_first_time", fp["time"], "首次阳性时间", "空 = 没有阳性或时间未知")
     sh.add("flu_pos_first_h", fp["t_rel_h"], "首次阳性相对 t0 小时", "")
-    sh.add("flu_methods", pd.Series(meth, index=ft.index).groupby(ft["encounter_id"]).agg(join_unique), "检测方法", "按检测名称文字归类：核酸 / 抗原 / 其他或未写明")
+    sh.add("flu_methods", pd.Series(meth, index=ft.index).groupby(ft["encounter_id"]).agg(join_unique), "检测方法",
+           "读取器写的方法（抗原 / 核酸 / NGS，D80）；旧导出按检测名称文字归类：核酸 / 抗原 / 其他或未写明")
     sh.add("flu_type", ev[(ev["var"] == "FLU_TYPE") & ev["_pos"]].groupby("encounter_id")["value_text"].agg(join_unique), "型别", "events FLU_TYPE")
     sh.add("flu_test_text", ft.groupby("encounter_id")["value_text"].agg(join_unique), "检测名称与结果（原文）", "")
     sh.add("flu_dx", has("FLU_DX"), "诊断中有流感", "yes；空 = 没有记录")

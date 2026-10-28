@@ -52,6 +52,9 @@ bash scripts/check_upload_status.sh      # 检查服务器上的模型
 python PPT/build_data_alignment_presentation.py   # 由 数据对齐五页.pptx 生成 _结构与示例版.pptx（python-pptx）
 flucase/backend/.venv/Scripts/python.exe scripts/crf_wide/build_crf_workbook.py --input data/export   # 标准导出 → CRF 宽表 xlsx + 聚合报告 md（研究者跑；Claude 只看报告）
 flucase/backend/.venv/Scripts/python.exe -m pytest scripts/crf_wide -q -p no:cacheprovider          # 上面脚本的测试（虚构数据）
+flucase/backend/.venv/Scripts/python.exe scripts/flucase_raw_scan/gam_raw_probe.py "data/GAM- 护理记录" --out <报告.md>   # GAM 三源结构扫描（研究者跑，只出结构与计数）
+flucase/backend/.venv/Scripts/python.exe scripts/flucase_raw_scan/gd_v04_probe.py <GD原始导出目录> --out <报告.md>       # 规则集 v0.4 在 GD 上要核对的名称与计数（要 flucase gd_raw-6）
+python scripts/tcm_mapping/split_tcm_mapping.py   # 证型对应表拆开“¤”、去重，列出待 GD 补填的证候（只含写法与次数）
 ```
 
 `scripts/evaluate_patch.py` 是对服务器 `experiments/rw_gam2gd/evaluate.py` 的就地补丁，需在服务器 `basemodel/` 下执行。

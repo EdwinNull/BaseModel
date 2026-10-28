@@ -28,6 +28,14 @@ LONG_DIGITS = re.compile(r"\d{6,}")
 ICU_WORDS = re.compile(r"监护|重症|ICU", re.I)
 NGS_WIDE = re.compile(r"NGS|宏基因组|测序|高通量|基因检测|病原.{0,6}(?:检测|鉴定)", re.I)
 FLU = re.compile(r"流感|[Ii]nfluenza")
+# NGS 报告里提到流感的那一句，同时写了什么（只数行数）：看“提到流感”是检出了，还是检测范围里列了一下
+NGS_CUES = {"检出（不含未检出）": r"(?<!未)检出|阳性", "未检出 / 阴性": r"未检出|阴性|not\s*detected", "序列数 / reads": r"序列数|reads|读数|序列",
+            "相对丰度": r"丰度", "检测范围 / 包括 / 覆盖": r"检测范围|包括|包含|覆盖|涵盖|病原谱", "疑似 / 背景 / 定植": r"疑似|背景|定植|污染"}
+
+
+def flu_clause_cues(text: str) -> set[str]:
+    clauses = [c for c in re.split(r"[。；;\n]", text or "") if FLU.search(c)]
+    return {k for k, rx in NGS_CUES.items() if any(re.search(rx, c, re.I) for c in clauses)}
 
 
 def c5(n: int) -> str:
@@ -73,6 +81,8 @@ def probe(reader, files) -> str:
     order_names: dict[str, dict] = defaultdict(lambda: {"rows": 0, "enc": set()})
     ward_order: dict[str, set] = defaultdict(set)          # 医嘱科室 → 有“重症监护”医嘱的住院
     ngs_names: dict[tuple[str, str], dict] = defaultdict(lambda: {"rows": 0, "enc": set(), "flu": 0})
+    ngs_cues: Counter = Counter()
+    ngs_where: Counter = Counter()
     for p, disp in files:
         for t in reader.tables(p, disp):
             if t.role not in ("order", "lab", "exam"):
@@ -96,13 +106,20 @@ def probe(reader, files) -> str:
                         d["rows"] += 1
                         d["enc"].add(g(row, "JZH") or g(row, "ENCT_ID"))
                         d["flu"] += bool(FLU.search(g(row, "结果")))
+                        if FLU.search(g(row, "结果")):
+                            ngs_where["检验结果"] += 1
+                            ngs_cues.update(flu_clause_cues(g(row, "结果")))
                 else:
                     name = f"{g(row, '类别')} {g(row, '项目')}".strip()
                     if NGS_WIDE.search(name):
                         d = ngs_names[("检查", name)]
                         d["rows"] += 1
                         d["enc"].add(g(row, "ENCT_ID"))
-                        d["flu"] += bool(FLU.search(g(row, "影像所见") + g(row, "影像诊断")))
+                        fi, co = g(row, "影像所见"), g(row, "影像诊断")
+                        d["flu"] += bool(FLU.search(fi + co))
+                        if FLU.search(fi + co):
+                            ngs_where["影像所见" if FLU.search(fi) else "只在影像诊断"] += 1
+                            ngs_cues.update(flu_clause_cues(fi + "\n" + co))
 
     L: list[str] = []
     w = L.append
@@ -151,6 +168,11 @@ def probe(reader, files) -> str:
     w(f"\n读取器认出的 NGS 流感检测：阳性住院 {c5(len({r.encounter_key for r in ngs if r.state == 'pos'}))}，"
       f"阴性住院 {c5(len({r.encounter_key for r in ngs if r.state == 'neg'}))}。"
       "名称没被认到的，请把上表里的名称告诉 Claude，写进格式配置 ngs_name。")
+    n_flu = sum(d["flu"] for d in ngs_names.values())
+    if n_flu:
+        w(f"\n提到流感的 {n_flu} 行写在：" + "、".join(f"{k} {v}" for k, v in ngs_where.most_common())
+          + "。提到流感的那一句里同时写了（行数，一行可算几类）：" + "、".join(f"{k} {ngs_cues.get(k, 0)}" for k in NGS_CUES)
+          + "。读取器现在：这一句有“未检出 / 阴性”记阴性，否则记阳性；如果“检测范围 / 包括”多，说明有的只是列了检测范围，要改认法。")
     meth = Counter(r.label or "（没标方法）" for r in res.records if r.code == "FLU_TEST")
     w("流感检测按方法（记录条数）：" + "、".join(f"{k} {v}" for k, v in meth.most_common()))
 

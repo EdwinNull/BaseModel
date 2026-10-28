@@ -24,6 +24,9 @@ def bundle_files(paths: list[Path], exts: tuple[str, ...] = (".xlsx", ".xlsm")):
             if p.suffix.lower() in exts:
                 out.append((p, f"{prefix}{arc.name}/{rel}"))
 
+    missing = [str(p) for p in paths if not Path(p).exists()]
+    if missing:
+        raise SystemExit("✗ 这些路径不存在（检查拼写；路径里有空格要加引号）：\n  " + "\n  ".join(missing))
     try:
         for root in paths:
             root = Path(root)

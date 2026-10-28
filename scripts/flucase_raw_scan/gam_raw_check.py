@@ -41,6 +41,10 @@ def main() -> None:
     from flucase.repo.reader import ReadContext
     from flucase.repo.readers.gam_raw import GamRawReader
     r = GamRawReader()
+    per_path: list[Counter] = []
+    for p0 in a.paths:                                       # 每个路径各认出了什么（只给计数）
+        with bundle_files([p0]) as fs:
+            per_path.append(Counter(r.kind_of(p)[0] or "认不出" for p, _ in fs))
     with bundle_files(a.paths) as files:
         print(f"…认文件（{len(files)} 个 xlsx）", file=sys.stderr)
         kinds = Counter(r.kind_of(p)[0] or "认不出" for p, _ in files)
@@ -52,7 +56,13 @@ def main() -> None:
     w("# GAM式原始导出：成套读取核对（只含计数与项目目录）\n")
     w(f"- 读取器 {r.reader_version}；xlsx {len(files)} 个：" + "、".join(f"{ {'ip': '住院工作簿', 'op': '门急诊工作簿', 'nurse': '护理记录'}.get(k, k)} {v}"
                                                              for k, v in kinds.most_common()))
+    lab = {"ip": "住院工作簿", "op": "门急诊工作簿", "nurse": "护理记录"}
+    for i, c in enumerate(per_path, 1):
+        w(f"  - 第 {i} 个路径：" + ("、".join(f"{lab.get(k, k)} {v}" for k, v in c.most_common()) or "没有 xlsx"))
     w(f"- 成套认定：{m.status}（{'；'.join(m.evidence)}{'；缺 ' + '、'.join(m.missing) if m.missing else ''}）")
+    if not (kinds["ip"] or kinds["op"]):
+        w("\n**没有认出住院或门急诊工作簿**：护理记录要和它们一起读才能挂接。请把 GAM 的住院、门诊、急诊工作簿（以前导入 flucase 用的那几个 .xlsx）"
+          "的路径也加在命令里；某个工作簿在上面显示“认不出”的，说明它的工作表或列名和 GAM式住院 / 门诊格式不同，把那一行告诉 Claude。\n")
     encs = res.encounters
     w(f"- 就诊：住院 {c5(sum(e.setting == 'inpatient' for e in encs))}、门急诊 {c5(sum(e.setting == 'ed' for e in encs))}；病人 {c5(len({e.patient_key for e in encs}))}\n")
     w("## 1 护理记录挂接\n")

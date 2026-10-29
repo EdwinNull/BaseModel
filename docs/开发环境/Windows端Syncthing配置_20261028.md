@@ -12,7 +12,7 @@
 | Mac 设备 ID | `SW3S4TV-WIC5GI7-OVWWGXW-JUZ427Q-C77RAZ3-K74FUBU-JO7SM5H-YBEASQ2` |
 | 文件夹 | `basemodel`（BaseModel，约 550 MB、3,000 多个文件）、`crf`（CRF，约 9 MB）；双向收发，开了 30 天的分级版本控制 |
 | 忽略规则 | 写在各仓库根目录的 `.stglobalignore`（入库，两边共用）；每台机器的 `.stignore` 只有一行 `#include .stglobalignore` |
-| 不同步的内容 | 真实数据（BaseModel 的 `data/`、`flucase/var/`、`tmp/flucase_demo/var/`；CRF 的 `*.sql`、`*.db`、`*.dump`，部署用的两个建库 SQL 除外）、`.venv`、`node_modules`、`models/`、`__pycache__`、`.DS_Store` 等 |
+| 不同步的内容 | 只排除会弄坏另一台机器环境的东西：`.venv`、`node_modules`、`__pycache__`、`.DS_Store` 等平台相关文件和系统临时文件，git 锁文件，Claude Code 的 `.claude/worktrees`，CRF `.deploy` 下的日志和 pid。10-29 起，`data/`、`flucase/var/`、`models/` 和 CRF 的数据库备份（`*.sql`、`*.db`、`*.dump`）**也同步**（研究者定：两台都是本人设备） |
 | 换行符 | 两个仓库加了 `.gitattributes`（文本一律 LF）；BaseModel、`BaseModel/flucase`、CRF 三个仓库的本地配置都设了 `core.autocrlf=false`、`core.filemode=false`。`.git/config` 会同步过来，Windows 用的也是这套设置 |
 
 > Mac 上的 CRF 有一批还没提交的修改（`crf-backend/`、`crf-system/` 下几十个文件）。这批修改会原样同步到 Windows。
@@ -107,7 +107,7 @@ robocopy $crfOld $crf /E /XC /XN /XO /XD .git
 
 - 会补回来的有：`data\`、`models\`、`flucase\var\`、`.venv`、`node_modules`、CRF 的 `.deploy\crf-data-backup.sql`，以及其他只在 Windows 上有的文件。
 - robocopy 的退出码 0–7 都算成功，8 及以上才是出错。
-- 补回来的文件中，被忽略的（数据、`.venv`、`node_modules`、`models`）只留在 Windows；没被忽略的会再同步到 Mac。
+- 补回来的文件中，`.venv`、`node_modules` 只留在 Windows，其余的会再同步到 Mac（10-29 起也包括数据和 `models`）。
 - 新文件夹的路径和原来一样，所以补回来的 `.venv` 可以直接用。
 
 ## 第 5 步：核对
@@ -137,7 +137,8 @@ Set-Content "$base\tmp\sync_test.txt" "from Windows $(Get-Date)"
 3. **出现 `*.sync-conflict-*` 文件**，说明两边改了同一个文件。工作区里的：对比两个版本，留下对的，删掉冲突文件。`.git` 里的：先 `git status`、`git log` 看仓库是否正常，拿不准就交给 Claude 处理，不要随手删。
 4. **照常提交并推送到 GitHub。** Syncthing 不是备份：误删、改坏也会同步到另一边。误删的文件可以在文件夹的 `.stversions` 里找回（30 天内）。
 5. **要改同步范围，只改 `.stglobalignore`**（它会同步到两边，也入库）。`.stignore` 不要动。
-6. **真实数据不同步**：`data/`、`flucase/var/`、CRF 的 `.sql/.db` 备份两台机器各放各的。确实要放到另一台时，单独拷贝；或者删掉 `.stglobalignore` 里对应的那一行，改为同步。数据只在这两台机器之间传，不经第三方存储；不要放进任何网盘。
+6. **真实数据也同步（10-29 起）**：`data/`、`flucase/var/`、`models/`、CRF 的 `.sql/.db` 备份两边保持一致。数据只在这两台机器之间加密传输，不经第三方存储；不要放进任何网盘。
+   flucase 正式部署在阿里云 ECS 上，那里的病例库不在这两台机器上，不受同步影响。只有在本机启动 flucase 后端时才需要注意。本机的病例库是 SQLite，开了 WAL，`app.db` 旁边还有 `-wal`、`-shm` 两个文件；开发模式默认放在 `flucase/var/`，第一轮测试时用 `FLUCASE_DATA_DIR` 指到 `data/` 下。所以本机的 flucase **同一时间只在一台机器上运行**：换机器前先停掉后端，等 Syncthing 显示"最新"，再在另一台上启动。只读 Excel 的脚本（`scripts/crf_wide`、`scripts/flucase_raw_scan` 等）不碰病例库，两边都可以随时跑。
 7. **Mac 在外面时 Windows 要开着。** Windows 关机或睡眠期间不会同步；两台再次都在线时，会自动补齐。
 
 ## 出了问题

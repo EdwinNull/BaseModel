@@ -29,6 +29,7 @@
 | | `flucase演示指南_20261013.html` | 组内演示指南第二版：原始 Excel 导入 → 分级 → 复核 → 导出 std_v1，截图为 10-13 的系统 |
 | | `flucase医生演示与意见征集_20261013.html` | 向临床医生演示的路线与要请医生回答的问题（10-14 起部分说法已过时："导入时已化名""数据只在服务器处理"） |
 | | `flucase演示指南_20261011.html` | 演示指南第一版（截图早于 10-12 的改动，留作历史） |
+| `开发环境/` | `Windows端Syncthing配置_20261028.md` | Windows 与 Mac 用 Syncthing 实时同步 BaseModel、CRF（连 `.git`）：Mac 端已完成的配置、Windows 端逐步操作（旧文件夹收尾、安装、新文件夹、配对、补回本机独有文件、核对）、日常使用守则与排错；共用忽略规则在各仓库根目录的 `.stglobalignore` |
 | `claude_project/` | `01_项目指令.md` | 给 claude.ai Project 的 Instructions：语言、A 档边界、数据安全、实验与文献纪律、与 Claude Code 的分工（10-23） |
 | | `02_项目背景知识.md` | 给 claude.ai Project 的 knowledge：项目演变、数据资产、转重口径（规则集 v0.3）、实验结果、flucase、决策 D1–D73 速查、待办、术语表（快照 2026-10-23，当晚按计划变动删去年底主文相关内容；只含聚合量） |
 | `superpowers/` | `plans/`、`specs/` | 2026-09-25 医学时序报告的计划与规格（工具生成的目录，保持原样） |

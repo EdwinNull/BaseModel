@@ -30,3 +30,8 @@ docs/老年流感多中心数据对齐与转重预测研究研讨会议记录.do
 
 # 本机预览配置（含本机路径），不入库
 .claude/launch.json
+
+# Syncthing 双机同步（Windows / Mac）：各机自己的 .stignore、标记目录和旧版本不入库；共用规则 .stglobalignore 入库
+.stignore
+.stfolder/
+.stversions/

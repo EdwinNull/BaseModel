@@ -1,0 +1,29 @@
+// Syncthing 同步忽略规则（Windows 与 Mac 共用，随文件夹同步）
+// 每台机器的 .stignore 只写一行：#include .stglobalignore
+// 不以 / 开头的规则在任意层级都生效；第一条匹配的规则说了算
+
+// 平台相关、各自安装（Windows 是 .venv/Scripts，Mac 是 .venv/bin）
+.venv
+venv
+node_modules
+__pycache__
+.pytest_cache
+*.pyc
+
+// 系统与 Office 临时文件
+(?d).DS_Store
+(?d)._*
+(?d)Thumbs.db
+(?d)desktop.ini
+~$*
+
+// git 的瞬时锁文件
+.git/**.lock
+
+// 模型权重：几 GB，只用来上传服务器
+/models
+
+// 真实数据与 flucase 运行时病例库：默认不同步，两台机器各放各的；需要同步时删掉对应行
+/data
+/flucase/var
+/tmp/flucase_demo/var

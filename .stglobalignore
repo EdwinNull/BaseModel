@@ -20,6 +20,9 @@ __pycache__
 // git 的瞬时锁文件
 .git/**.lock
 
+// Claude Code 的 git worktree：.git 文件里是本机绝对路径，换台机器就失效，只留在创建它的那台
+.claude/worktrees
+
 // 模型权重：几 GB，只用来上传服务器
 /models
 

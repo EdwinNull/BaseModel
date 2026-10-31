@@ -23,4 +23,10 @@ __pycache__
 // Claude Code 的 git worktree：.git 文件里是本机绝对路径，换台机器就失效，只留在创建它的那台
 .claude/worktrees
 
-// data/、flucase/var/、models/ 照常同步（10-29 研究者定：两台都是本人设备）
+// flucase 服务器备份（scripts/flucase_backup_pull.sh 拉到 data/flucase_backups/）只留在 Windows，不同步到 Mac（10-30 研究者定）
+/data/flucase*backup*
+
+// 模型权重（几十 GB，用来上传服务器）只留在 Windows，不同步到 Mac（10-31 研究者定）
+/models
+
+// data/ 其余内容、flucase/var/ 照常同步（10-29 研究者定：两台都是本人设备）

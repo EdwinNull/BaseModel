@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""GAM式原始导出（住院、门急诊工作簿 + 护理记录）用 flucase 的成套读取器 gam_raw-1 读一遍，只输出计数和项目目录，不输出病例内容。
+"""GAM式原始导出（住院、门急诊工作簿 + 护理记录）用 flucase 的成套读取器 gam_raw 读一遍，只输出计数和项目目录，不输出病例内容。
 
 用来在导入服务器之前核对（BaseModel plans/GAM三源格式与规则集v0.4_执行计划_20261027.md §3）：
 1. 每个文件认成什么（住院工作簿 / 门急诊工作簿 / 护理记录 / 认不出）；
 2. 护理记录挂到了哪类就诊、按什么挂上的（关联字段 / 病人ID + 时间），挂不上的份数，时间不在就诊里的份数；
 3. 护理记录读出的记录：按数据项的条数与就诊数；体温单里没对应上的项目（名称目录：≥5 份护理记录里出现、无长数字、无人称词）；
+3b. 评分表与血糖的时间（gam_raw-3 起，plans/数据集验收与数据底座_执行计划_20261029.md 第 2 项）：各评分项有时间的条数与精度、
+    Barthel 的时间取自哪里；评分项里不是数字的写法只给“形状”（数字写 9、汉字写“汉”、字母写 a），不给原文；
 4. 问题清单：按问题代码计数（不输出说明原文，说明里有文件名和编号）。
 
 就诊数 1–4 写成 "<5"。要用含 gam_raw 读取器的 flucase（flucase main 10-27 起）。在 BaseModel 根目录运行，路径可以给几个
@@ -32,6 +34,16 @@ def ok_name(s: str) -> bool:
     return bool(s) and len(s) <= 60 and not LONG_DIGITS.search(s) and not PERSON.search(s)
 
 
+SCORE = ("NURSE:日常生活能力", "NURSE:跌倒风险", "NURSE:压疮风险", "NURSE:血糖记录")
+
+
+def shape(s: str) -> str:
+    """写法的形状：数字 → 9、汉字 → 汉、字母 → a，其余符号照留；只看格式，不带内容。"""
+    s = re.sub(r"\d", "9", str(s).strip())
+    s = re.sub(r"[一-鿿]", "汉", s)
+    return re.sub(r"[A-Za-z]", "a", s)[:30]
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("paths", type=Path, nargs="+")
@@ -39,7 +51,7 @@ def main() -> None:
     a = ap.parse_args()
     from bundle_files import bundle_files
     from flucase.repo.reader import ReadContext
-    from flucase.repo.readers.gam_raw import GamRawReader
+    from flucase.repo.readers.gam_raw import GamRawReader, cell_dt, nurse_tables
     r = GamRawReader()
     per_path: list[Counter] = []
     for p0 in a.paths:                                       # 每个路径各认出了什么（只给计数）
@@ -51,6 +63,8 @@ def main() -> None:
         m = r.match_bundle([p for p, _ in files])
         print("…读取（和导入时一样）", file=sys.stderr)
         res = r.read_bundle(files, ReadContext(progress=lambda s, f: print(f"…{s}", file=sys.stderr)))
+        # 第 3b 节要再看护理记录的日期格子；压缩包解出的临时文件出了 with 就没了，先读好放着
+        nurse_cache = [nurse_tables(p, r.spec) for p, _ in files if r.kind_of(p)[0] == "nurse"]
     L: list[str] = []
     w = L.append
     w("# GAM式原始导出：成套读取核对（只含计数与项目目录）\n")
@@ -115,6 +129,47 @@ def main() -> None:
         w("|---|---|---|")
         for code, how, n in vu.details["rows"][:40]:
             w(f"| {code} | {how if ok_name(str(how)) and not re.search(r'\d{3,}', str(how)) else '（不列）'} | {n} |")
+    w("\n## 3b 评分表与血糖的时间\n")
+    sc = [x for x in res.records if x.rule_id == "GAM-NURSE" and x.code.startswith(SCORE)]
+    if sc:
+        w("| 数据项 | 条数 | 有时间 | 精确到分钟 | 只有日期 | 就诊数 |")
+        w("|---|---|---|---|---|---|")
+        g: dict[str, list] = defaultdict(list)
+        for x in sc:
+            g[x.code].append(x)
+        for code, xs in sorted(g.items(), key=lambda kv: -len(kv[1])):
+            es = {x.encounter_key for x in xs}
+            if len(es) >= K and ok_name(code):
+                w(f"| {code} | {len(xs)} | {sum(1 for x in xs if x.time)} | {sum(1 for x in xs if x.time and x.precision == 'minute')} | "
+                  f"{sum(1 for x in xs if x.time and x.precision == 'day')} | {c5(len(es))} |")
+        w("\nBarthel 表只有“总分 · 分级”两列、没有日期，表里的评分没有时间是正常的；带时间的 Barthel 在体温单的“生活能力评分”（第 2 节）。")
+        odd = Counter(shape(x.value_text) for x in sc if x.value_num is None and x.value_text and x.code.endswith("·总分"))
+        if odd:
+            w("\n评分“总分”里不是数字的写法形状（形状、次数）：\n")
+            w("| 形状 | 次数 |")
+            w("|---|---|")
+            for s, n in odd.most_common(10):
+                w(f"| `{s}` | {c5(n)} |")
+        bad = Counter()                                      # 评分表、血糖表的日期格子：读不出的按形状计数
+        for ts in nurse_cache:
+            times = sorted(tm for t in ts if t.role == "vitals" for _, row in t.rows if (tm := cell_dt(t.get(row, t.col(r"时间|日期时间")))))
+            anchor = times[0] if times else None
+            for t in ts:
+                jd = t.col(r.spec["score_date"]) if t.role in ("adl", "fall", "pressure", "glucose") else None
+                for _, row in (t.rows if jd is not None else []):
+                    v = t.get(row, jd)
+                    if v and cell_dt(v, anchor) is None and not re.fullmatch(r.spec["score_legend"], v):
+                        bad[(r.spec["tables"][t.role]["label"], shape(v))] += 1
+        if bad:
+            w("\n评分表、血糖表里读不出的日期写法（表、形状、次数；形状只看格式）：\n")
+            w("| 表 | 形状 | 次数 |")
+            w("|---|---|---|")
+            for (lab_, s), n in bad.most_common(12):
+                w(f"| {lab_} | `{s}` | {c5(n)} |")
+        else:
+            w("\n评分表、血糖表的日期格子都读得出。")
+    else:
+        w("（没有读出评分或血糖）")
     w("\n## 4 问题清单（按代码计数，不输出说明原文）\n")
     w("| 问题代码 | 级别 | 条数 |")
     w("|---|---|---|")

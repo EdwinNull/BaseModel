@@ -35,3 +35,14 @@ docs/老年流感多中心数据对齐与转重预测研究研讨会议记录.do
 .stignore
 .stfolder/
 .stversions/
+
+# 含服务器地址、私钥路径、云资源名等私有信息的说明文档（研究者 10-31 要求不入公开库；本机和 Mac 经 Syncthing 照常同步）
+/CLAUDE.md
+/docs/claude_project/01_项目指令.md
+/docs/claude_project/02_项目背景知识.md
+/docs/flucase/flucase迁移到京东云_方案与步骤_20261030.md
+/docs/flucase/阿里云OSS异地备份_配置步骤_20261030.md
+/docs/开发环境/Windows端Syncthing配置_20261028.md
+/plans/flucase数据收集系统重构_规划_20261014.md
+/plans/数据集验收与数据底座_执行计划_20261029.md
+/scripts/flucase_backup_pull.sh

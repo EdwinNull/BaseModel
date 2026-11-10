@@ -1,0 +1,1551 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="11 月 2–8 日的一周问题验证：控制病情后，医院之间的记录方式是否不同，以及这种差异是否会让临床时序模型换医院后变差。">
+<title>下周问题验证计划</title>
+<style>
+:root{
+  color-scheme:light;
+  --paper:#f4f6f8;--surface:#ffffff;--surface-2:#eef2f5;
+  --ink:#1a2330;--ink-2:#465262;--muted:#66727f;
+  --rule:#d8dfe6;--grid:#e4e9ee;
+  --accent:#1c5cab;--accent-wash:#e8f0fb;
+  --obs:#2a78d6;--removed:#9aa6b2;--episode:#fbe9df;
+  --me:#2a78d6;--co:#eb6834;--cl:#1baf7a;
+  --good:#0ca30c;--warn:#fab219;--serious:#ec835a;--crit:#d03b3b;--none:#8d98a4;
+  --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Noto Sans SC",system-ui,sans-serif;
+  --serif:"Songti SC","STSong","Noto Serif CJK SC","Source Han Serif SC","Noto Serif SC","SimSun",serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --paper:#0f141a;--surface:#161d25;--surface-2:#1c242e;
+    --ink:#e6ebf0;--ink-2:#b0bac5;--muted:#8a96a3;
+    --rule:#2b3540;--grid:#232c36;
+    --accent:#6da7ec;--accent-wash:#17283d;
+    --obs:#3987e5;--removed:#5b6875;--episode:#3a2a21;
+    --me:#3987e5;--co:#d95926;--cl:#199e70;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#0f141a;--surface:#161d25;--surface-2:#1c242e;
+  --ink:#e6ebf0;--ink-2:#b0bac5;--muted:#8a96a3;
+  --rule:#2b3540;--grid:#232c36;
+  --accent:#6da7ec;--accent-wash:#17283d;
+  --obs:#3987e5;--removed:#5b6875;--episode:#3a2a21;
+  --me:#3987e5;--co:#d95926;--cl:#199e70;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:76px}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 17px/1.8 var(--sans);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}
+a:hover{text-decoration-thickness:2px}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px;border-radius:4px}
+.skip{position:absolute;left:-9999px;top:8px}
+.skip:focus{left:16px;z-index:60;background:var(--surface);padding:6px 12px;border-radius:6px}
+code{font-family:var(--mono);font-size:.86em;background:var(--surface-2);padding:.1em .35em;border-radius:4px;overflow-wrap:anywhere}
+
+/* top bar */
+.topbar{position:sticky;top:0;z-index:30;background:var(--paper);border-bottom:1px solid var(--rule)}
+@supports (backdrop-filter:blur(8px)){.topbar{background:color-mix(in srgb,var(--paper) 86%,transparent);backdrop-filter:saturate(1.2) blur(8px)}}
+.topbar-inner{max-width:1320px;margin:0 auto;padding:10px 32px;display:flex;align-items:center;gap:16px}
+.topbar .doc{font-size:14.5px;color:var(--ink-2);line-height:1.4}
+.topbar .doc b{color:var(--ink);font-weight:600}
+.topbar .spacer{flex:1}
+.btn{font:inherit;font-size:14px;line-height:1;padding:8px 13px;border-radius:999px;border:1px solid var(--rule);background:var(--surface);color:var(--ink);cursor:pointer;display:inline-flex;gap:7px;align-items:center}
+.btn:hover{border-color:var(--ink-2)}
+.btn svg{width:15px;height:15px}
+
+/* layout */
+.shell{max-width:1320px;margin:0 auto;padding:0 32px;display:grid;grid-template-columns:196px minmax(0,1fr);column-gap:56px}
+.toc{position:sticky;top:64px;align-self:start;padding:36px 0 24px;max-height:calc(100vh - 72px);overflow:auto;font-size:14px}
+.toc ol{list-style:none;margin:0;padding:0;border-left:1px solid var(--rule)}
+.toc a{display:block;padding:5px 0 5px 14px;margin-left:-1px;border-left:2px solid transparent;color:var(--ink-2);text-decoration:none;line-height:1.5}
+.toc a:hover{color:var(--ink)}
+.toc a[aria-current="true"]{color:var(--ink);border-left-color:var(--accent);font-weight:600}
+main{min-width:0;padding-bottom:96px}
+
+/* hero */
+.hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.02fr);gap:48px;align-items:start;padding:48px 0 40px}
+.hero h1{font-family:var(--serif);font-weight:700;font-size:clamp(34px,4vw,48px);line-height:1.22;letter-spacing:.005em;margin:0;text-wrap:balance}
+.dek{margin:18px 0 0;color:var(--ink-2);font-size:16px;line-height:1.8;max-width:34em}
+.ask{margin:24px 0 0;padding:18px 22px 18px 22px;background:var(--surface);border:1px solid var(--rule);border-left:4px solid var(--accent);border-radius:0 12px 12px 0;font-size:18.5px;line-height:1.75}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:20px 0 0;border-top:1px solid var(--rule)}
+.facts div{padding:12px 14px 0 0}
+.facts dt{font-size:13px;color:var(--muted);line-height:1.5}
+.facts dd{margin:3px 0 0;font-size:15px;line-height:1.55;font-weight:600}
+.facts dd span{display:block;font-weight:400;color:var(--ink-2);font-size:13.5px;margin-top:2px}
+.flow{margin:0;background:var(--surface);border:1px solid var(--rule);border-radius:14px;padding:18px 18px 14px}
+.flow svg{display:block;width:100%;height:auto}
+.flow figcaption{font-size:13.5px;color:var(--ink-2);line-height:1.7;margin-top:10px}
+.flow-foot{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin-top:10px;font-size:13px;color:var(--ink-2)}
+.flow-foot .k{display:inline-flex;align-items:center;gap:6px}
+.flow-foot .sw{width:10px;height:10px;border-radius:50%;display:inline-block}
+.flow-foot .sw.dot{background:var(--obs)}
+.flow-foot .sw.ring{border:1.5px solid var(--removed);background:var(--surface)}
+.flow-foot .sw.band{border-radius:2px;background:var(--episode);width:14px}
+.flow-foot .btn{margin-left:auto;padding:6px 11px;font-size:13px}
+.fs text{font-family:var(--sans);fill:var(--ink-2);font-size:13px}
+.fs .ttl{fill:var(--ink);font-weight:600;font-size:13.5px}
+.fs .rowlab{fill:var(--ink-2)}
+.fs .tick,.fs .bandlab{fill:var(--muted);font-size:12px}
+.fs .seg{stroke:var(--grid);stroke-width:1}
+.fs .band{fill:var(--episode)}
+.fs .o,.fs .k{fill:var(--obs)}
+.fs .r{fill:var(--obs);stroke:var(--obs);stroke-width:1.5;transition:fill .45s ease,stroke .45s ease;transition-delay:calc(var(--i,0) * 28ms)}
+.fs.thinned .r{fill:var(--surface);stroke:var(--removed)}
+
+/* sections */
+section.sec{padding:60px 0 0;border-top:1px solid var(--rule);margin-top:8px}
+section.sec>h2{font-family:var(--serif);font-weight:700;font-size:30px;line-height:1.35;margin:0;letter-spacing:.01em}
+.lead{margin:10px 0 24px;color:var(--ink-2);max-width:40em;font-size:16.5px}
+h3{font-size:19px;font-weight:600;line-height:1.5;margin:40px 0 12px}
+h4{font-weight:600}
+p{margin:12px 0}
+.prose{max-width:40em}
+.note{font-size:14.5px;color:var(--ink-2);line-height:1.75;max-width:46em}
+.cite{font-size:12px;text-decoration:none;color:var(--muted);white-space:nowrap}
+.cite:hover{color:var(--accent);text-decoration:underline}
+.v2{display:inline-block;font-size:11.5px;line-height:1.35;color:var(--accent);border:1px solid var(--accent);border-radius:4px;padding:0 4px;margin-left:5px;white-space:nowrap;vertical-align:1px;font-weight:500}
+
+/* summary quadrant */
+.quad{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border:1px solid var(--rule);border-radius:14px;background:var(--surface);overflow:hidden}
+.quad>div{padding:20px 22px}
+.quad>div:nth-child(odd){border-right:1px solid var(--rule)}
+.quad>div:nth-child(-n+2){border-bottom:1px solid var(--rule)}
+.quad h3{margin:0 0 6px;font-size:16.5px}
+.quad ul{margin:0;padding-left:1.15em}
+.quad li{margin:6px 0;font-size:15px;line-height:1.72}
+.thesis{margin:20px 0 0;max-width:46em;font-size:15.5px;color:var(--ink-2)}
+.thesis b{color:var(--ink);font-weight:600}
+
+/* changes */
+.changes{list-style:none;margin:0;padding:0;border-top:1px solid var(--rule)}
+.changes>li{display:grid;grid-template-columns:62px minmax(0,1fr);gap:18px;padding:18px 0;border-bottom:1px solid var(--rule)}
+.changes .tag{align-self:start;justify-self:start;margin-top:3px}
+.tag{display:inline-block;font-size:12.5px;line-height:1;padding:6px 9px;border-radius:999px;border:1px solid currentColor;white-space:nowrap;text-align:center}
+.tag.new{color:var(--accent)}
+.tag.adj{color:var(--ink-2)}
+.tag.cut{color:var(--muted)}
+.changes h4{margin:0;font-size:16.5px;line-height:1.55}
+.changes p{margin:5px 0 0;font-size:15px;color:var(--ink-2);max-width:46em;line-height:1.75}
+
+/* evidence chain */
+.chain{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:22px;margin:6px 0 8px}
+.link{position:relative;padding:15px 15px 14px;background:var(--surface);border:1px solid var(--rule);border-radius:12px}
+.link:not(:last-child)::after{content:"";position:absolute;right:-16px;top:50%;width:10px;height:10px;border-top:1.5px solid var(--muted);border-right:1.5px solid var(--muted);transform:translateY(-50%) rotate(45deg)}
+.status{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--ink)}
+.status i{width:13px;height:13px;border-radius:50%;display:inline-block;flex:none}
+.st-have i{background:var(--good)}
+.st-part i{border:2px solid var(--warn);background:linear-gradient(90deg,var(--warn) 50%,transparent 50%)}
+.st-none i{border:2px solid var(--none)}
+.link h4{margin:8px 0 4px;font-size:14.5px;line-height:1.55}
+.link p{margin:0;font-size:13px;color:var(--ink-2);line-height:1.65}
+
+/* tables */
+.tbl-wrap{overflow-x:auto;margin:14px 0;border:1px solid var(--rule);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;line-height:1.65}
+th,td{text-align:left;vertical-align:top;padding:11px 14px;border-bottom:1px solid var(--rule)}
+th{font-weight:600;background:var(--surface-2);font-size:13.5px;color:var(--ink)}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.badge{display:inline-block;font-size:12px;line-height:1.35;padding:2px 7px;border-radius:5px;background:var(--surface-2);color:var(--ink-2);white-space:nowrap;margin:0 2px 2px 0}
+td .badge{background:var(--accent-wash);color:var(--ink)}
+
+/* details */
+details.more{margin:10px 0 0;border-top:1px solid var(--rule)}
+details.more>summary{cursor:pointer;list-style:none;padding:10px 0;font-size:14.5px;color:var(--accent);font-weight:500}
+details.more>summary::-webkit-details-marker{display:none}
+details.more>summary::before{content:"+";display:inline-block;width:1.2em;font-weight:600}
+details.more[open]>summary::before{content:"−"}
+details.more .inner{padding:0 0 14px}
+details.more .inner>p,details.more .inner li{font-size:14.5px;line-height:1.75;color:var(--ink-2)}
+details.more .inner ul{padding-left:1.15em;margin:6px 0}
+
+/* method ladder */
+.ladder{list-style:none;margin:8px 0 0;padding:0;max-width:880px}
+.rung{display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:14px;align-items:start;padding:13px 16px;background:var(--surface);border:1px solid var(--rule);border-radius:12px}
+.rung .code{font-weight:700;font-size:16px;line-height:1.55;color:var(--ink);white-space:nowrap}
+.rung h4{margin:0;font-size:15.5px;line-height:1.55}
+.rung p{margin:2px 0 0;font-size:14px;color:var(--ink-2);line-height:1.65}
+.rung.main{border-color:var(--accent);box-shadow:inset 4px 0 0 var(--accent)}
+.rung.later{background:transparent;border-style:dashed}
+.diff{margin:0 0 0 30px;padding:7px 0 7px 22px;border-left:2px solid var(--rule);font-size:13.5px;color:var(--ink-2);line-height:1.6}
+.diff b{color:var(--ink);font-weight:600}
+.diff.main{border-left-color:var(--accent);color:var(--ink)}
+.tier{font-size:12px;line-height:1;padding:5px 9px;border-radius:999px;white-space:nowrap;display:inline-block}
+.t-must{background:var(--ink);color:var(--surface)}
+.t-should{border:1px solid var(--ink-2);color:var(--ink-2)}
+.t-could{border:1px dashed var(--muted);color:var(--muted)}
+.t-later{border:1px solid var(--rule);color:var(--muted)}
+
+/* nine equals */
+.nine{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid var(--rule);border-radius:12px;background:var(--surface);overflow:hidden;margin:8px 0;max-width:980px}
+.nine div{padding:13px 16px 13px 36px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);font-size:13.5px;line-height:1.6;color:var(--ink-2);position:relative}
+.nine div::before{content:"";position:absolute;left:16px;top:20px;width:9px;height:9px;border-radius:50%;background:var(--obs)}
+.nine div:nth-child(3n){border-right:0}
+.nine div:nth-last-child(-n+3){border-bottom:0}
+.nine b{display:block;font-size:14.5px;color:var(--ink);font-weight:600}
+
+/* diagrams */
+figure.dia{margin:14px 0 6px;background:var(--surface);border:1px solid var(--rule);border-radius:14px;padding:16px 16px 12px}
+.dia-scroll{overflow-x:auto}
+figure.dia svg{display:block;width:100%;height:auto;min-width:720px}
+figure.dia figcaption{font-size:13.5px;color:var(--ink-2);margin-top:8px;max-width:62em;line-height:1.7}
+.dg text{font-family:var(--sans);font-size:13px;fill:var(--ink)}
+.dg .t2{fill:var(--ink-2);font-size:12.5px}
+.dg .tb{font-weight:600;font-size:14px}
+.dg .lab{fill:var(--ink-2);font-size:12px}
+.dg .box{fill:var(--surface);stroke:var(--ink-2);stroke-width:1.2}
+.dg .box.key{stroke:var(--accent);stroke-width:2}
+.dg .box.mut{fill:var(--surface-2);stroke:var(--rule)}
+.dg .arr{stroke:var(--ink-2);stroke-width:1.4;fill:none}
+.dg .ahd{fill:var(--ink-2)}
+.dg .ghost{fill:none;stroke:var(--removed);stroke-width:1.5}
+.dg .trace{fill:none;stroke:var(--obs);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.dg .dot{fill:var(--obs);stroke:var(--surface);stroke-width:2}
+.dg .ring{fill:var(--surface);stroke:var(--removed);stroke-width:1.6}
+.dg .axis{stroke:var(--rule);stroke-width:1}
+.dg .div{stroke:var(--grid);stroke-width:1}
+
+/* rules list */
+.rules{list-style:none;margin:6px 0;padding:0;max-width:52em}
+.rules li{position:relative;padding:9px 0 9px 26px;border-bottom:1px solid var(--grid);font-size:15px;line-height:1.75}
+.rules li::before{content:"";position:absolute;left:4px;top:19px;width:8px;height:8px;border-radius:50%;border:1.5px solid var(--obs)}
+.rules li b{font-weight:600}
+.formula{font-family:var(--mono);font-size:13.5px;background:var(--surface-2);padding:2px 6px;border-radius:5px;white-space:nowrap}
+
+/* week board */
+.pathbar{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;margin:0 0 14px}
+.seg-ctl{display:inline-flex;border:1px solid var(--rule);border-radius:999px;padding:3px;background:var(--surface)}
+.seg-ctl button{font:inherit;font-size:14px;line-height:1.2;border:0;background:transparent;color:var(--ink-2);padding:7px 14px;border-radius:999px;cursor:pointer}
+.seg-ctl button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.pathnote{font-size:14.5px;color:var(--ink-2);margin:0;max-width:56em;line-height:1.75}
+.board-wrap{overflow-x:auto;border:1px solid var(--rule);border-radius:14px;background:var(--surface)}
+.board{display:grid;grid-template-columns:repeat(7,minmax(120px,1fr));min-width:880px}
+.dcol{border-right:1px solid var(--rule);display:flex;flex-direction:column}
+.dcol:nth-child(7){border-right:0}
+.dhead{padding:11px 12px 9px;border-bottom:1px solid var(--rule)}
+.dhead .wd{font-weight:600;font-size:15px}
+.dhead .dt{color:var(--muted);font-size:13px;margin-left:6px}
+.dhead .hrs{display:block;font-size:12.5px;color:var(--ink-2);font-variant-numeric:tabular-nums;margin-top:1px}
+.stack{padding:10px;display:flex;flex-direction:column;gap:8px;flex:1}
+.chip{display:block;text-decoration:none;color:var(--ink);background:var(--surface);border:1px solid var(--rule);border-left:4px solid var(--me);border-radius:8px;padding:7px 9px;font-size:13px;line-height:1.5}
+.chip:hover{border-color:var(--ink-2);border-left-color:var(--me)}
+.chip .h{display:block;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.chip .tt{color:var(--ink-2);font-size:11.5px}
+.chip[data-tier="should"]{background:var(--surface-2)}
+.chip[data-tier="could"]{border-style:dashed;border-left-style:solid;background:transparent}
+.chip.read{border-left-color:var(--removed)}
+.gate{margin:0 10px 10px;padding:6px 9px;border-radius:8px;border:1px solid var(--ink);font-size:12.5px;line-height:1.45;font-weight:600;display:flex;gap:7px;align-items:flex-start}
+.gate::before{content:"";width:8px;height:8px;transform:rotate(45deg);background:var(--ink);margin-top:5px;flex:none}
+.par{grid-column:1 / -1;display:grid;grid-template-columns:repeat(7,minmax(120px,1fr));border-top:1px solid var(--rule);padding:10px 0;row-gap:8px}
+.bar{margin:0 10px;padding:6px 10px;border-radius:8px;background:var(--surface-2);border-left:4px solid var(--co);font-size:12.5px;line-height:1.5;color:var(--ink)}
+.bar.cl{border-left-color:var(--cl)}
+.bar .h{color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:13px;color:var(--ink-2);margin:12px 2px 0}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.legend i{width:16px;height:10px;border-radius:2px;display:inline-block;border:1px solid var(--rule);border-left:4px solid var(--me);background:var(--surface)}
+.legend i.co{border-left-color:var(--co)}
+.legend i.cl{border-left-color:var(--cl)}
+.legend i.rd{border-left-color:var(--removed)}
+.legend i.sh{background:var(--surface-2)}
+.legend i.cd{border-style:dashed;border-left-style:solid;border-left-color:var(--me)}
+body[data-path="min"] [data-min="0"]{opacity:.3}
+body[data-path="min"] .chip[data-min="0"],body[data-path="min"] .tasks li[data-min="0"] .txt{text-decoration:line-through;text-decoration-color:var(--muted)}
+
+/* day cards */
+.days{display:grid;gap:16px;margin-top:26px}
+.day{display:grid;grid-template-columns:118px minmax(0,1fr);background:var(--surface);border:1px solid var(--rule);border-radius:14px;overflow:hidden}
+.day-rail{padding:18px 16px;border-right:1px solid var(--rule);background:var(--surface-2)}
+.day-rail .d{font-family:var(--serif);font-weight:700;font-size:28px;line-height:1.1;font-variant-numeric:tabular-nums}
+.day-rail .w{font-size:14px;color:var(--ink-2);margin-top:4px}
+.day-rail .hh{margin-top:12px;font-size:12.5px;color:var(--ink-2);line-height:1.6}
+.day-body{padding:16px 22px 18px;min-width:0}
+.day-body h3{margin:0;font-size:18px}
+.goal{margin:4px 0 10px;color:var(--ink-2);font-size:15px}
+.tasks{list-style:none;margin:0;padding:0}
+.tasks li{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:10px;align-items:baseline;padding:8px 0;border-top:1px solid var(--grid);font-size:15px;line-height:1.72}
+.tasks .tier{justify-self:start}
+.tasks .hrs{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:16px;margin-top:14px}
+.subhead{margin:0 0 6px;font-size:13.5px;color:var(--ink-2);font-weight:600}
+.checks{list-style:none;margin:0;padding:0;font-size:14.5px}
+.checks li{margin:3px 0}
+.checks label{display:flex;gap:9px;align-items:baseline;cursor:pointer;line-height:1.6}
+.checks input{accent-color:var(--accent);margin:0;transform:translateY(2px);flex:none}
+.gatebox{border:1px solid var(--rule);border-radius:10px;padding:11px 14px;font-size:14px;line-height:1.7}
+.gatebox p{margin:3px 0}
+.gatebox .ok::before,.gatebox .ng::before{display:inline-block;width:1.3em;font-weight:700}
+.gatebox .ok::before{content:"✓";color:var(--good)}
+.gatebox .ng::before{content:"✕";color:var(--crit)}
+.gatebox.hard{border-color:var(--ink)}
+.minpack{list-style:none;counter-reset:mp;margin:10px 0 0;padding:0;max-width:56em}
+.minpack li{counter-increment:mp;display:grid;grid-template-columns:30px minmax(0,1fr);gap:8px;padding:9px 0;border-bottom:1px solid var(--grid);font-size:15px;line-height:1.7}
+.minpack li::before{content:counter(mp);font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums}
+
+/* precision chart */
+.prec{background:var(--surface);border:1px solid var(--rule);border-radius:14px;padding:18px 20px 14px;max-width:980px}
+.prec-title{margin:0 0 4px;font-weight:600;font-size:15.5px}
+.prec-sub{margin:0 0 10px;font-size:13.5px;color:var(--ink-2)}
+.prow{display:grid;grid-template-columns:minmax(190px,250px) minmax(0,1fr);gap:16px;align-items:center;padding:9px 0}
+.prow .lbl{font-size:14px;line-height:1.5}
+.prow .lbl small{display:block;color:var(--muted);font-size:12.5px}
+.track{position:relative;height:26px;outline-offset:2px}
+.fill{position:absolute;left:0;top:5px;height:16px;border-radius:0 4px 4px 0;background:var(--obs)}
+.whisk{position:absolute;top:12px;height:2px;background:var(--ink-2)}
+.whisk::before,.whisk::after{content:"";position:absolute;top:-5px;width:2px;height:12px;background:var(--ink-2)}
+.whisk::before{left:0}.whisk::after{right:0}
+.val{position:absolute;top:0;font-size:13px;line-height:26px;white-space:nowrap;color:var(--ink);font-variant-numeric:tabular-nums}
+.paxis{display:grid;grid-template-columns:minmax(190px,250px) minmax(0,1fr);gap:16px;font-size:12px;color:var(--muted)}
+.ticks{position:relative;height:22px;border-top:1px solid var(--rule)}
+.ticks span{position:absolute;transform:translateX(-50%);top:4px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tip{position:fixed;z-index:80;max-width:300px;background:var(--ink);color:var(--surface);font-size:12.5px;line-height:1.6;padding:7px 10px;border-radius:7px;pointer-events:none}
+.est{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border-top:1px solid var(--rule);margin-top:12px}
+.est div{padding:10px 14px 2px 0;font-size:13.5px;color:var(--ink-2);line-height:1.6}
+.est b{display:block;color:var(--ink);font-size:15px}
+
+/* decision flow */
+.flowq{list-style:none;margin:8px 0 0;padding:0;max-width:980px}
+.q{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center}
+.q .qa{background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:12px 16px;font-size:15px;font-weight:600;line-height:1.6}
+.q .qa small{display:block;font-weight:400;color:var(--ink-2);font-size:13.5px}
+.q .no{margin-left:44px;padding:10px 14px;border:1px dashed var(--rule);border-radius:12px;font-size:14px;color:var(--ink-2);position:relative;line-height:1.65}
+.q .no::before{content:"否";position:absolute;left:-36px;top:50%;transform:translateY(-50%);font-size:12.5px;color:var(--muted)}
+.q .no::after{content:"";position:absolute;left:-16px;top:50%;width:12px;height:1px;background:var(--muted)}
+.q .no b{color:var(--ink);font-weight:600}
+.yes{margin:0 0 0 28px;padding:4px 0 4px 16px;border-left:2px solid var(--rule);font-size:12.5px;color:var(--muted);height:30px;display:flex;align-items:center}
+.outs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:6px;max-width:980px}
+.out{background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:13px 14px;font-size:14px;line-height:1.65}
+.out .status{margin-bottom:4px}
+.out h4{margin:4px 0 4px;font-size:14.5px;line-height:1.55}
+.out p{margin:0;color:var(--ink-2)}
+.out .then{margin-top:6px;color:var(--ink)}
+.st-warn i{background:var(--warn)}
+.st-serious i{background:var(--serious)}
+.st-neutral i{background:var(--none)}
+
+/* risks */
+.riskwrap{display:grid;grid-template-columns:minmax(300px,420px) minmax(0,1fr);gap:28px;align-items:start}
+.riskgrid{display:grid;grid-template-columns:48px repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(78px,auto)) 28px;gap:6px}
+.rcell{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:8px;display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start}
+.rcell.hot{background:var(--episode)}
+.rchip{font-size:12.5px;line-height:1.2;padding:4px 8px;border-radius:999px;border:1px solid var(--ink-2);background:var(--surface);color:var(--ink);text-decoration:none;white-space:nowrap}
+.rchip:hover{border-color:var(--accent)}
+.raxis{font-size:12px;color:var(--muted);display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.3}
+.rlist{list-style:none;margin:0;padding:0}
+.rlist li{display:grid;grid-template-columns:38px minmax(0,1fr);gap:6px;padding:9px 0;border-bottom:1px solid var(--grid);font-size:14.5px;line-height:1.7}
+.rlist .rid{font-weight:700;color:var(--ink-2)}
+.rlist .lv{color:var(--muted);font-size:12.5px;white-space:nowrap}
+.rlist .mit{display:block;color:var(--ink-2);font-size:13.5px}
+
+/* roadmap */
+.road-wrap{overflow-x:auto}
+.road{list-style:none;margin:10px 0 4px;padding:0;display:grid;grid-template-columns:repeat(6,minmax(158px,1fr));min-width:960px}
+.road li{position:relative;padding:30px 16px 0 0}
+.road li::before{content:"";position:absolute;left:0;right:0;top:10px;height:2px;background:var(--rule)}
+.road li::after{content:"";position:absolute;left:0;top:4px;width:10px;height:10px;border-radius:50%;background:var(--surface);border:2px solid var(--obs)}
+.road li:first-child::after{background:var(--obs)}
+.road .when{font-weight:600;font-size:14.5px}
+.road .what{font-size:13.5px;margin-top:4px;line-height:1.7}
+.road .why{font-size:12.5px;color:var(--ink-2);margin-top:6px;line-height:1.65}
+
+/* locks */
+.locks{list-style:none;margin:8px 0;padding:0;border-top:1px solid var(--rule);max-width:56em}
+.locks li{border-bottom:1px solid var(--rule)}
+.locks label{display:grid;grid-template-columns:26px minmax(0,1fr);gap:8px;padding:13px 0;cursor:pointer}
+.locks input{width:17px;height:17px;margin:5px 0 0;accent-color:var(--accent)}
+.locks .what{font-weight:600;font-size:15.5px;line-height:1.6}
+.locks .rec{font-size:14.5px;margin-top:2px;line-height:1.7}
+.locks .why{font-size:13.5px;color:var(--ink-2);line-height:1.65}
+
+/* papers */
+.papers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;max-width:1000px}
+.paper{background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:14px 16px;font-size:14px;line-height:1.7}
+.paper h4{margin:0;font-size:15px;line-height:1.55}
+.paper .meta{color:var(--muted);font-size:12.5px;margin:2px 0 6px}
+.paper p{margin:3px 0;color:var(--ink-2)}
+.paper p b{color:var(--ink);font-weight:600}
+
+/* glossary & refs */
+.gloss{display:grid;grid-template-columns:minmax(120px,170px) minmax(0,1fr);margin:8px 0;border-top:1px solid var(--rule);max-width:60em}
+.gloss dt,.gloss dd{padding:9px 0;border-bottom:1px solid var(--rule);margin:0;font-size:14.5px;line-height:1.7}
+.gloss dt{font-weight:600;padding-right:14px}
+.gloss dd{color:var(--ink-2)}
+.refs{list-style:none;margin:8px 0;padding:0;font-size:14px;line-height:1.75;max-width:62em}
+.refs li{padding:8px 0;border-bottom:1px solid var(--grid);color:var(--ink-2)}
+.refs .id{font-weight:700;margin-right:8px;color:var(--ink)}
+.refs li:target{background:var(--accent-wash)}
+footer{max-width:1320px;margin:0 auto;padding:28px 32px 48px;color:var(--muted);font-size:13px;border-top:1px solid var(--rule)}
+
+
+/* v3: causal sketch */
+.dag text{font-family:var(--sans);fill:var(--ink)}
+.dag .nt{font-size:16px;font-weight:600}
+.dag .ns{font-size:13px;fill:var(--ink-2)}
+.dag .node{fill:var(--surface);stroke:var(--ink-2);stroke-width:1.2}
+.dag .e{fill:none;stroke:var(--ink-2);stroke-width:1.5}
+.dag .e.q{stroke:var(--accent);stroke-width:1.8;stroke-dasharray:6 5}
+.dag .ah{fill:var(--ink-2)}
+.dag .ahq{fill:var(--accent)}
+.dag .lab{font-size:12.5px;fill:var(--ink-2)}
+.dag .qt circle{fill:var(--accent-wash);stroke:var(--accent);stroke-width:1.5}
+.dag .qt text{font-size:11.5px;font-weight:700;fill:var(--accent)}
+.flow-foot .sw.line{width:22px;height:0;border-radius:0;border-top:2px solid var(--ink-2)}
+.flow-foot .sw.dash{width:22px;height:0;border-radius:0;border-top:2px dashed var(--accent)}
+.qlist{display:grid;gap:6px;margin:12px 0 0;padding:12px 0 0;border-top:1px solid var(--grid)}
+.qlist div{display:grid;grid-template-columns:30px minmax(0,1fr);gap:6px;font-size:14px;line-height:1.65;color:var(--ink)}
+.qlist b{color:var(--accent);font-weight:700}
+/* v3: illustrative figures */
+.two .gap{stroke:var(--accent);stroke-width:2.5;stroke-linecap:round}
+.two .lm{stroke:var(--accent);stroke-width:1.5;stroke-dasharray:5 4}
+.two .dot{stroke-width:2.5}
+.cv .hos{fill:var(--surface-2);stroke:var(--rule);stroke-width:1}
+.cv .hos.key{fill:var(--accent-wash);stroke:var(--accent);stroke-width:1.5}
+.cv .trn{fill:var(--obs)}
+.cv .tst{fill:var(--surface);stroke:var(--accent);stroke-width:2.2}
+.figkey{display:inline-flex;gap:14px;margin-right:12px;vertical-align:1px}
+.figkey span{display:inline-flex;align-items:center;gap:6px;color:var(--ink)}
+.figkey i{width:11px;height:11px;border-radius:50%;display:inline-block}
+.figkey i.trn{background:var(--obs)}
+.figkey i.tst{background:var(--surface);border:2px solid var(--accent)}
+/* v3: discovery steps */
+.steps{list-style:none;margin:8px 0 0;padding:0;counter-reset:st;max-width:980px}
+.step{position:relative;display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px;padding:0 0 16px}
+.step::before{counter-increment:st;content:counter(st);width:30px;height:30px;border-radius:50%;border:1.5px solid var(--ink-2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:var(--ink);background:var(--paper);position:relative;z-index:1;margin-top:10px}
+.step::after{content:"";position:absolute;left:15px;top:40px;bottom:0;width:1.5px;background:var(--rule)}
+.step:last-child::after{display:none}
+.step.core::before{border-color:var(--accent);background:var(--accent);color:var(--surface)}
+.step-card{background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:13px 18px 12px;min-width:0}
+.step.core .step-card{border-color:var(--accent);box-shadow:inset 4px 0 0 var(--accent)}
+.step h4{margin:0;font-size:16px;line-height:1.5;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.step dl{display:grid;grid-template-columns:56px minmax(0,1fr);gap:4px 10px;margin:8px 0 0;font-size:14.5px;line-height:1.72}
+.step dt{color:var(--muted);font-size:13px;padding-top:1px}
+.step dd{margin:0;color:var(--ink-2)}
+.canbox{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border:1px solid var(--rule);border-radius:14px;background:var(--surface);overflow:hidden;margin:10px 0 8px;max-width:980px}
+.canbox>div{padding:16px 20px}
+.canbox>div+div{border-left:1px solid var(--rule)}
+.canbox h3{margin:0 0 6px;font-size:16px;display:flex;gap:8px;align-items:center}
+.canbox ul{margin:0;padding-left:1.15em}
+.canbox li{margin:5px 0;font-size:15px;line-height:1.72}
+/* v3: question cards */
+.qgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:8px 0}
+.qcard{background:var(--surface);border:1px solid var(--rule);border-radius:14px;padding:16px 18px 14px;display:flex;flex-direction:column}
+.qcard .qn{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--accent-wash);color:var(--accent);font-weight:700;font-size:14px;border:1.5px solid var(--accent)}
+.qcard h3{margin:10px 0 8px;font-size:17px;line-height:1.55}
+.qcard dl{margin:0;display:grid;gap:9px}
+.qcard dt{font-size:12.5px;color:var(--muted)}
+.qcard dd{margin:2px 0 0;font-size:14.5px;line-height:1.72;color:var(--ink-2)}
+.qlevel{font-size:13px;color:var(--ink);margin:auto 0 0;padding-top:12px;border-top:1px solid var(--grid);margin-top:14px}
+/* v3: tune vs eval bars */
+.cmp{background:var(--surface);border:1px solid var(--rule);border-radius:14px;padding:18px 20px 14px;max-width:980px}
+.cmp-key{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--ink-2);margin:2px 0 10px}
+.cmp-key span{display:inline-flex;align-items:center;gap:7px}
+.cmp-key i{width:14px;height:10px;border-radius:2px;display:inline-block}
+.cmp-key i.tu,.cbar .f.tu{background:var(--obs)}
+.cmp-key i.ev,.cbar .f.ev{background:var(--removed)}
+.cmp-row{display:grid;grid-template-columns:120px minmax(0,1fr);gap:16px;align-items:center;padding:9px 0;border-top:1px solid var(--grid)}
+.cmp-row .lbl{font-size:14px}
+.cmp-bars{display:grid;gap:5px}
+.cbar{position:relative;height:16px;outline-offset:2px}
+.cbar .f{position:absolute;left:0;top:1px;height:14px;border-radius:0 4px 4px 0}
+.cbar .v{position:absolute;top:-3px;font-size:13px;line-height:22px;white-space:nowrap;color:var(--ink);font-variant-numeric:tabular-nums}
+.cmp-note{font-size:13.5px;color:var(--ink-2);line-height:1.7;margin:10px 0 0;padding-top:10px;border-top:1px solid var(--grid)}
+@media (max-width:1120px){.hero{grid-template-columns:1fr}.flow{max-width:640px}}
+@media (max-width:1000px){
+  .shell{grid-template-columns:1fr;padding:0 20px}
+  .toc{position:static;max-height:none;padding:14px 0 0;overflow-x:auto}
+  .toc ol{display:flex;gap:6px;border-left:0;white-space:nowrap;padding-bottom:8px}
+  .toc a{border:1px solid var(--rule);border-radius:999px;padding:4px 12px;margin:0;background:var(--surface)}
+  .toc a[aria-current="true"]{border-color:var(--accent)}
+  .chain{grid-template-columns:1fr;gap:16px}
+  .link:not(:last-child)::after{right:auto;left:22px;top:auto;bottom:-14px;transform:rotate(135deg)}
+  .outs{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .riskwrap{grid-template-columns:1fr}
+  .papers{grid-template-columns:1fr}
+  .qgrid{grid-template-columns:1fr}
+}
+@media (max-width:640px){
+  body{font-size:16px}
+  .topbar-inner{padding:8px 16px}
+  .topbar .doc span{display:none}
+  .shell{padding:0 16px}
+  .hero{padding:28px 0 26px;gap:26px}
+  .ask{font-size:17px;padding:16px 16px}
+  .facts{grid-template-columns:1fr}
+  section.sec{padding-top:44px}
+  section.sec>h2{font-size:25px}
+  .quad{grid-template-columns:1fr}
+  .quad>div{border-right:0!important;border-bottom:1px solid var(--rule)}
+  .quad>div:last-child{border-bottom:0}
+  .changes>li{grid-template-columns:1fr;gap:8px}
+  .changes .tag{justify-self:start}
+  .nine{grid-template-columns:1fr}
+  .nine div{border-right:0!important;border-bottom:1px solid var(--rule)!important}
+  .nine div:last-child{border-bottom:0!important}
+  .rung{grid-template-columns:44px minmax(0,1fr)}
+  .rung .tier{grid-column:2;justify-self:start}
+  .day{grid-template-columns:1fr}
+  .day-rail{border-right:0;border-bottom:1px solid var(--rule);display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+  .day-rail .hh{margin:0}
+  .tasks li{grid-template-columns:48px minmax(0,1fr);}
+  .tasks .hrs{grid-column:2}
+  .cols{grid-template-columns:1fr}
+  .outs{grid-template-columns:1fr}
+  .q{grid-template-columns:1fr}
+  .q .no{margin:8px 0 0 44px}
+  .prow,.paxis{grid-template-columns:1fr;gap:4px}
+  .paxis>div:first-child{display:none}
+  .est{grid-template-columns:1fr}
+  .gloss{grid-template-columns:1fr}
+  .gloss dt{border-bottom:0;padding-bottom:0}
+  .canbox{grid-template-columns:1fr}
+  .canbox>div+div{border-left:0;border-top:1px solid var(--rule)}
+  .step{grid-template-columns:36px minmax(0,1fr);gap:8px}
+  .step dl{grid-template-columns:1fr;gap:0}
+  .step dd{margin-bottom:6px}
+  .cmp-row{grid-template-columns:1fr;gap:6px}
+  .formula{white-space:normal}
+  .rung .code{font-size:15px;white-space:normal}
+  .riskgrid{grid-template-columns:40px repeat(3,minmax(0,1fr))}
+  .rchip{font-size:11.5px;padding:3px 6px;white-space:normal}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.fs .r{transition:none}}
+@media print{
+  .topbar,.toc,.pathbar,.flow-foot .btn,.skip{display:none!important}
+  body{background:#fff;font-size:10.5pt}
+  .shell{display:block;padding:0}
+  section.sec{break-inside:auto;padding-top:24px}
+  .day,.paper,.out,.rung,figure{break-inside:avoid}
+  .board,.road{min-width:0}
+  figure.dia svg{min-width:0}
+  a{color:inherit;text-decoration:none}
+}
+</style>
+</head>
+<body data-path="full">
+<a class="skip" href="#main">跳到正文</a>
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="doc"><b>下周研究计划</b><span>：11 月 2–8 日，问题验证周</span></div>
+    <div class="spacer"></div>
+    <button class="btn" id="themeBtn" type="button" aria-label="切换深色">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13Zm0 1.5v10a5 5 0 0 1 0-10Z"/></svg>
+      <span id="themeLabel">深色</span>
+    </button>
+  </div>
+</header>
+
+<div class="shell">
+<nav class="toc" aria-label="页面目录">
+  <ol>
+    <li><a href="#summary">一页看懂</a></li>
+    <li><a href="#found">已经做到哪一步</a></li>
+    <li><a href="#questions">要验证的三个问题</a></li>
+    <li><a href="#design">分析怎么做</a></li>
+    <li><a href="#week">一周安排</a></li>
+    <li><a href="#stats">统计与精度</a></li>
+    <li><a href="#decide">周日怎么判</a></li>
+    <li><a href="#risks">风险与对策</a></li>
+    <li><a href="#collab">合作线</a></li>
+    <li><a href="#reading">精读清单</a></li>
+    <li><a href="#roadmap">到 2027 年 8 月</a></li>
+    <li><a href="#lock">周一要定的事</a></li>
+    <li><a href="#code">代码与资源</a></li>
+    <li><a href="#appendix">术语与来源</a></li>
+    <li><a href="#changes">附：和 v2 的区别</a></li>
+  </ol>
+</nav>
+
+<main id="main">
+<div class="hero">
+  <div>
+    <h1>医院之间的记录习惯差异，是真问题吗？</h1>
+    <p class="dek">11 月 2–8 日的一周计划。合作线在 MC-MED 上已经证明：部分模型会利用“什么时候测”。但这些记录方式是不是医院特有的、会不会让模型换一家医院就变差，还没有证据。这一周只做验证，不讨论怎么改善。新分析都还没跑，页面里的数字来自已有报告。</p>
+    <p class="ask">这一周要回答：<b>病情相同</b>的病人，在不同医院被记录的方式还一样吗？如果不一样，模型换一家医院时会不会<b>因此</b>变差？</p>
+    <dl class="facts">
+      <div><dt>用什么数据</dt><dd>eICU 36 家 tune 医院<span>1,952 名病人、938 个阳性时点；另外 159 家本周不碰</span></dd></div>
+      <div><dt>核心指标</dt><dd>记录倍数差、过程增益缩水<span>前者回答差异在不在，后者回答有没有害</span></dd></div>
+      <div><dt>要多少时间</dt><dd>必做约 30.5 小时<span>时间不够时有 20 小时的最低版本</span></dd></div>
+    </dl>
+  </div>
+  <figure class="flow">
+    <svg class="dag" viewBox="0 0 400 404" role="img" aria-label="已知与待验证的关系：病情影响记录方式和测得的数值，模型同时使用记录过程和数值，这些是已有证据。待验证的是：控制病情后，医院习惯是否还影响记录方式（Q1）；模型从记录过程中得到的信息有多少是医院特有的（Q2）；换一家医院时模型是否因此变差（Q3）。">
+<defs><marker id="dgah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker><marker id="dgaq" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ahq" d="M0,0 L10,5 L0,10 z"/></marker></defs>
+<path class="e q" d="M92,78 L92,155" marker-end="url(#dgaq)"/>
+<path class="e" d="M236,76 L174,156" marker-end="url(#dgah)"/>
+<path class="e" d="M340,76 L340,155" marker-end="url(#dgah)"/>
+<path class="e" d="M92,224 L168,288" marker-end="url(#dgah)"/>
+<path class="e" d="M308,224 L232,288" marker-end="url(#dgah)"/>
+<path class="e q" d="M200,356 L200,368"/>
+<rect class="node" x="6" y="12" width="172" height="64" rx="10"/><text class="nt" x="20" y="40">医院习惯</text><text class="ns" x="20" y="62">开单、护理制度、系统</text>
+<rect class="node" x="222" y="12" width="172" height="64" rx="10"/><text class="nt" x="236" y="40">患者病情</text><text class="ns" x="236" y="62">生理状态、严重程度</text>
+<rect class="node" x="6" y="160" width="172" height="64" rx="10"/><text class="nt" x="20" y="188">记录过程</text><text class="ns" x="20" y="210">何时测、多密、隔多久</text>
+<rect class="node" x="222" y="160" width="172" height="64" rx="10"/><text class="nt" x="236" y="188">测得的数值</text><text class="ns" x="236" y="210">心率、SpO₂、化验值</text>
+<rect class="node" x="114" y="292" width="172" height="64" rx="10"/><text class="nt" x="128" y="320">模型预测</text><text class="ns" x="128" y="342">风险概率</text>
+<text class="lab" x="74" y="112" text-anchor="end">控制病情</text>
+<text class="lab" x="74" y="129" text-anchor="end">后还在吗？</text>
+<text class="lab" x="226" y="122">病情重就测得勤</text>
+<g class="qt"><circle cx="92" cy="117" r="13"/><text x="92" y="121" text-anchor="middle">Q1</text></g>
+<g class="qt"><circle cx="130" cy="256" r="13"/><text x="130" y="260" text-anchor="middle">Q2</text></g>
+<g class="qt"><circle cx="200" cy="382" r="13"/><text x="200" y="386" text-anchor="middle">Q3</text></g>
+<text class="lab" x="220" y="387">换一家医院还准吗？</text>
+</svg>
+    <div class="flow-foot">
+      <span class="k"><span class="sw line"></span>已有证据</span>
+      <span class="k"><span class="sw dash"></span>本周要验证</span>
+    </div>
+    <div class="qlist">
+      <div><b>Q1</b><span>控制病情后，医院习惯还会影响记录方式吗？</span></div>
+      <div><b>Q2</b><span>模型从记录过程里拿到的，有多少其实是“认出了医院”？</span></div>
+      <div><b>Q3</b><span>换一家医院时，模型会不会因此变差？</span></div>
+    </div>
+    <figcaption>实线是已有证据：病情重的病人测得更勤（临床常识），模型确实在用记录过程（MC-MED 上的 Stage 1 和 Stage 2A-v2）。图里没画的另一条路：Y24 里的插管、升压药本身是治疗决定，各院门槛不同，也会让模型换院变差，分析时要分开。</figcaption>
+  </figure>
+</div>
+
+<section class="sec" id="summary">
+  <h2>一页看懂</h2>
+  <p class="lead">我们现在做的还不是“解决问题”，而是“发现和验证问题”。已经证明的是：记录过程里有结局信息，部分模型会利用记录时间。还没证明的是：这些记录方式是医院特有的，而且会让模型换院变差。这周只补这一步；问题成立之前，不比较改善方法。</p>
+  <div class="quad">
+    <div>
+      <h3>已经证明的（MC-MED，单中心）</h3>
+      <ul>
+        <li>只看记录方式、不看任何数值，AUPRC 也有 0.1786–0.2037，高于患病率 12.03%；LightGBM 加上过程特征后 AUPRC 多 +0.0225 [0.0114, 0.0341]。<a class="cite" href="#ref-E02">[E02]</a></li>
+        <li>生理数值、顺序、有效条数、首尾位置都固定，只改中间的记录时间，GRU-D、BRITS、OPL 等模型的预测仍会变（MPAD 0.0099–0.0192）；XGBoost、LightGBM 几乎不变。阴性对照完全不变。<a class="cite" href="#ref-E13">[E13]</a></li>
+        <li>所以：模型不只用生理信息；对记录时间依赖多少，取决于模型结构。</li>
+      </ul>
+    </div>
+    <div>
+      <h3>还没证明的</h3>
+      <ul>
+        <li>这些记录时间的差异来自医院习惯，而不是病人自己的病情。</li>
+        <li>模型学到的是医院习惯，而不是病人状态。</li>
+        <li>医院习惯会让模型换一家医院就变差。</li>
+        <li>要回答这些，需要多医院的数据，并且要控制病情。</li>
+      </ul>
+    </div>
+    <div>
+      <h3>这周做什么</h3>
+      <ul>
+        <li>周一：定验证方案；把 eICU 的记录通道分成“设备自动 / 护士录入 / 医生开单”三类。</li>
+        <li>周二、周三：Q1，比较病情相同时各院的记录方式差多少。</li>
+        <li>周四、周五：Q2、Q3，看记录特征的含义各院是否一致，换院后还剩多少用。</li>
+        <li>周六、周日：汇总、复现，判断问题是否成立。</li>
+      </ul>
+    </div>
+    <div>
+      <h3>周日怎么判</h3>
+      <ul>
+        <li>问题分三级：差异存在（Q1）→ 差异改变了特征含义、或让模型认出医院（Q2）→ 因此换院变差（Q3）。</li>
+        <li>36 家医院精度有限，这周的结论是探索性的；成立的话，先预登记，再在 159 家 eval 医院上确认一次。</li>
+      </ul>
+    </div>
+  </div>
+  <p class="thesis"><b>现阶段的定位：</b>问题发现与验证。只有确认“医院特有的记录过程会让模型换院变差”，才进入“怎么改善”（包括后训练）。如果不成立，现有的问题发现（模型对记录时间的依赖取决于结构）本身仍是一个能写清楚的结论。</p>
+</section>
+
+<section class="sec" id="found">
+  <h2>已经做到哪一步</h2>
+  <p class="lead">合作线在 MC-MED 上一步步排除混杂，把“删数据后模型会不会变差”收紧成“数值都不变、只改记录时间，预测会不会变”。每一步都发现了上一步的漏洞。</p>
+  <ol class="steps">
+    <li class="step"><div class="step-card">
+      <h4>缺失敏感性 <span class="tier t-later">现为敏感性基准</span></h4>
+      <dl>
+        <dt>做了</dt><dd>12 个模型，Original、Drop20、Drop40、Continuous5min 四种输入。</dd>
+        <dt>发现</dt><dd>删掉观测后，各模型下降的幅度差别很大。</dd>
+        <dt>漏洞</dt><dd>删一条观测，既改了记录方式，也删掉了生理信息，回答不了“模型是否利用记录习惯”。</dd>
+      </dl></div></li>
+    <li class="step"><div class="step-card">
+      <h4>信息来源拆分（Stage 1） <span class="tier t-should">证据：记录过程有信息</span></h4>
+      <dl>
+        <dt>做了</dt><dd>输入分成只用数值（Value-only）、只用记录方式（Process-only）、两者合用（Combined）。</dd>
+        <dt>发现</dt><dd>只看记录方式，AUPRC 0.1786–0.2037，高于患病率 12.03%；LightGBM 合用比只用数值多 +0.0225 [0.0114, 0.0341]。</dd>
+        <dt>漏洞</dt><dd>记录方式可能反映医生对病情的反应，不能说是“习惯”。“只用数值”也不是纯生理：哪些值被测到，本身就受记录过程影响。</dd>
+      </dl></div></li>
+    <li class="step"><div class="step-card">
+      <h4>严格密集队列 <span class="tier t-later">补充分析</span></h4>
+      <dl>
+        <dt>做了</dt><dd>只留心率、SpO₂、呼吸都很密的病人，想重建“纯生理”的轨迹。</dd>
+        <dt>漏洞</dt><dd>test 从 5,236 人缩到 372 人，留下的都是被密集监测的病人，带来新的选择偏差。</dd>
+      </dl></div></li>
+    <li class="step"><div class="step-card">
+      <h4>原始层时间交换（Stage 2A-v1） <span class="tier t-later">已升级</span></h4>
+      <dl>
+        <dt>做了</dt><dd>同一个病人，数值、顺序、条数和首尾时间都不变，只改中间的记录时间。</dd>
+        <dt>漏洞</dt><dd>输入不变性审计发现：GRU-D、OPL、BRITS 会先把时间放到 1 分钟网格上，交换后会出现同格碰撞、合并和有效条数变化，不算纯时间效应。这一步反而帮我们找到了预处理层的混杂。</dd>
+      </dl></div></li>
+    <li class="step core"><div class="step-card">
+      <h4>无碰撞时间干预（Stage 2A-v2） <span class="tier t-must">核心证据</span></h4>
+      <dl>
+        <dt>做了</dt><dd>直接在模型实际使用的网格层控制：数值内容、顺序、有效条数、首尾格都不变，碰撞、合并、丢值都是 0；只改中间的记录位置、mask 和 delta。</dd>
+        <dt>发现</dt><dd>GRU-D（MPAD 0.0188，决策不一致 6.14%）、BRITS（0.0177，6.20%）、OPL（0.0138，4.91%）、FF-LSTM（0.0099，3.73%）、TimesFM（0.0192）的预测明显变化，VIMTS 的决策不一致达 15.14%；XGBoost、LightGBM 只有 0.0005、0.0010。</dd>
+        <dt>对照</dt><dd>阴性对照：只用数值的表示，扰动后特征矩阵完全相同，MPAD、预测范围和决策不一致都是 0。说明预测变化不是数据生成代码带来的假信号。</dd>
+      </dl></div></li>
+    <li class="step"><div class="step-card">
+      <h4>两个辅助分析 <span class="tier t-later">解读时注意</span></h4>
+      <dl>
+        <dt>单变量</dt><dd>GRU-D、OPL、BRITS 都是 SpO₂ 的记录时间影响最大。这只说明模型对它更敏感，不说明 SpO₂ 对恶化有因果作用。</dd>
+        <dt>离阈值</dt><dd>决策翻转集中在靠近阈值的病人：最近的四分之一里约 18%–21%，最远的四分之一几乎为 0。时间依赖不一定让所有人的概率大幅漂移，但对处在边界的病人影响很大。</dd>
+      </dl></div></li>
+  </ol>
+
+  <div class="canbox">
+    <div>
+      <h3><span class="status st-have"><i></i></span>现在能说的</h3>
+      <ul>
+        <li>模型并不只用生理信息。</li>
+        <li>记录过程本身含有和结局相关的信息。</li>
+        <li>在生理数值、顺序、有效条数都固定时，部分模型仍会因为记录时间改变而改变预测。</li>
+        <li>这种依赖的程度在模型之间差别很大，取决于结构和时间信息的编码方式。</li>
+      </ul>
+    </div>
+    <div>
+      <h3><span class="status st-serious"><i></i></span>还不能说的</h3>
+      <ul>
+        <li>这些时间差异一定来自医院的记录习惯。</li>
+        <li>模型学到的是医院习惯，而不是病人状态。</li>
+        <li>医院习惯一定会导致换院后变差。</li>
+        <li>所有缺失感知模型都脆弱，所有基础模型都不稳定；SpO₂ 的记录时间对恶化有因果作用。</li>
+      </ul>
+    </div>
+  </div>
+  <p class="note"><b>关于 LightGBM：</b>它在时间干预下几乎不变，是因为交换保持了条数和首尾时间，树模型用的计数、最近一次记录时间等特征没有变。这不等于它不用记录过程：Stage 1 里只用过程特征的 LightGBM，AUPRC 仍有 0.2037。它在换院时会不会因此吃亏，正是 Q3 要检验的。</p>
+
+  <details class="more"><summary>完整数字（Stage 1 和 Stage 2A-v2 两张表），以及读数时的注意事项</summary><div class="inner">
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Stage 1 模型</th><th class="num">只用数值 AUPRC</th><th class="num">只用记录方式 AUPRC</th><th class="num">两者合用 AUPRC</th></tr></thead>
+      <tbody>
+        <tr><td>Logistic Regression</td><td class="num">0.2621</td><td class="num">0.1786</td><td class="num">0.2733</td></tr>
+        <tr><td>XGBoost</td><td class="num">0.3099</td><td class="num">0.2003</td><td class="num">0.3201</td></tr>
+        <tr><td>LightGBM</td><td class="num">0.3028</td><td class="num">0.2037</td><td class="num">0.3253</td></tr>
+      </tbody>
+    </table></div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Stage 2A-v2 模型</th><th class="num">原始 AUPRC</th><th class="num">MPAD</th><th class="num">决策不一致率</th></tr></thead>
+      <tbody>
+        <tr><td>XGBoost</td><td class="num">0.3167</td><td class="num">0.0005</td><td class="num">0.45%</td></tr>
+        <tr><td>LightGBM</td><td class="num">0.3147</td><td class="num">0.0010</td><td class="num">0.57%</td></tr>
+        <tr><td>BRITS</td><td class="num">0.3141</td><td class="num">0.0177</td><td class="num">6.20%</td></tr>
+        <tr><td>GRU-D</td><td class="num">0.2985</td><td class="num">0.0188</td><td class="num">6.14%</td></tr>
+        <tr><td>OPL structured-only</td><td class="num">0.2939</td><td class="num">0.0138</td><td class="num">4.91%</td></tr>
+        <tr><td>FF-LSTM</td><td class="num">0.2755</td><td class="num">0.0099</td><td class="num">3.73%</td></tr>
+        <tr><td>MIRA-Large</td><td class="num">0.2180</td><td class="num">0.0128</td><td class="num">7.86%</td></tr>
+        <tr><td>VIMTS-Adapter</td><td class="num">0.1586</td><td class="num">0.0177</td><td class="num">15.14%</td></tr>
+        <tr><td>TimesFM 3.0</td><td class="num">0.1456</td><td class="num">0.0192</td><td class="num">10.47%</td></tr>
+        <tr><td>mTAND（不同队列，单列参照）</td><td class="num">0.2731</td><td class="num">0.0012</td><td class="num">0.52%</td></tr>
+      </tbody>
+    </table></div>
+    <ul>
+      <li>Stage 1 测试集 5,236 次就诊、患病率 12.03%；LightGBM 增量有区间，另两行是直接相减。Stage 2A-v2 主要用 N = 1,328、224 个阳性（约 16.87%）的机制队列，mTAND 用 N = 4,684，不能和其他行严格排名。</li>
+      <li>MPAD 的准确定义要从评价代码确认。10 月 MC-MED 的训练用了 <code>pos_weight=(N−pos)/pos</code> 加权，原始 Brier 0.183–0.231，比直接猜患病率（约 0.106）还差；概率尺度会影响漂移类指标的大小，跨模型比较 MPAD 时要注意。<a class="cite" href="#ref-E06">[E06]</a></li>
+      <li>数字来自合作同学的阶段总结和 10-31 的文字稿；阴性对照与输入不变性审计只见于文字稿，原始产物还没核对。<a class="cite" href="#ref-E02">[E02]</a><a class="cite" href="#ref-E13">[E13]</a></li>
+    </ul>
+  </div></details>
+
+  <h3>多医院方向已有的线索（都还不是证据）</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th style="width:18%">线索</th><th style="width:44%">说明了什么</th><th>不能说明什么</th></tr></thead>
+    <tbody>
+      <tr><td>AL1 <span class="badge">GAM、GD 两院</span></td><td>只用记录过程特征区分两家合作医院，AUROC 达 0.96–0.97；连年龄的记录方式都会暴露医院。<a class="cite" href="#ref-E07">[E07]</a></td><td>两院的病人和数据系统都不同；能区分医院不等于有害。</td></tr>
+      <tr><td>两院数据成绩单</td><td>同一变量的记录覆盖差别很大：住院 SpO₂ 覆盖 GAM 51.4%、GD 16.0%；氧疗信息一边多来自护理和病历文字，一边主要来自医嘱。<a class="cite" href="#ref-E09">[E09]</a><a class="cite" href="#ref-E10">[E10]</a></td><td>这是数据系统和流程的差异，还没控制病情。</td></tr>
+      <tr><td>V2 eICU 泄漏嗅探</td><td>在 36 家 tune 医院按医院分组 5 折，LightGBM AUROC 0.738；重要特征里有呼吸、SpO₂、FiO₂ 的测量间隔。<a class="cite" href="#ref-E04">[E04]</a></td><td>只说明模型在用间隔特征；没有比较“见过 / 没见过这家医院”。</td></tr>
+      <tr><td>B1v2 MIMIC 泄漏嗅探</td><td>LightGBM 增益最高的特征是“距上次血气 pH 几小时”和“距上次 FiO₂ 几小时”。<a class="cite" href="#ref-E03">[E03]</a></td><td>单中心，验证集上的非正式结果。</td></tr>
+      <tr><td>F2 跨库特征对齐</td><td>把计数从“记录条数”改成“有记录的小时数”，LR 外部 AUROC 约 0.609 → 0.673，校准斜率 0.08 → 0.50。<a class="cite" href="#ref-E07">[E07]</a></td><td>是 MIMIC 和 eICU 两个库之间，不是同库的医院之间；也混有病人构成的差异。</td></tr>
+      <tr><td>eICU 与 MIMIC 的覆盖率</td><td>24 小时内至少测一次：GCS 0.67 对 0.99，乳酸 0.31 对 0.50，pH 0.34 对 0.50。<a class="cite" href="#ref-E04">[E04]</a></td><td>同样是库之间的差异，不是同库医院之间。</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="sec" id="questions">
+  <h2>要验证的三个问题</h2>
+  <p class="lead">三个问题从弱到强。前一个不成立，后一个就很难成立；但每个结果都有用，都会写进结论。</p>
+  <div class="qgrid">
+    <article class="qcard">
+      <span class="qn">Q1</span>
+      <h3>控制病情后，各医院的记录方式还不一样吗？</h3>
+      <dl>
+        <div><dt>为什么</dt><dd>病情重的病人本来就测得勤。只有在病情相同时仍有差别，才能说是“医院习惯”。</dd></div>
+        <div><dt>怎么做</dt><dd>用不含医院信息的模型，按病情算出每个病人每小时“应该”被记录的概率；再看每家医院实际记录数是预期的几倍。各院之间的差别用“中位倍数比”概括：随便挑两家医院，病情相同的病人，记录次数的中位差别是几倍。</dd></div>
+        <div><dt>怎么读</dt><dd>调整病情后倍数比接近 1：医院习惯这条假设证据弱。明显大于 1：差异存在，进入 Q2、Q3。</dd></div>
+      </dl>
+      <p class="qlevel">第一级：差异存在。不用结局标签。</p>
+    </article>
+    <article class="qcard">
+      <span class="qn">Q2</span>
+      <h3>同一个记录特征，在不同医院意思一样吗？模型会不会靠它认出医院？</h3>
+      <dl>
+        <div><dt>为什么</dt><dd>如果甲院每天 5 点常规抽血、乙院只在病情变化时抽，“刚测过血气”在两院的含义完全不同。</dd></div>
+        <div><dt>怎么做</dt><dd>把记录特征拆成“本院平均水平”和“病人相对本院的偏离”，分别看它们和结局的关系；再看只用记录特征能不能认出是哪家医院。</dd></div>
+        <div><dt>怎么读</dt><dd>偏离部分有用、平均水平没用：记录信号主要来自病人状态。两部分的关系明显不同：混在一起训练的模型会误读新医院。</dd></div>
+      </dl>
+      <p class="qlevel">第二级：差异改变了特征含义。</p>
+    </article>
+    <article class="qcard">
+      <span class="qn">Q3</span>
+      <h3>换一家医院，记录特征还剩多少用？</h3>
+      <dl>
+        <div><dt>为什么</dt><dd>这是对“有没有害”的直接检验。</dd></div>
+        <div><dt>怎么做</dt><dd>同一批病人做两种交叉验证：按病人随机切（测试医院训练时见过）和按医院整组切（没见过）。比较加上记录特征带来的增益，在两种切法下差多少。</dd></div>
+        <div><dt>怎么读</dt><dd>增益在“没见过的医院”明显缩水：记录特征里有医院特有的信号，换院会变差。基本不缩水：记录信息大体能迁移。</dd></div>
+      </dl>
+      <p class="qlevel">第三级：因此换院变差。</p>
+    </article>
+  </div>
+
+  <h3>我们要找的是这种情况（虚构示意）</h3>
+  <figure class="dia"><div class="dia-scroll"><svg class="dg two" viewBox="0 0 760 252" role="img" aria-label="虚构示意：同一位平稳的病人，监护仪记录的 SpO₂ 相同。甲院每天 5 点常规抽血气，乙院只在病情变化时抽。到早上 6 点做预测时，距上次血气在甲院是 1 小时，在乙院是 11 小时。">
+<text class="tb" x="0" y="50">病人状态</text>
+<text class="t2" x="0" y="71">监护仪自动记录的 SpO₂</text>
+<polyline class="trace" points="180,56 218,52 256,56 294,60 332,56 370,52 408,56 446,56 484,60 522,56 560,52 598,56 636,56 674,52 712,56"/>
+<text class="t2" x="720" y="61">约 96%</text>
+<line class="div" x1="0" y1="94" x2="760" y2="94"/>
+<text class="tb" x="0" y="128">医院甲</text>
+<text class="t2" x="0" y="148">每天 5 点常规抽血气</text>
+<line class="axis" x1="180" y1="132" x2="712" y2="132"/>
+<line class="gap" x1="605" y1="132" x2="634" y2="132"/>
+<circle class="dot" cx="218" cy="132" r="6"/>
+<circle class="dot" cx="598" cy="132" r="6"/>
+<text x="646" y="124">距上次 1 小时</text>
+<text class="tb" x="0" y="188">医院乙</text>
+<text class="t2" x="0" y="208">病情变化时才抽血气</text>
+<line class="axis" x1="180" y1="192" x2="712" y2="192"/>
+<line class="gap" x1="225" y1="192" x2="634" y2="192"/>
+<circle class="dot" cx="218" cy="192" r="6"/>
+<text x="646" y="184">距上次 11 小时</text>
+<line class="lm" x1="636" y1="24" x2="636" y2="210"/>
+<text class="lab" x="636" y="16" text-anchor="middle">预测时点 6:00</text>
+<line class="axis" x1="180" y1="222" x2="180" y2="226"/>
+<text class="t2" x="180" y="242" text-anchor="middle">18:00</text>
+<line class="axis" x1="294" y1="222" x2="294" y2="226"/>
+<text class="t2" x="294" y="242" text-anchor="middle">21:00</text>
+<line class="axis" x1="408" y1="222" x2="408" y2="226"/>
+<text class="t2" x="408" y="242" text-anchor="middle">0:00</text>
+<line class="axis" x1="522" y1="222" x2="522" y2="226"/>
+<text class="t2" x="522" y="242" text-anchor="middle">3:00</text>
+<line class="axis" x1="636" y1="222" x2="636" y2="226"/>
+<text class="t2" x="636" y="242" text-anchor="middle">6:00</text>
+<line class="axis" x1="712" y1="222" x2="712" y2="226"/>
+<text class="t2" x="712" y="242" text-anchor="middle">8:00</text>
+<line class="axis" x1="180" y1="222" x2="712" y2="222"/>
+</svg></div>
+    <figcaption>虚构示意，是要检验的假设，不是已知事实。病人一样平稳，监护仪记录的 SpO₂ 完全相同。甲院每天 5 点常规抽血气，乙院只在病情变化时抽。到 6 点做预测时，“距上次血气”甲院是 1 小时，乙院是 11 小时。在乙院，“刚测过血气”往往意味着医生担心；用乙院数据训练的模型，可能把甲院的常规抽血当成危险信号。手机上可以左右滑动看图。</figcaption>
+  </figure>
+
+  <h3>三类记录通道</h3>
+  <p class="note" style="margin-top:0">“记录习惯”不止一种。监护仪数据有没有接入是系统问题，护士多久评一次 GCS 是护理制度，什么时候抽血是开单习惯。三类分开报告，避免把系统差异说成临床习惯。</p>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th style="width:13%">类型</th><th style="width:33%">eICU 里的通道（来源表）</th><th style="width:26%">24 小时内至少测一次</th><th>记录方式主要反映什么</th></tr></thead>
+    <tbody>
+      <tr><td>设备自动</td><td>心率、呼吸、SpO₂（vitalPeriodic，每 5 分钟一条）</td><td>心率 0.98，呼吸 0.89</td><td>监护仪是否连着、数据是否接入：主要是设备和系统的差异</td></tr>
+      <tr><td>护士录入</td><td>GCS（护士记录）；部分体温（护士记录）</td><td>GCS 0.67，体温 0.94（含自动）</td><td>护理制度、评估频率</td></tr>
+      <tr><td>医生开单</td><td>化验：乳酸、pH、PaO₂、肌酐、胆红素等（lab 表）；FiO₂（respiratoryCharting）</td><td>乳酸 0.31，pH 0.34，PaO₂ 0.35，肌酐 0.90，胆红素 0.45，FiO₂ 0.35</td><td>开单常规、抽血时间，以及对病情的反应</td></tr>
+      <tr><td>混合来源</td><td>血压（有创自动 + 无创袖带）、体温（自动 + 护士）</td><td>—</td><td>先拆开或排除，不直接下结论</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">比例是 V2 全部 64,338 个预测时点的整体覆盖（eICU 列），各医院之间的差别正是本周要算的。通道来源见 V2 文档 §3。<a class="cite" href="#ref-E04">[E04]</a></p>
+</section>
+
+<section class="sec" id="design">
+  <h2>分析怎么做</h2>
+  <p class="lead">所有分析都在服务器上跑，只导出汇总结果。用到结局的分析，配置在跑之前冻结，只跑一次。</p>
+
+  <h3>数据范围</h3>
+  <ul class="rules">
+    <li>只用 eICU V2 的 36 家 tune 医院：1,952 名病人、12,906 个预测时点、938 个 Y24 阳性时点。人群、终点和预测时点沿用 V2：成人急性呼吸道感染，入科后 6–72 小时每 6 小时一个时点，看之后 24 小时内有没有插管、升压药或死亡。<a class="cite" href="#ref-E04">[E04]</a></li>
+    <li>159 家 eval 医院（7,467 名病人、3,554 个阳性时点）本周不碰。它们在 AL4 等实验里报告过结果，已经不算完全没碰过，但仍是现有最大的多医院数据：探索结果值得确认时，先预登记，再在那里一次性跑。<a class="cite" href="#ref-E07">[E07]</a></li>
+    <li>Q1 不用结局标签；Q2、Q3 用结局，配置在周四跑之前冻结（G2）。</li>
+    <li>26 名在 tune 和 eval 两边都有住院的病人：探索阶段保留并报告人数；确认阶段怎么处理，事先定好。</li>
+    <li>导出规则沿用 V2：每个格子至少 11 人才导出；逐病人的结果只留在服务器受限目录。两家合作医院（GD、GAM）这周只维护，不承担验证。</li>
+  </ul>
+
+  <h3>Q1：病情相同时，各院的记录方式差多少</h3>
+  <ul class="rules">
+    <li><b>单位</b>：入科后 0–72 小时内的“病人 × 小时”。每个通道记下这一小时有没有记录。</li>
+    <li><b>期望模型</b>：不放医院信息，只用病情和背景预测“这一小时会不会被记录”。病情分三层逐步加入：① 入科后多久；② 入科信息（年龄、性别、入科诊断大类、病区类型、入科来源）；③ 当前状态（监护仪自动记录的心率、呼吸、SpO₂ 的近期值和变化，呼吸支持等级，是否用 NIV，这个通道上一次的值）。</li>
+    <li><b>每家医院</b>：实际记录数 ÷ 期望记录数（O/E），附病人数和区间，画成漏斗图。</li>
+    <li><b>各院之间</b>：对 log(O/E) 做随机效应汇总，得到医院间标准差 τ，换算成中位倍数比 = exp(0.954 × τ)。比较三层调整前后 τ 缩小了多少：缩小的部分，是病情和病人构成能解释的。</li>
+    <li><b>钟点指纹</b>：eICU 的 patient 表有入科时刻（unitadmittime24），加上分钟偏移就能推出每条记录的钟点（没有星期几）。画各院化验的钟点分布：常规抽血的时间和病情关系很弱，是比较干净的“习惯”信号。<a class="cite" href="#ref-S011">[S011]</a></li>
+    <li><b>稳健性</b>：再加 APACHE 评分（它用首日最差值，本身受测量多少影响，会吸收一部分记录差异，只作敏感性）；去掉病人很少的医院；按通道类型分别报告。</li>
+    <li><b>残余混杂</b>：可测的病情控制不了医生的担心。钟点指纹，以及同一家医院里“常规化验”和“按需化验”的对比，是对这一点的补充。</li>
+  </ul>
+
+  <h3>Q2：记录特征的含义各院一致吗</h3>
+  <ul class="rules">
+    <li>事先选 6–8 个记录特征（比如距上次血气、距上次乳酸、过去 24 小时有 GCS 记录的小时数、FiO₂ 的记录间隔），以及对应的数值特征。</li>
+    <li><b>拆分</b>：每个记录特征 = 本院平均水平 + 病人相对本院的偏离。在同一个结局模型里分别估计两部分的系数（within / between 分解）。</li>
+    <li><b>交互</b>：按 Q1 的记录强度把医院分成 3 组，检验“记录特征 × 医院组”：同样是“距上次血气 6 小时”，在勤测医院和少测医院的风险含义是否不同。</li>
+    <li><b>医院可识别性</b>：只用记录特征和只用数值特征，分别预测病人来自哪家医院（36 选 1），比较宏平均 AUROC（随机猜是 0.5）。</li>
+    <li>36 家医院、938 个阳性时点下，系数的区间会比较宽：这一部分重在看方向和大小，不做强结论。</li>
+  </ul>
+
+  <h3>Q3：换一家医院，记录特征还剩多少用</h3>
+  <figure class="dia"><div class="dia-scroll"><svg class="dg cv" viewBox="0 0 760 222" role="img" aria-label="两种交叉验证切法。左：按病人随机切，每家医院都有一部分病人进测试集，测试病人所在的医院训练时见过。右：按医院整组切，整家医院进测试集，训练时没见过这家医院。">
+<text class="tb" x="0" y="20">按病人随机切</text>
+<text class="t2" x="0" y="40">测试病人所在的医院，训练时见过</text>
+<rect class="hos" x="0" y="58" width="360" height="30" rx="8"/>
+<text class="t2" x="12" y="78">医院 1</text>
+<circle class="trn" cx="92" cy="73" r="6"/>
+<circle class="tst" cx="126" cy="73" r="6"/>
+<circle class="trn" cx="160" cy="73" r="6"/>
+<circle class="trn" cx="194" cy="73" r="6"/>
+<circle class="trn" cx="228" cy="73" r="6"/>
+<circle class="tst" cx="262" cy="73" r="6"/>
+<circle class="trn" cx="296" cy="73" r="6"/>
+<circle class="trn" cx="330" cy="73" r="6"/>
+<rect class="hos" x="0" y="98" width="360" height="30" rx="8"/>
+<text class="t2" x="12" y="118">医院 2</text>
+<circle class="trn" cx="92" cy="113" r="6"/>
+<circle class="trn" cx="126" cy="113" r="6"/>
+<circle class="trn" cx="160" cy="113" r="6"/>
+<circle class="tst" cx="194" cy="113" r="6"/>
+<circle class="trn" cx="228" cy="113" r="6"/>
+<circle class="trn" cx="262" cy="113" r="6"/>
+<circle class="tst" cx="296" cy="113" r="6"/>
+<circle class="trn" cx="330" cy="113" r="6"/>
+<rect class="hos" x="0" y="138" width="360" height="30" rx="8"/>
+<text class="t2" x="12" y="158">医院 3</text>
+<circle class="tst" cx="92" cy="153" r="6"/>
+<circle class="trn" cx="126" cy="153" r="6"/>
+<circle class="trn" cx="160" cy="153" r="6"/>
+<circle class="trn" cx="194" cy="153" r="6"/>
+<circle class="tst" cx="228" cy="153" r="6"/>
+<circle class="trn" cx="262" cy="153" r="6"/>
+<circle class="trn" cx="296" cy="153" r="6"/>
+<circle class="trn" cx="330" cy="153" r="6"/>
+<rect class="hos" x="0" y="178" width="360" height="30" rx="8"/>
+<text class="t2" x="12" y="198">医院 4</text>
+<circle class="trn" cx="92" cy="193" r="6"/>
+<circle class="trn" cx="126" cy="193" r="6"/>
+<circle class="tst" cx="160" cy="193" r="6"/>
+<circle class="trn" cx="194" cy="193" r="6"/>
+<circle class="trn" cx="228" cy="193" r="6"/>
+<circle class="trn" cx="262" cy="193" r="6"/>
+<circle class="trn" cx="296" cy="193" r="6"/>
+<circle class="tst" cx="330" cy="193" r="6"/>
+<text class="tb" x="400" y="20">按医院整组切</text>
+<text class="t2" x="400" y="40">测试的整家医院，训练时没见过</text>
+<rect class="hos" x="400" y="58" width="360" height="30" rx="8"/>
+<text class="t2" x="412" y="78">医院 1</text>
+<circle class="trn" cx="492" cy="73" r="6"/>
+<circle class="trn" cx="526" cy="73" r="6"/>
+<circle class="trn" cx="560" cy="73" r="6"/>
+<circle class="trn" cx="594" cy="73" r="6"/>
+<circle class="trn" cx="628" cy="73" r="6"/>
+<circle class="trn" cx="662" cy="73" r="6"/>
+<circle class="trn" cx="696" cy="73" r="6"/>
+<circle class="trn" cx="730" cy="73" r="6"/>
+<rect class="hos" x="400" y="98" width="360" height="30" rx="8"/>
+<text class="t2" x="412" y="118">医院 2</text>
+<circle class="trn" cx="492" cy="113" r="6"/>
+<circle class="trn" cx="526" cy="113" r="6"/>
+<circle class="trn" cx="560" cy="113" r="6"/>
+<circle class="trn" cx="594" cy="113" r="6"/>
+<circle class="trn" cx="628" cy="113" r="6"/>
+<circle class="trn" cx="662" cy="113" r="6"/>
+<circle class="trn" cx="696" cy="113" r="6"/>
+<circle class="trn" cx="730" cy="113" r="6"/>
+<rect class="hos key" x="400" y="138" width="360" height="30" rx="8"/>
+<text class="t2" x="412" y="158">医院 3</text>
+<circle class="tst" cx="492" cy="153" r="6"/>
+<circle class="tst" cx="526" cy="153" r="6"/>
+<circle class="tst" cx="560" cy="153" r="6"/>
+<circle class="tst" cx="594" cy="153" r="6"/>
+<circle class="tst" cx="628" cy="153" r="6"/>
+<circle class="tst" cx="662" cy="153" r="6"/>
+<circle class="tst" cx="696" cy="153" r="6"/>
+<circle class="tst" cx="730" cy="153" r="6"/>
+<rect class="hos" x="400" y="178" width="360" height="30" rx="8"/>
+<text class="t2" x="412" y="198">医院 4</text>
+<circle class="trn" cx="492" cy="193" r="6"/>
+<circle class="trn" cx="526" cy="193" r="6"/>
+<circle class="trn" cx="560" cy="193" r="6"/>
+<circle class="trn" cx="594" cy="193" r="6"/>
+<circle class="trn" cx="628" cy="193" r="6"/>
+<circle class="trn" cx="662" cy="193" r="6"/>
+<circle class="trn" cx="696" cy="193" r="6"/>
+<circle class="trn" cx="730" cy="193" r="6"/>
+</svg></div>
+    <figcaption><span class="figkey"><span><i class="trn"></i>训练</span><span><i class="tst"></i>测试</span></span>示意。两种切法用同一批病人、同样的折数，训练集大小相近，每个病人在每种切法下都被预测一次，所以可以逐个病人配对比较。</figcaption>
+  </figure>
+  <ul class="rules">
+    <li><b>两种 6 折交叉验证</b>：按病人随机切（测试病人的医院训练时见过）；按医院整组切（每折 6 家医院，按阳性数尽量均衡）。</li>
+    <li><b>特征集</b>：V（只用数值）、P（只用记录方式）、V+P（两者合用）、V+H（数值 + 医院标识，只在随机切下有意义）。可选 M（只用监护仪自动记录的数值，最接近纯生理，但仍带少量缺失信息）。</li>
+    <li><b>模型</b>：LightGBM 用事先固定的超参数（沿用 F2 手工 LightGBM 的配置，周一核对），LR 作对照；不调参，避免在结局上做选择。建议项：GRU-D 也跑一遍，看对时间更敏感的模型，换院差距是否更大。</li>
+    <li><b>主估计</b>：过程增益 G = 损失(V) − 损失(V+P)。主指标是两种切法下的差值 Δ = G随机 − G按院，用逐病人的 Brier（未校准的原始概率，病人等权）。Δ &gt; 0 说明记录特征的增益在没见过的医院缩水了。同时报告 G按院 ÷ G随机，即增益保留了多少。</li>
+    <li><b>“认出医院”的检验</b>：随机切下，如果在 V 里加入医院标识后，记录特征的增益明显变小，说明增益里有一部分其实是“认出了医院”：模型借记录方式认出医院，再套用该院的结局基线。影像领域已经见过这种现象：模型几乎能完美认出拍片的医院，并利用各院患病率的差别。<a class="cite" href="#ref-S010">[S010]</a></li>
+    <li><b>校准</b>：按院切下，每家医院的预测事件数和实际事件数之比，和 Q1 的记录强度有没有关系（探索性）。</li>
+    <li><b>敏感性</b>：只看死亡（不受插管、升压药门槛影响；但整体只有约 15% 的 Y24 阳性是死亡，精度低）；Y24 按组件分开；只用 LR；去掉小医院。</li>
+  </ul>
+
+  <h3>要分开的几种“医院差异”</h3>
+  <ul class="rules">
+    <li><b>病人构成</b>：各院的病人本来就不同（年龄、诊断、病情）。用 Q1 的病情调整和 Q3 的“差中差”扣除。</li>
+    <li><b>结局标签里的治疗习惯</b>：Y24 中的插管、升压药是治疗决定，各院门槛不同。用“只看死亡”和分组件结果检查。</li>
+    <li><b>设备与系统</b>：监护仪数据是否接入、用什么记录系统。按通道类型分开报告，不把系统差异说成医生习惯。</li>
+    <li><b>临床记录习惯</b>：开单常规、护理评估频率。这才是“医院 measurement policy”的本义，也是 Q1–Q3 最终想确认的部分。</li>
+  </ul>
+</section>
+
+<section class="sec" id="week">
+  <h2>一周安排</h2>
+  <p class="lead">工时按主线一个人执行来估。合作同学约 6–10 小时只是建议，还没分派。这周的分析基本只用 CPU。</p>
+  <div class="pathbar">
+    <div class="seg-ctl" role="group" aria-label="查看范围">
+      <button type="button" data-path-btn="full" aria-pressed="true">完整计划</button>
+      <button type="button" data-path-btn="min" aria-pressed="false">20 小时最低版本</button>
+    </div>
+    <p class="pathnote" data-note="full">必做约 30.5 小时；加上对齐 MC-MED 证据、整理合作证据等建议项约 33 小时；GRU-D 跑 Q3 另需 3–5 小时。点任务卡可以跳到当天的细节。</p>
+    <p class="pathnote" data-note="min" hidden>最低版本约 20 小时：保留验证方案、记录表、Q1（含稳健性）和 Q3（含校准与敏感性）；Q2、阅读、预登记草稿和合作证据顺延，周六的图表并到周日。被划掉的任务在这个版本里不做。</p>
+  </div>
+  <div class="board-wrap" tabindex="0" aria-label="一周任务板，窄屏可左右滑动">
+    <div class="board">
+      <div class="dcol"><div class="dhead"><span class="wd">周一</span><span class="dt">11/02</span><span class="hrs" data-h-full="必做 4.5 小时" data-h-min="最低 2.5 小时">必做 4.5 小时</span></div>
+        <div class="stack">
+          <a class="chip" href="#d1" data-tier="must" data-min="1">验证方案、通道分类、分折<span class="h" data-h-full="3.5 小时" data-h-min="2.5 小时">3.5 小时</span></a>
+          <a class="chip" href="#d1" data-tier="should" data-min="0">对齐 MC-MED 证据包 <span class="tt">建议</span><span class="h">0.5 小时</span></a>
+          <a class="chip read" href="#d1" data-tier="must" data-min="0">阅读：Agniel、Sisk<span class="h">1 小时</span></a>
+        </div><div class="gate">G0 数据可用</div></div>
+      <div class="dcol"><div class="dhead"><span class="wd">周二</span><span class="dt">11/03</span><span class="hrs" data-h-full="必做 5 小时" data-h-min="最低 4 小时">必做 5 小时</span></div>
+        <div class="stack">
+          <a class="chip" href="#d2" data-tier="must" data-min="1">建记录表（通道类型、钟点）<span class="h">2.5 小时</span></a>
+          <a class="chip" href="#d2" data-tier="must" data-min="1">各院记录指纹（描述）<span class="h">1.5 小时</span></a>
+          <a class="chip read" href="#d2" data-tier="must" data-min="0">阅读：Zhou 定义、Jeanselme<span class="h">1 小时</span></a>
+        </div></div>
+      <div class="dcol"><div class="dhead"><span class="wd">周三</span><span class="dt">11/04</span><span class="hrs" data-h-full="必做 6 小时" data-h-min="最低 4 小时">必做 6 小时</span></div>
+        <div class="stack">
+          <a class="chip" href="#d3" data-tier="must" data-min="1">Q1：病情相同时各院差多少<span class="h">3 小时</span></a>
+          <a class="chip" href="#d3" data-tier="must" data-min="1">Q1 稳健性检查<span class="h">1 小时</span></a>
+          <a class="chip" href="#d3" data-tier="must" data-min="0">准备 Q2 的特征与分解<span class="h">1 小时</span></a>
+          <a class="chip read" href="#d3" data-tier="must" data-min="0">阅读：Zech、Zhang &amp; Li<span class="h">1 小时</span></a>
+        </div><div class="gate">G1 差异大小</div></div>
+      <div class="dcol"><div class="dhead"><span class="wd">周四</span><span class="dt">11/05</span><span class="hrs" data-h-full="必做 5 小时" data-h-min="最低 2.5 小时">必做 5 小时</span></div>
+        <div class="stack">
+          <a class="chip" href="#d4" data-tier="must" data-min="1">冻结结局分析的配置<span class="h">1 小时</span></a>
+          <a class="chip" href="#d4" data-tier="must" data-min="0">Q2：特征含义、认出医院<span class="h">2 小时</span></a>
+          <a class="chip" href="#d4" data-tier="must" data-min="1">Q3：两种切法各跑一次<span class="h">1.5 小时</span></a>
+          <a class="chip read" href="#d4" data-tier="must" data-min="0">阅读：Londschien<span class="h">0.5 小时</span></a>
+        </div><div class="gate">G2 冻结配置</div></div>
+      <div class="dcol"><div class="dhead"><span class="wd">周五</span><span class="dt">11/06</span><span class="hrs" data-h-full="必做 5 小时" data-h-min="最低 3 小时">必做 5 小时</span></div>
+        <div class="stack">
+          <a class="chip" href="#d5" data-tier="must" data-min="1">Q3 主估计：增益缩水多少<span class="h">2 小时</span></a>
+          <a class="chip" href="#d5" data-tier="must" data-min="1">校准与敏感性分析<span class="h" data-h-full="2 小时" data-h-min="1 小时">2 小时</span></a>
+          <a class="chip" href="#d5" data-tier="must" data-min="0">确认分析的预登记草稿<span class="h">1 小时</span></a>
+          <a class="chip" href="#d5" data-tier="should" data-min="0">GRU-D 也跑 Q3 <span class="tt">建议</span><span class="h">3–5 小时</span></a>
+        </div><div class="gate">G3 只跑一次</div></div>
+      <div class="dcol"><div class="dhead"><span class="wd">周六</span><span class="dt">11/07</span><span class="hrs" data-h-full="必做 2 小时" data-h-min="并入周日">必做 2 小时</span></div>
+        <div class="stack">
+          <a class="chip" href="#d6" data-tier="must" data-min="0">汇总图表<span class="h">2 小时</span></a>
+          <a class="chip" href="#d6" data-tier="should" data-min="0">整合 MC-MED 证据 <span class="tt">建议</span><span class="h">2 小时</span></a>
+        </div></div>
+      <div class="dcol"><div class="dhead"><span class="wd">周日</span><span class="dt">11/08</span><span class="hrs" data-h-full="必做 3 小时" data-h-min="最低 4 小时">必做 3 小时</span></div>
+        <div class="stack">
+          <a class="chip" href="#d7" data-tier="must" data-min="1">复现、判定、写结论、定下一步<span class="h" data-h-full="3 小时" data-h-min="4 小时">3 小时</span></a>
+        </div><div class="gate">周日决策</div></div>
+      <div class="par">
+        <div class="bar" style="grid-column:2 / span 5" data-min="0">合作同学：MC-MED 证据包，前 3 项先给<span class="h">（6–10 小时）</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="legend" aria-label="图例">
+    <span><i></i>主线，必做</span>
+    <span><i class="sh"></i>建议</span>
+    <span><i class="rd"></i>阅读</span>
+    <span><i class="co"></i>合作同学</span>
+  </div>
+
+  <div class="days">
+    <article class="day" id="d1">
+      <div class="day-rail"><div class="d">11/02</div><div class="w">周一</div><div class="hh"><span data-h-full="必做 4.5 小时" data-h-min="最低 2.5 小时">必做 4.5 小时</span><br>闸门 G0</div></div>
+      <div class="day-body">
+        <h3>定验证方案，确认数据能回答</h3>
+        <p class="goal">把三个问题、指标、解读线和数据范围写死；确认 eICU 数据能分清记录通道的来源。</p>
+        <ul class="tasks">
+          <li data-min="1"><span class="tier t-must">必做</span><span class="txt">写一页验证方案：Q1–Q3 的问题、主指标和解读线；人群和终点沿用 V2；写明本周不比较改善方法、159 家 eval 医院不碰。</span><span class="hrs" data-h-full="2 小时" data-h-min="1.5 小时">2 小时</span></li>
+          <li data-min="1"><span class="tier t-must">必做</span><span class="txt">通道分类：按 V2 文档的来源表，把每个通道标成“设备自动 / 护士录入 / 医生开单 / 混合”；核对能否用入科时刻推出钟点；按“医院 × 通道”导出覆盖率（每格至少 11 人）。</span><span class="hrs" data-h-full="1 小时" data-h-min="0.5 小时">1 小时</span></li>
+          <li data-min="1"><span class="tier t-must">必做</span><span class="txt">分折：按各院病人数和阳性数，把 36 家医院分成 6 组（阳性数尽量均衡），同时生成按病人随机的 6 折；只导出各折的人数和阳性数。</span><span class="hrs">0.5 小时</span></li>
+          <li data-min="0"><span class="tier t-should">建议</span><span class="txt">和合作同学对齐 MC-MED 证据包：先要任务清单、模型输入说明、网格验收表三项。</span><span class="hrs">0.5 小时</span></li>
+          <li data-min="0"><span class="tier t-must">必做</span><span class="txt">读 Agniel（方法、结果）和 Sisk 的综述（定义和方法分类），写半页：我们的问题在“informative observation”的框架里属于哪一类，已有工作做到了哪一步。<a class="cite" href="#ref-S004">[S004]</a><a class="cite" href="#ref-S009">[S009]</a></span><span class="hrs">1 小时</span></li>
+        </ul>
+        <div class="cols">
+          <div><p class="subhead">产出</p><ul class="checks">
+            <li><label><input type="checkbox" data-key="d1a"><span><code>protocol_v0.1.md</code>：验证方案</span></label></li>
+            <li><label><input type="checkbox" data-key="d1b"><span><code>channel_types.csv</code>：通道分类</span></label></li>
+            <li><label><input type="checkbox" data-key="d1c"><span><code>coverage_by_hospital.csv</code>：各院覆盖率（汇总）</span></label></li>
+            <li><label><input type="checkbox" data-key="d1d"><span><code>folds_manifest</code>：两种切法的分折（只含汇总）</span></label></li>
+          </ul></div>
+          <div class="gatebox"><p class="subhead">闸门 G0</p>
+            <p class="ok">至少几个“医生开单 / 护士录入”的通道在多数医院有足够记录，钟点能推出来：继续。</p>
+            <p class="ng">覆盖太差或来源分不清：Q1 先只做化验（来源最清楚），钟点指纹延后；改动记录在案。</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="day" id="d2">
+      <div class="day-rail"><div class="d">11/03</div><div class="w">周二</div><div class="hh"><span data-h-full="必做 5 小时" data-h-min="最低 4 小时">必做 5 小时</span></div></div>
+      <div class="day-body">
+        <h3>建记录表，先看各院的“记录指纹”</h3>
+        <p class="goal">在已有的逐小时表上标出通道类型和钟点；先用描述统计看各院的记录方式是不是一眼就不同。</p>
+        <ul class="tasks">
+          <li data-min="1"><span class="tier t-must">必做</span><span class="txt">在 V2 逐小时表（入住 × 变量 × 小时的 last、n、t_last_min）上加通道类型、医院和钟点；混合来源的通道（血压、体温）先排除或拆开。先用虚构数据测代码。</span><span class="hrs">2.5 小时</span></li>
+          <li data-min="1"><span class="tier t-must">必做</span><span class="txt">记录指纹（只做描述，不调整病情）：各院 × 通道的每小时记录率、记录间隔中位数、化验的钟点分布；按病人数排序，小医院单独标出。</span><span class="hrs">1.5 小时</span></li>
+          <li data-min="0"><span class="tier t-could">可选</span><span class="txt">在 MIMIC-IV 的不同 ICU 病区之间做同样的描述，看一家医院内部的记录差异有多大，作为参照。</span><span class="hrs">另计</span></li>
+          <li data-min="0"><span class="tier t-must">必做</span><span class="txt">读 Zhou 2023 的缺失偏移定义（§2–3）和 Jeanselme 的临床存在偏移（§4–5），写下“医院之间记录方式不同”的形式化写法。<a class="cite" href="#ref-S003">[S003]</a><a class="cite" href="#ref-S002">[S002]</a></span><span class="hrs">1 小时</span></li>
+        </ul>
+        <div class="cols">
+          <div><p class="subhead">产出</p><ul class="checks">
+            <li><label><input type="checkbox" data-key="d2a"><span>记录表的代码、hash 和聚合审计</span></label></li>
+            <li><label><input type="checkbox" data-key="d2b"><span><code>hospital_fingerprints.html</code>：各院记录指纹（汇总图）</span></label></li>
+          </ul></div>
+          <div class="gatebox"><p class="subhead">读描述图时注意</p>
+            <p>这一步还没控制病情。看到各院差别很大，也可能只是病人不同；看到差别很小，也不能排除，因为病情会掩盖习惯。结论留到 Q1。</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="day" id="d3">
+      <div class="day-rail"><div class="d">11/04</div><div class="w">周三</div><div class="hh"><span data-h-full="必做 6 小时" data-h-min="最低 4 小时">必做 6 小时</span><br>闸门 G1</div></div>
+      <div class="day-body">
+        <h3>Q1：病情相同时，各院差多少</h3>
+        <p class="goal">得到调整病情前后各院记录方式的差别，按通道类型分开。</p>
+        <ul class="tasks">
+          <li data-min="1"><span class="tier t-must">必做</span><span class="txt">拟合期望模型（不放医院信息），三层病情调整逐步加入；算各院 O/E 和漏斗图，以及医院间标准差 τ 和中位倍数比。</span><span class="hrs">3 小时</span></li>
+          <li data-min="1"><span class="tier t-must">必做</span><span class="txt">稳健性：加 APACHE（只作敏感性）、去掉小医院、换一种期望模型（LR 对 LightGBM）。</span><span class="hrs">1 小时</span></li>
+          <li data-min="0"><span class="tier t-must">必做</span><span class="txt">准备 Q2：事先定下 6–8 个记录特征和对应的数值特征，写好“本院平均 + 病人偏离”的分解代码，用虚构数据测试。</span><span class="hrs">1 小时</span></li>
+          <li data-min="0"><span class="tier t-must">必做</span><span class="txt">读 Zech 2018（模型认出医院、利用各院患病率）和 Zhang &amp; Li（最接近的工作），写下 Q2、Q3 里“认出医院”的检验怎么做，以及已有工作有没有证明过医院特有的记录过程。<a class="cite" href="#ref-S010">[S010]</a><a class="cite" href="#ref-S001">[S001]</a></span><span class="hrs">1 小时</span></li>
+        </ul>
+        <div class="cols">
+          <div><p class="subhead">产出</p><ul class="checks">
+            <li><label><input type="checkbox" data-key="d3a"><span><code>q1_hospital_variation.csv</code>：各院 O/E 和区间</span></label></li>
+            <li><label><input type="checkbox" data-key="d3b"><span><code>q1_summary.md</code>：τ、中位倍数比、调整前后对比</span></label></li>
+          </ul></div>
+          <div class="gatebox"><p class="subhead">闸门 G1</p>
+            <p class="ok">至少一个“医生开单 / 护士录入”通道，调整病情后中位倍数比仍明显大于 1（解读线周一定，例如 ≥ 1.5）：Q2、Q3 按计划做。</p>
+            <p class="ng">所有通道调整后都接近 1：医院习惯这条假设证据弱。Q3 照常跑（成本低，可作对照），但周日按“差异不明显”来写结论。</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="day" id="d4">
+      <div class="day-rail"><div class="d">11/05</div><div class="w">周四</div><div class="hh"><span data-h-full="必做 5 小时" data-h-min="最低 2.5 小时">必做 5 小时</span><br>闸门 G2</div></div>
+      <div class="day-body">
+        <h3>冻结配置，跑 Q2 和 Q3</h3>
+        <p class="goal">在看任何结局结果之前，把特征集、模型、分折和指标定死，然后各跑一次。</p>
+        <ul class="tasks">
+          <li data-min="1"><span class="tier t-must">必做</span><span class="txt">冻结并登记：特征集 V / P / V+P / V+H、LightGBM 的固定超参数和 LR、两种分折、主指标和解读线。</span><span class="hrs">1 小时</span></li>
+          <li data-min="0"><span class="tier t-must">必做</span><span class="txt">Q2：within / between 分解；“记录特征 × 医院记录强度组”的交互；医院可识别性（36 选 1）。</span><span class="hrs">2 小时</span></li>
+          <li data-min="1"><span class="tier t-must">必做</span><span class="txt">Q3：两种切法 × 各特征集，生成每个病人的预测（只在服务器上）。</span><span class="hrs">1.5 小时</span></li>
+          <li data-min="0"><span class="tier t-must">必做</span><span class="txt">读 Londschien（ICU 跨库、跨院的性能下降有多大），作为 Q3 结果的参照。<a class="cite" href="#ref-S005">[S005]</a></span><span class="hrs">0.5 小时</span></li>
+        </ul>
+        <div class="cols">
+          <div><p class="subhead">产出</p><ul class="checks">
+            <li><label><input type="checkbox" data-key="d4a"><span><code>analysis_config_frozen</code>：冻结的配置和 hash</span></label></li>
+            <li><label><input type="checkbox" data-key="d4b"><span><code>q2_results.csv</code>：Q2 汇总结果</span></label></li>
+            <li><label><input type="checkbox" data-key="d4c"><span>Q3 逐病人预测（留在服务器受限目录，不导出）</span></label></li>
+          </ul></div>
+          <div class="gatebox hard"><p class="subhead">闸门 G2（冻结）</p>
+            <p class="ok">配置登记之后才读结局结果。</p>
+            <p class="ng">看过结果再改特征集、超参数或切法：这次作废，改动登记为新版本。</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="day" id="d5">
+      <div class="day-rail"><div class="d">11/06</div><div class="w">周五</div><div class="hh"><span data-h-full="必做 5 小时" data-h-min="最低 3 小时">必做 5 小时</span><br>闸门 G3</div></div>
+      <div class="day-body">
+        <h3>Q3 主估计与敏感性</h3>
+        <p class="goal">回答：记录特征的增益，在没见过的医院里还剩多少。</p>
+        <ul class="tasks">
+          <li data-min="1"><span class="tier t-must">必做</span><span class="txt">主估计：两种切法下的过程增益和差值 Δ，按医院聚类的 bootstrap 区间；V+H 对照；各特征集的换院差距。</span><span class="hrs">2 小时</span></li>
+          <li data-min="1"><span class="tier t-must">必做</span><span class="txt">校准与敏感性：按院切下各院的预测 / 实际事件比和 Q1 记录强度的关系；只看死亡、Y24 分组件、只用 LR、去掉小医院。</span><span class="hrs" data-h-full="2 小时" data-h-min="1 小时">2 小时</span></li>
+          <li data-min="0"><span class="tier t-must">必做</span><span class="txt">写确认分析的预登记草稿：如果在 159 家 eval 医院上确认，跑什么、看什么、怎么判，只跑一次。</span><span class="hrs">1 小时</span></li>
+          <li data-min="0"><span class="tier t-should">建议</span><span class="txt">GRU-D 也跑一遍 Q3（框架已有），看对记录时间更敏感的模型，换院差距是否更大。可以挪到周六。</span><span class="hrs">3–5 小时</span></li>
+        </ul>
+        <div class="cols">
+          <div><p class="subhead">产出</p><ul class="checks">
+            <li><label><input type="checkbox" data-key="d5a"><span><code>q3_results.csv</code>：Q3 汇总结果</span></label></li>
+            <li><label><input type="checkbox" data-key="d5b"><span><code>prereg_confirm_draft.md</code>：确认分析的预登记草稿</span></label></li>
+          </ul></div>
+          <div class="gatebox"><p class="subhead">闸门 G3</p>
+            <p class="ok">冻结的配置只跑一次，正、零、负的结果都如实报告。</p>
+            <p class="ng">不在 36 家里挑“效果好”的医院或子集再报告。</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="day" id="d6">
+      <div class="day-rail"><div class="d">11/07</div><div class="w">周六</div><div class="hh"><span data-h-full="必做 2 小时" data-h-min="并入周日">必做 2 小时</span></div></div>
+      <div class="day-body">
+        <h3>汇总图表，整合合作证据</h3>
+        <p class="goal">把三个问题的结果放进同一套图表；合作线的证据各自归位。</p>
+        <ul class="tasks">
+          <li data-min="0"><span class="tier t-must">必做</span><span class="txt">按“统计与精度”一节出图：Q1 漏斗图和调整前后对比、钟点指纹、Q2 系数对比、Q3 增益对比；每个数字都带样本量和事件数。</span><span class="hrs">2 小时</span></li>
+          <li data-min="0"><span class="tier t-should">建议</span><span class="txt">整合 MC-MED 证据包：核对 Stage 2A-v2 的样本量、MPAD 的定义、树模型的输入是否真的被扰动；没确认的标“未验证”。</span><span class="hrs">2 小时</span></li>
+        </ul>
+        <div class="cols">
+          <div><p class="subhead">产出</p><ul class="checks">
+            <li><label><input type="checkbox" data-key="d6a"><span>能重画的图（Q1–Q3）</span></label></li>
+            <li><label><input type="checkbox" data-key="d6b"><span><code>evidence_pack</code>：合作证据汇总</span></label></li>
+          </ul></div>
+          <div class="gatebox"><p class="subhead">检查</p>
+            <p>每条结论标明属于哪一级（差异存在 / 含义不同 / 换院变差），以及来自探索数据还是确认数据。</p></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="day" id="d7">
+      <div class="day-rail"><div class="d">11/08</div><div class="w">周日</div><div class="hh"><span data-h-full="必做 3 小时" data-h-min="最低 4 小时">必做 3 小时</span><br>周日决策</div></div>
+      <div class="day-body">
+        <h3>复现，然后判断问题是否成立</h3>
+        <p class="goal">先确认结果可信，再按三级标准判断；给导师准备下一步的选项。</p>
+        <ul class="tasks">
+          <li data-min="1"><span class="tier t-must">必做</span><span class="txt">在虚构数据或开发小样本上复现代码和汇总，核对 hash 和运行记录。</span><span class="hrs" data-h-full="1 小时" data-h-min="0.5 小时">1 小时</span></li>
+          <li data-min="1"><span class="tier t-must">必做</span><span class="txt">按“周日怎么判”走一遍，写 2 页结论：问题在哪一级成立、证据有多强、哪些还不能说。最低版本里，周六的图表也在这里做。</span><span class="hrs" data-h-full="1 小时" data-h-min="2.5 小时">1 小时</span></li>
+          <li data-min="1"><span class="tier t-must">必做</span><span class="txt">给导师准备选项：① 问题初步成立：预登记后在 159 家确认，确认后再讨论改善方法；② 差异存在但影响小：写成“差异有限”的结论，论文重心放在问题发现；③ 没判定：用确认数据提高精度。</span><span class="hrs">1 小时</span></li>
+        </ul>
+        <div class="cols">
+          <div><p class="subhead">产出</p><ul class="checks">
+            <li><label><input type="checkbox" data-key="d7a"><span><code>weekly_readout.md</code> 和主图</span></label></li>
+            <li><label><input type="checkbox" data-key="d7b"><span>下一步选项，以及需要导师定的事</span></label></li>
+            <li><label><input type="checkbox" data-key="d7c"><span>决定记录</span></label></li>
+          </ul></div>
+          <div class="gatebox"><p class="subhead">怎么判</p><p>见 <a href="#decide">周日怎么判</a>。区间宽是“没判定”，不是“没有问题”。</p></div>
+        </div>
+      </div>
+    </article>
+  </div>
+
+  <h3>周日最少要交的 7 样东西</h3>
+  <ol class="minpack">
+    <li>一页验证方案、通道分类表和两种分折（只含汇总）。</li>
+    <li>记录表的构建记录（代码、hash、审计），以及各院记录指纹的描述图。</li>
+    <li>Q1：调整病情前后的各院 O/E、τ 和中位倍数比，按通道类型分开；没达到解读线也照实写。</li>
+    <li>Q3：两种切法 × 各特征集的结果，过程增益的差值 Δ 和区间，V+H 对照。</li>
+    <li>Q2 的结果（如果做了）；没做就写明顺延。</li>
+    <li>确认分析的预登记草稿，或“暂不确认”的理由。</li>
+    <li>2 页结论：问题在哪一级成立、证据多强、下一步的选项。</li>
+  </ol>
+</section>
+
+<section class="sec" id="stats">
+  <h2>统计与精度</h2>
+  <p class="lead">三个问题各有一个主指标，在看结果之前定好；其余都是次要或探索性的。</p>
+
+  <h3>主指标</h3>
+  <ul class="rules">
+    <li><b>Q1</b>：调整病情后的中位倍数比（每个通道一个），以及三层调整前后 τ 缩小的比例。</li>
+    <li><b>Q2</b>：记录特征的 within 与 between 系数之差（附区间）；医院可识别性（36 选 1 的宏平均 AUROC），记录特征对数值特征。</li>
+    <li><b>Q3</b>：过程增益的差值 Δ = G随机 − G按院，用逐病人的 Brier（未校准的原始概率，病人等权）；log loss 做一致性检查；AUPRC 方便和 Stage 1 对照。</li>
+  </ul>
+
+  <h3>统计单位和区间</h3>
+  <ul class="rules">
+    <li>Q1 的单位是“病人 × 小时”：同一病人的多个小时相关，按病人聚类；医院之间的差别用随机效应。</li>
+    <li>Q3 的单位是病人：同一病人的多个时点先平均；两种切法、各特征集在同一批病人上配对比较。</li>
+    <li>区间：按医院聚类的 bootstrap（2,000 次，固定随机种子）。只有 36 家医院，区间会偏宽，也不太稳，只作探索。</li>
+    <li>小医院：报告每家的病人数和事件数；事件为 0 时 AUROC 写“无法估计”，不填 0.5。</li>
+    <li>多个通道、多个特征：全部报告，不挑结果好看的。</li>
+  </ul>
+
+  <h3>解读线（建议，周一定）</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th style="width:10%">问题</th><th style="width:32%">算“明显”</th><th style="width:30%">算“不明显”</th><th>算“没判定”</th></tr></thead>
+    <tbody>
+      <tr><td>Q1</td><td>至少一个人工通道（医生开单或护士录入）调整后中位倍数比 ≥ 1.5，且区间下界 &gt; 1.2</td><td>所有人工通道调整后 &lt; 1.2，区间也窄</td><td>介于两者之间，或区间太宽</td></tr>
+      <tr><td>Q2</td><td>within 与 between 系数方向或大小明显不同；或只用记录特征认医院，远好于只用数值特征</td><td>两部分系数接近；认医院的能力和数值特征差不多</td><td>区间太宽，方向不稳</td></tr>
+      <tr><td>Q3</td><td>Δ 的区间不含 0，而且按院切下过程增益保留不到一半</td><td>Δ 的区间窄且贴近 0，过程增益保留 ≥ 80%</td><td>区间宽，或随机切下过程增益本身就不明显</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">数值只是建议的起点，周一由研究者定下后写进方案，之后不再改。</p>
+
+  <h3>为什么还需要 159 家医院确认</h3>
+  <div class="cmp" id="cmpChart">
+    <p class="prec-title">本周可用的数据，和确认阶段可用的数据</p>
+    <div class="cmp-key"><span><i class="tu"></i>36 家 tune 医院（本周用）</span><span><i class="ev"></i>159 家 eval 医院（本周不碰）</span></div>
+    <div class="cmp-row"><div class="lbl">医院数</div><div class="cmp-bars">
+      <div class="cbar" tabindex="0" data-tip="tune：36 家医院"><span class="f tu" style="width:18.6%"></span><span class="v" style="left:calc(18.6% + 8px)">36</span></div>
+      <div class="cbar" tabindex="0" data-tip="eval：159 家医院"><span class="f ev" style="width:82%"></span><span class="v" style="left:calc(82% + 8px)">159</span></div>
+    </div></div>
+    <div class="cmp-row"><div class="lbl">病人数</div><div class="cmp-bars">
+      <div class="cbar" tabindex="0" data-tip="tune：1,952 名病人、12,906 个预测时点"><span class="f tu" style="width:21.4%"></span><span class="v" style="left:calc(21.4% + 8px)">1,952</span></div>
+      <div class="cbar" tabindex="0" data-tip="eval：7,467 名病人、51,432 个预测时点"><span class="f ev" style="width:82%"></span><span class="v" style="left:calc(82% + 8px)">7,467</span></div>
+    </div></div>
+    <div class="cmp-row"><div class="lbl">Y24 阳性时点</div><div class="cmp-bars">
+      <div class="cbar" tabindex="0" data-tip="tune：938 个阳性时点"><span class="f tu" style="width:21.6%"></span><span class="v" style="left:calc(21.6% + 8px)">938</span></div>
+      <div class="cbar" tabindex="0" data-tip="eval：3,554 个阳性时点"><span class="f ev" style="width:82%"></span><span class="v" style="left:calc(82% + 8px)">3,554</span></div>
+    </div></div>
+    <p class="cmp-note">按医院聚类的区间宽度，大致随医院数的平方根缩小：159 家约为 36 家的一半（√(36/159) ≈ 0.48）。能检测到的最小差别也随之减半（MDE ≈ 2.8 × 标准误）。所以本周的任务是估计效应大小和波动，为确认分析定样本和判据。<a class="cite" href="#ref-E04">[E04]</a></p>
+    <details class="more"><summary>用表格看</summary><div class="inner">
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>数据</th><th class="num">医院</th><th class="num">病人</th><th class="num">预测时点</th><th class="num">Y24 阳性时点</th></tr></thead>
+        <tbody>
+          <tr><td>tune（本周用）</td><td class="num">36</td><td class="num">1,952</td><td class="num">12,906</td><td class="num">938</td></tr>
+          <tr><td>eval（本周不碰）</td><td class="num">159</td><td class="num">7,467</td><td class="num">51,432</td><td class="num">3,554</td></tr>
+        </tbody>
+      </table></div>
+    </div></details>
+  </div>
+
+  <h3>周六要出的图表</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th style="width:15%">图或表</th><th style="width:22%">横轴或分组</th><th style="width:30%">纵轴或内容</th><th>回答什么问题</th></tr></thead>
+    <tbody>
+      <tr><td>Q1 漏斗图</td><td>各院的期望记录数</td><td>O/E 和 95% 控制限</td><td>哪些医院的偏离超出了随机波动</td></tr>
+      <tr><td>调整前后对比</td><td>三层病情调整</td><td>各通道的 τ 或中位倍数比</td><td>差异有多少能被病情解释</td></tr>
+      <tr><td>钟点指纹</td><td>钟点（0–23 时）</td><td>各院化验记录的比例（每格至少 11 人）</td><td>有没有和病情无关的常规模式</td></tr>
+      <tr><td>Q2 系数图</td><td>记录特征</td><td>within 与 between 系数和区间</td><td>同一特征在院内、院间的含义是否一致</td></tr>
+      <tr><td>Q3 增益图</td><td>特征集 × 两种切法</td><td>损失和过程增益，附区间</td><td>过程增益在没见过的医院还剩多少</td></tr>
+      <tr><td>校准散点</td><td>Q1 的记录强度</td><td>按院切下各院的预测 / 实际事件比</td><td>记录方式特别的医院，是否被系统性高估或低估</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="sec" id="decide">
+  <h2>周日怎么判</h2>
+  <p class="lead">先看数据能不能回答，再按三级标准判断。这一周不要求显著；要决定的是：问题是否值得投入后续的确认和方法研究。</p>
+  <ol class="flowq">
+    <li class="q"><div class="qa">数据能回答吗？<small>通道来源分得清、覆盖够、配置在看结果前冻结</small></div><div class="no"><b>先补数据工程。</b>不下“有”或“没有”的结论。</div></li>
+    <li class="yes">能</li>
+    <li class="q"><div class="qa">Q1：病情相同时，各院的记录方式明显不同吗？<small>调整后的中位倍数比、钟点指纹</small></div><div class="no"><b>医院习惯这条假设证据弱。</b>论文重心回到问题发现（对记录时间的依赖取决于结构），多医院部分写成“差异有限”。</div></li>
+    <li class="yes">是</li>
+    <li class="q"><div class="qa">Q2 / Q3：这些差异会让模型认出医院、或换院变差吗？<small>过程增益在没见过的医院是否缩水；V+H 对照</small></div></li>
+    <li class="yes">按结果分四种情况</li>
+  </ol>
+  <div class="outs">
+    <div class="out"><span class="status st-serious"><i></i>问题初步成立</span><h4>过程增益在没见过的医院明显缩水，或增益主要来自认出医院</h4><p>有了医院特有记录过程造成损失的初步证据。</p><p class="then">预登记，在 159 家 eval 上确认一次；确认后再讨论改善方法（包括后训练）。</p></div>
+    <div class="out"><span class="status st-neutral"><i></i>差异存在、影响小</span><h4>Q1 有差异，但过程增益基本不缩水，区间也窄</h4><p>记录方式因院而异，但对预测的影响有限。</p><p class="then">如实写成“差异存在、影响有限”；改善方法暂不需要，论文重心放在问题发现。</p></div>
+    <div class="out"><span class="status st-warn"><i></i>没判定</span><h4>区间宽，事件少</h4><p>是精度不够，不是没有问题。</p><p class="then">用预登记的 159 家确认分析提高精度；不能因为 p &gt; 0.05 就说没有影响。</p></div>
+    <div class="out"><span class="status st-none"><i></i>结果反常</span><h4>记录特征在没见过的医院反而更有用，或各指标互相矛盾</h4><p>多半是数据或定义的问题。</p><p class="then">先查分折、特征口径和泄漏，不急着解释。</p></div>
+  </div>
+  <p class="note">无论哪种结果，合作线的问题发现（模型对记录时间的依赖取决于结构）都成立，可以作为论文里独立的一部分。</p>
+</section>
+
+<section class="sec" id="risks">
+  <h2>风险与对策</h2>
+  <p class="lead">可能性和影响是现在的判断，周一按实际情况更新。</p>
+  <div class="riskwrap">
+    <div class="riskgrid" role="group" aria-label="风险矩阵：纵轴是影响，横轴是可能性">
+      <div class="raxis">影响高</div><div class="rcell"></div><div class="rcell hot"><a class="rchip" href="#r1">R1 来源不清</a><a class="rchip" href="#r3">R3 治疗门槛</a><a class="rchip" href="#r6">R6 看了再改</a></div><div class="rcell hot"><a class="rchip" href="#r2">R2 残余混杂</a></div>
+      <div class="raxis">中</div><div class="rcell"></div><div class="rcell"><a class="rchip" href="#r7">R7 说错原因</a></div><div class="rcell hot"><a class="rchip" href="#r4">R4 精度不够</a><a class="rchip" href="#r8">R8 时间不够</a></div>
+      <div class="raxis">低</div><div class="rcell"></div><div class="rcell"><a class="rchip" href="#r9">R9 合作延迟</a></div><div class="rcell"><a class="rchip" href="#r5">R5 小医院噪声</a></div>
+      <div></div><div class="raxis">可能性低</div><div class="raxis">中</div><div class="raxis">高</div>
+    </div>
+    <ul class="rlist">
+      <li id="r1"><span class="rid">R1</span><div>记录通道的来源分不清（混合来源、系统差异） <span class="lv">可能性中，影响高</span><span class="mit">先做来源最清楚的化验；混合通道拆开或排除；按通道类型分别报告。</span></div></li>
+      <li id="r2"><span class="rid">R2</span><div>病情控制不足：没测到的病情（如医生的担心）让医院看起来不同 <span class="lv">可能性高，影响高</span><span class="mit">三层调整加 APACHE 敏感性；钟点指纹；“常规 vs 按需”化验对比；措辞写“控制可测病情后”。</span></div></li>
+      <li id="r3"><span class="rid">R3</span><div>Y24 里的治疗门槛因院而异，混进“记录习惯” <span class="lv">可能性中，影响高</span><span class="mit">只看死亡、按组件报告；V+H 对照。</span></div></li>
+      <li id="r4"><span class="rid">R4</span><div>36 家医院精度不够，主要结论没判定 <span class="lv">可能性高，影响中</span><span class="mit">定位为探索；预登记 159 家确认；报告区间，不只报点估计。</span></div></li>
+      <li id="r5"><span class="rid">R5</span><div>小医院的估计噪声大 <span class="lv">可能性高，影响低</span><span class="mit">随机效应收缩；报告样本量；敏感性分析去掉小医院。</span></div></li>
+      <li id="r6"><span class="rid">R6</span><div>看了结果再改分析（叉路问题） <span class="lv">可能性中，影响高</span><span class="mit">G2 冻结；结局分析只跑一次；所有通道和特征都报告。</span></div></li>
+      <li id="r7"><span class="rid">R7</span><div>把系统或设备差异说成医生习惯 <span class="lv">可能性中，影响中</span><span class="mit">按通道类型分开；措辞区分“记录方式不同”和“临床习惯不同”。</span></div></li>
+      <li id="r8"><span class="rid">R8</span><div>时间被其他项目占掉 <span class="lv">可能性高，影响中</span><span class="mit">20 小时最低版本；建议项整体顺延。</span></div></li>
+      <li id="r9"><span class="rid">R9</span><div>合作证据来得晚，或口径对不上 <span class="lv">可能性中，影响低</span><span class="mit">不卡主线；缺的标“未验证”。</span></div></li>
+    </ul>
+  </div>
+</section>
+
+<section class="sec" id="collab">
+  <h2>合作线：把问题发现做扎实</h2>
+  <p class="lead">MC-MED 上的问题发现是目前最硬的证据，也是论文无论走哪条路都要用的部分。这周建议补齐证据，不再增加模型。下面是建议，需要一起商量后再定。</p>
+
+  <h3>需要的 7 项汇总证据</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th style="width:18%">内容</th><th style="width:44%">要包含</th><th>解决什么疑问</th></tr></thead>
+    <tbody>
+      <tr><td>队列与任务清单 <span class="badge">周一先要</span></td><td>t0、输入窗和标签窗、病人数和就诊数、阳性数、切分方式和 hash、筛选流程</td><td>5,236、1,328、4,684 这几个样本量能不能比；任务是不是沿用 decomp_60</td></tr>
+      <tr><td>模型输入说明 <span class="badge">周一先要</span></td><td>特征列或张量、mask / time / gap、扰动后有变化的比例和最大差值</td><td>树模型到底有没有“看到”扰动；能不能谈结构差异</td></tr>
+      <tr><td>网格验收表 <span class="badge">周一先要</span></td><td>数值、顺序、条数、首尾位置保持的比例；碰撞、合并、丢值的计数；不扰动时的检查</td><td>Stage 2A-v2 是否真的只改了记录时间</td></tr>
+      <tr><td>扰动强度表</td><td>能被扰动的比例、实际没变的比例、时间位移和间隔的分布、全通道统一还是逐通道</td><td>模型之间的差别是不是只因为扰动强度和覆盖面不同</td></tr>
+      <tr><td>配对误差表</td><td>原始和扰动后的 AUPRC、AUROC、Brier、log loss；带正负号的概率变化、尾部漂移、区间</td><td>对时间敏感是否伴随预测变差</td></tr>
+      <tr><td>校准与翻转表</td><td>损失函数和 pos_weight、验证集校准、阈值来源；对→错、错→对的翻转数</td><td>MPAD 是否受概率尺度影响；翻转是否有害</td></tr>
+      <tr><td>选样与重复性表</td><td>全部 test 和机制子队列的差异；病人重复、seed、共同交集</td><td>选样偏差和不确定性按什么单位算</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">阴性对照已经做了（只用数值的表示，扰动后 MPAD = 0），不用再做；需要的是把它的产物和其他证据放进同一个证据包。<a class="cite" href="#ref-E13">[E13]</a></p>
+
+  <h3>可选：把时间干预搬到多医院数据上</h3>
+  <ul class="rules">
+    <li>评估在 eICU V2 的逐小时网格（Y24 任务）上做无碰撞时间干预是否可行：小时网格很粗，同格碰撞会很多，可能只能在有空格的位置交换。</li>
+    <li>如果可行，就能检验“对记录时间的依赖”在不同医院是否都存在、大小是否不同，把问题发现和问题验证接起来。</li>
+    <li>这周只做可行性评估，不跑结果。需要服务器上的 PhysioNet 权限，视情况由主线或合作同学做。</li>
+  </ul>
+</section>
+
+<section class="sec" id="reading">
+  <h2>精读清单：每篇都要落到一个分析决定上</h2>
+  <p class="lead">共约 3.5 小时，分在周一到周四。这是有针对性的核对，不是系统综述，不能据此说“首次”。已有文献的正式题名、版本和读到哪见 <a href="literature_audit.md">文献核验附录</a>。</p>
+  <div class="papers">
+    <article class="paper"><h4>Agniel 等，BMJ 2018</h4><p class="meta">周一，40 分钟；方法、过程变量、结果和勘误 <a class="cite" href="#ref-S004">[S004]</a></p><p><b>产出：</b>记录频率、间隔、recency 的定义，作为 Q1 通道指标的参照</p><p><b>别过度引用：</b>过程和结局相关，不等于医院政策造成了结局；勘误只改了图 3b 的纵轴</p></article>
+    <article class="paper"><h4>Sisk 等，JAMIA 2021</h4><p class="meta">周一，20 分钟；本轮只核对了题录和摘要 <a class="cite" href="#ref-S009">[S009]</a></p><p><b>产出：</b>用 informative presence / observation 的术语给我们的问题定位；综述提醒，利用观测模式的模型要定期重新验证，因为监测习惯会随场景变化</p><p><b>别过度引用：</b>综述归纳的是方法，不等于已经证明了医院间的差异和危害</p></article>
+    <article class="paper"><h4>Zhou 等，AISTATS 2023</h4><p class="meta">周二，35 分钟；§2–3 缺失偏移的定义 <a class="cite" href="#ref-S003">[S003]</a></p><p><b>产出：</b>“医院之间记录方式不同”的形式化写法</p><p><b>别过度引用：</b>理论假设各变量独立、按固定概率漏记（UCAR），真实的记录依赖病情</p></article>
+    <article class="paper"><h4>Jeanselme 等，2025 预印本</h4><p class="meta">周二，25 分钟；§4–5 <a class="cite" href="#ref-S002">[S002]</a></p><p><b>产出：</b>临床存在偏移（clinical presence shift）的定义和对照思路</p><p><b>别过度引用：</b>生存任务；总体 transfer loss 里 DeepJoint 和 Feature 都是 0.011</p></article>
+    <article class="paper"><h4>Zech 等，PLOS Medicine 2018</h4><p class="meta">周三，40 分钟；本轮只核对了题录和摘要 <a class="cite" href="#ref-S010">[S010]</a></p><p><b>产出：</b>“认出医院”检验的模板：医院可识别性、只用患病率的基线、内部与外部表现的对比</p><p><b>别过度引用：</b>这是影像模型，不是时序记录过程；我们要自己证明记录过程有同样的问题</p></article>
+    <article class="paper"><h4>Zhang &amp; Li，2026 预印本</h4><p class="meta">周三，20 分钟；方法与结果 <a class="cite" href="#ref-S001">[S001]</a></p><p><b>产出：</b>最接近的工作有没有证明过“医院特有的记录过程”，我们的验证补的是哪一块</p><p><b>别过度引用：</b>自己写的 DANN / IRM 不能说是复现了作者的方法</p></article>
+    <article class="paper"><h4>Londschien 等，2025 / 2026 预印本</h4><p class="meta">周四，30 分钟；跨库评价部分 <a class="cite" href="#ref-S005">[S005]</a></p><p><b>产出：</b>ICU 模型跨库、跨院性能下降的量级，作为 Q3 的参照</p><p><b>别过度引用：</b>anchor 方法属于改善阶段，这周不讨论</p></article>
+  </div>
+  <p class="note">改善阶段再读：Veitch（反事实不变性）、Zhang 等的 ARM（无标签适应）、Gneiting &amp; Raftery（评分规则；本周按已有结论使用 Brier 和 log loss）。<a class="cite" href="#ref-S006">[S006]</a><a class="cite" href="#ref-S007">[S007]</a><a class="cite" href="#ref-S008">[S008]</a></p>
+</section>
+
+<section class="sec" id="roadmap">
+  <h2>从这周到 2027 年 8 月</h2>
+  <p class="lead">路线按“先验证、再改善”排。时间点是暂定的；2027 年 8 月前投出的目标不变，导师确认后再调。</p>
+  <div class="road-wrap" tabindex="0" aria-label="路线图，窄屏可左右滑动"><ol class="road">
+    <li><div class="when">11/02–11/08</div><div class="what">36 家 tune 医院上的探索性验证（Q1–Q3）；合作线补齐问题发现的证据</div><div class="why">继续的条件：数据能回答、配置冻结、结果可复现</div></li>
+    <li><div class="when">11 月中下旬</div><div class="what">预登记后，在 159 家 eval 医院上做一次确认分析；需要时把时间干预搬到 eICU</div><div class="why">条件：探索结果至少到第一级；预登记先于运行</div></li>
+    <li><div class="when">12 月</div><div class="what">和导师定论文路线：问题成立，就设计改善方法（后训练等）；不成立，就以问题发现为主</div><div class="why">条件：确认分析的结果</div></li>
+    <li><div class="when">2027 年 1–2 月</div><div class="what">改善方法的开发，或问题发现的扩展（第二个数据库、更多模型）</div><div class="why">条件：路线已定</div></li>
+    <li><div class="when">2027 年 3–4 月</div><div class="what">确认实验、消融、代码和主稿</div><div class="why">条件：主图支持核心论点，所有结果都有冻结方案和来源</div></li>
+    <li><div class="when">2027 年 5–7 月</div><div class="what">按官方征稿时间投稿和修改，8 月前投出</div><div class="why">条件：会议或期刊和贡献类型匹配；录用时间不由我们决定</div></li>
+  </ol></div>
+  <p class="note">问题如果不成立，前面也没有白做：“模型对记录时间的依赖取决于结构”本身是清楚的发现，多医院验证则回答了“这种依赖在医院之间影响有多大”。v1.1 里列的 2027 年截稿日是估计，没有核对官方公告。</p>
+</section>
+
+<section class="sec" id="lock">
+  <h2>周一要定下来的事</h2>
+  <p class="lead">这些是方案层面的关键决定，按项目规范要在动手前定下，下面列的是建议。勾选状态只保存在你自己的浏览器里。<a class="cite" href="#ref-E12">[E12]</a></p>
+  <ul class="locks">
+    <li><label><input type="checkbox" data-key="L1"><div><div class="what">阶段定位</div><div class="rec">本周只做问题验证，不比较改善方法；后训练等方法等问题成立后再定</div><div class="why">先确认问题存在，再谈解决</div></div></label></li>
+    <li><label><input type="checkbox" data-key="L2"><div><div class="what">数据范围</div><div class="rec">36 家 tune 医院做探索；159 家 eval 医院本周不碰，是否用于一次性确认之后再定</div><div class="why">保住最大的多医院数据，留给确认</div></div></label></li>
+    <li><label><input type="checkbox" data-key="L3"><div><div class="what">人群、终点、预测时点</div><div class="rec">沿用 V2：ARI 成人、Y24、入科后 6–72 小时；Y24 分组件报告，只看死亡作敏感性</div><div class="why">不同时改任务和问题；分开治疗门槛的影响</div></div></label></li>
+    <li><label><input type="checkbox" data-key="L4"><div><div class="what">通道分类</div><div class="rec">设备自动 / 护士录入 / 医生开单 / 混合，按 V2 来源表；混合通道拆开或排除</div><div class="why">不把系统差异说成临床习惯</div></div></label></li>
+    <li><label><input type="checkbox" data-key="L5"><div><div class="what">“病情相同”的定义</div><div class="rec">三层调整（入科后多久 / 入科信息 / 当前状态）加 APACHE 敏感性；协变量清单事先定</div><div class="why">避免看了结果再选协变量</div></div></label></li>
+    <li><label><input type="checkbox" data-key="L6"><div><div class="what">Q3 的设计</div><div class="rec">按病人随机 6 折对按医院 6 折（按阳性数均衡）；特征集 V / P / V+P / V+H；LightGBM 固定超参数加 LR</div><div class="why">把“医院特有的信号”单独量出来</div></div></label></li>
+    <li><label><input type="checkbox" data-key="L7"><div><div class="what">主指标和解读线</div><div class="rec">Q1 用调整后的中位倍数比；Q3 用过程增益的差值 Δ（Brier，病人等权）；解读线的具体数值</div><div class="why">避免事后挑指标、挪门槛</div></div></label></li>
+    <li><label><input type="checkbox" data-key="L8"><div><div class="what">小医院和跨两边的病人</div><div class="rec">定最小医院规模（例如至少 20 名病人才单独报告）；26 名跨 tune / eval 病人的处理</div><div class="why">控制噪声，避免同一病人两边都用</div></div></label></li>
+    <li><label><input type="checkbox" data-key="L9"><div><div class="what">合作线</div><div class="rec">补 7 项汇总证据；是否评估把时间干预搬到 eICU</div><div class="why">把问题发现做扎实</div></div></label></li>
+    <li><label><input type="checkbox" data-key="L10"><div><div class="what">论文路线</div><div class="rec">问题成立之前不定改善方法；2027 年 8 月前投出的目标暂不变，导师确认</div><div class="why">路线跟着证据走</div></div></label></li>
+  </ul>
+</section>
+
+<section class="sec" id="code">
+  <h2>代码与资源</h2>
+  <p class="lead">服务器工作目录记作 <code>W=/home/ud202482579/wangyiming</code>。下表是已经核实可以复用的代码；具体函数和行号见 <a href="server_method_audit.md">服务器方法审计</a>。<a class="cite" href="#ref-E07">[E07]</a></p>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th style="width:34%">已有文件（相对 W/basemodel）</th><th style="width:30%">能复用什么</th><th>本周怎么用</th></tr></thead>
+    <tbody>
+      <tr><td><code>experiments/public_eicu_v2/build_features.py</code></td><td>逐小时特征，以及各通道对应的来源表</td><td>Q1 记录表的起点；加上通道类型和钟点</td></tr>
+      <tr><td><code>experiments/public_thour_v2/views.py</code></td><td>回看窗、前向填充、数值摘要、n_obs、hours_since_last、missing</td><td>按列分成 V / P 特征集（V 仍含前向填充带来的少量过程信息）</td></tr>
+      <tr><td><code>experiments/fc_bench/f2_external.py</code></td><td>观测次数的跨库口径（决策 D4）</td><td>P 特征沿用“有观测的小时数”的口径</td></tr>
+      <tr><td><code>experiments/rw_gam2gd/evaluate.py</code></td><td>指标、按组聚类的配对 bootstrap</td><td>传入医院分组，得到按医院聚类的区间</td></tr>
+      <tr><td><code>experiments/fc_bench/f2_controls.py</code></td><td>GRU / TCN / GRU-D 框架</td><td>建议项：GRU-D 跑 Q3</td></tr>
+      <tr><td><code>experiments/mp_benchmark_v1/engine.py</code></td><td>pos_weight、用验证集选阈值</td><td>合作线核对 MPAD 的概率尺度</td></tr>
+    </tbody>
+  </table></div>
+  <div class="prose">
+    <p><b>打算新增</b>（还没写，不能当现成命令跑）：<code>experiments/process_audit/</code> 下的 <code>build_obs_table</code>（来源分开的记录表）、<code>hospital_variation</code>（Q1）、<code>process_meaning</code>（Q2）、<code>transport_gap</code>（Q3），以及对应的虚构数据测试。新文档放 <code>W/docs/basemodel/plan/week06/</code>，结果放对应的 <code>result/week06/</code>（编号以项目现有安排为准），日志在 <code>W/logs/YYYY-MM-DD/</code>；逐病人的产物只留在服务器受限的 derived 目录。</p>
+    <p>现有项目命令（在服务器 <code>W/basemodel</code> 下运行）：<code>.venv/bin/python -m pytest -q tests</code> 和 <code>.venv/bin/python scripts/data_audit/scan_code_identifiers.py</code>。它们通过不代表新模块已经测过。顺序始终是：写方案 → 锁定 → 记录配置和代码 hash → 运行 → 汇总报告。</p>
+    <p><b>资源</b>：这周的分析基本只用 CPU（LightGBM、LR、随机效应汇总）。GRU-D 是建议项，用 GPU 前先小规模测时间和显存。10 月 31 日查看时 2 张 L40 空闲，只是当时的状态，没有预约。</p>
+  </div>
+</section>
+
+<section class="sec" id="appendix">
+  <h2>术语与来源</h2>
+  <h3>术语表</h3>
+  <dl class="gloss">
+    <dt>记录过程</dt><dd>什么时候测、测得多密、隔多久测一次。论文里叫 measurement / observation process。</dd>
+    <dt>记录习惯</dt><dd>医院层面的开单常规、护理制度和系统设置，决定记录过程里和病情无关的那一部分（measurement policy）。</dd>
+    <dt>三类通道</dt><dd>设备自动、护士录入、医生开单，见“三类记录通道”。</dd>
+    <dt>预测时点（landmark）</dt><dd>做预测的时间点。V2 中入科后每 6 小时一个（6–72 小时），只用之前 24 小时的数据。</dd>
+    <dt>Y24</dt><dd>预测时点之后 24 小时内出现有创通气、升压药或死亡。前两项本身是治疗决定，所以要分组件报告。</dd>
+    <dt>V / P / V+P / V+H</dt><dd>只用数值、只用记录方式、两者合用、数值加医院标识。前三个对应 Stage 1 的 Value-only、Process-only、Combined。</dd>
+    <dt>MPAD</dt><dd>合作摘要里的平均概率漂移，准确定义待从评价代码确认。</dd>
+    <dt>决策不一致率</dt><dd>扰动前后，同一病人的阳性 / 阴性判定不同的比例。</dd>
+    <dt>阴性对照</dt><dd>理论上不应受影响的设置。这里指只用数值的表示，扰动记录时间后应完全不变。</dd>
+    <dt>O/E</dt><dd>实际记录数 ÷ 按病情预期的记录数。</dd>
+    <dt>中位倍数比</dt><dd>随便挑两家医院，病情相同的病人，记录次数的中位差别是几倍；= exp(0.954 × τ)，τ 是各院 log(O/E) 的标准差。</dd>
+    <dt>within / between</dt><dd>把一个特征拆成“本院平均水平”和“病人相对本院的偏离”，分别看和结局的关系。</dd>
+    <dt>两种切法</dt><dd>按病人随机切：测试病人的医院训练时见过。按医院整组切：测试的整家医院训练时没见过。</dd>
+    <dt>过程增益 G 与 Δ</dt><dd>G = 只用数值的损失 − 两者合用的损失；Δ = 随机切下的 G − 按院切下的 G。</dd>
+    <dt>残余混杂</dt><dd>控制了能测到的病情之后，仍可能有没测到的病情（比如医生的担心）在影响结果。</dd>
+  </dl>
+
+  <h3>证据与文献</h3>
+  <p class="note">外部文献 [S] 和本地或服务器证据 [E] 分开编号。外部来源的访问记录在 <code>sources.jsonl</code> / <code>literature_sources.jsonl</code>，本地证据和 hash 在 <code>evidence-index.json</code>，服务器快照在 <code>evidence/manifest.json</code>。S009–S011 是这一版新加的，只核对了题录和摘要级信息。</p>
+  <ol class="refs">
+    <li id="ref-E02"><span class="id">E02</span><a href="../../../result/观测过程建模/MC_MED_观测过程问题发现阶段总结.docx">合作同学的阶段总结（DOCX）</a>；<a href="evidence/MC_colleague.txt">段落与表格提取</a>。Stage 1 与 Stage 2A-v2 的数字来源；合作摘要证据，没有独立重跑。</li>
+    <li id="ref-E03"><span class="id">E03</span><a href="evidence/B1v2.md">B1v2 队列与泄漏审计快照</a>：LightGBM 在验证集上的特征增益排序（非正式结果）。</li>
+    <li id="ref-E04"><span class="id">E04</span><a href="evidence/V2.md">V2 eICU 队列与逐小时视图</a>：tune / eval 规模、通道来源、覆盖率、按医院分组的泄漏嗅探；<a href="evidence/V2_lock.md">计划锁定</a>。</li>
+    <li id="ref-E06"><span class="id">E06</span><a href="evidence/MC_oct.md">10 月 MC-MED 汇总报告快照</a>：pos_weight 与原始 Brier；<a href="evidence/MC_lock.md">计划锁定</a>。</li>
+    <li id="ref-E07"><span class="id">E07</span><a href="server_method_audit.md">服务器方法审计</a>：AL1、AL4、F2 的报告和代码位置；只读核查，没有重跑数值。</li>
+    <li id="ref-E09"><span class="id">E09</span><a href="../../../docs/数据标准/质量验收/质量成绩单_std_v3_20261031_5.md">两院数据质量成绩单</a>：SpO₂、氧疗来源与时间精度。</li>
+    <li id="ref-E10"><span class="id">E10</span><a href="evidence/A4.md">A4 桥接汇总结果</a>和<a href="evidence/decisions.md">决策记录</a>：含 D4（观测次数口径）。</li>
+    <li id="ref-E12"><span class="id">E12</span><a href="../../../CLAUDE.md">本地项目规范</a>和只读的服务器规范：数据、关键决定、方案锁定与运行纪律。</li>
+    <li id="ref-E13"><span class="id">E13</span>问题发现阶段小结（10-31 文字稿，随本轮提供）：五步实验经过、Stage 2A-v2 的强控制条件、阴性对照和两项辅助分析。“已经做到哪一步”据此整理；阴性对照和输入不变性审计只见于文字稿，原始产物还没核对。</li>
+    <li id="ref-S001"><span class="id">S001</span>Zhang Y, Li S. <i>Learning Clinical Representations Under Systematic Distribution Shift</i>. arXiv:2603.07348v1, 2026，预印本。<a href="https://arxiv.org/html/2603.07348v1">全文</a>。</li>
+    <li id="ref-S002"><span class="id">S002</span>Jeanselme V, et al. <i>Prediction of Survival Outcomes under Clinical Presence Shift: A Joint Neural Network Architecture</i>. arXiv:2508.05472v1, 2025，预印本。<a href="https://arxiv.org/html/2508.05472v1">全文</a>。</li>
+    <li id="ref-S003"><span class="id">S003</span>Zhou H, Balakrishnan S, Lipton ZC. <i>Domain Adaptation under Missingness Shift</i>. AISTATS 2023, PMLR 206:9577–9606。<a href="https://proceedings.mlr.press/v206/zhou23b.html">正式论文</a>。</li>
+    <li id="ref-S004"><span class="id">S004</span>Agniel D, Kohane IS, Weber GM. <i>Biases in electronic health record data due to processes within the healthcare system: retrospective observational study</i>. BMJ 2018;361:k1479。<a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5925441/">全文</a>；<a href="https://doi.org/10.1136/bmj.k4416">2018 年勘误</a>修正了图 3b 的纵轴。</li>
+    <li id="ref-S005"><span class="id">S005</span>Londschien M, et al. <i>Domain Generalization and Adaptation in Intensive Care with Anchor Regression</i>. arXiv:2507.21783v2，预印本。<a href="https://arxiv.org/html/2507.21783v2">全文</a>。</li>
+    <li id="ref-S006"><span class="id">S006</span>Zhang M, et al. <i>Adaptive Risk Minimization: Learning to Adapt to Domain Shift</i>. NeurIPS 2021。<a href="https://arxiv.org/abs/2007.02931">论文</a>。</li>
+    <li id="ref-S007"><span class="id">S007</span>Veitch V, et al. <i>Counterfactual Invariance to Spurious Correlations in Text Classification</i>. NeurIPS 2021；读的是 arXiv:2106.00545v3。<a href="https://arxiv.org/html/2106.00545v3">阅读版本</a>。</li>
+    <li id="ref-S008"><span class="id">S008</span>Gneiting T, Raftery AE. <i>Strictly Proper Scoring Rules, Prediction, and Estimation</i>. JASA 2007;102(477):359–378。<a href="https://doi.org/10.1198/016214506000001437">正式 DOI</a>；实际读的是 2004 年 UW 技术报告 463。</li>
+    <li id="ref-S009"><span class="id">S009</span>Sisk R, Lin L, Sperrin M, Barrett JK, Tom B, Diaz-Ordaz K, Peek N, Martin GP. <i>Informative presence and observation in routine health data: A review of methodology for clinical risk prediction</i>. JAMIA 2021;28(1):155–166。<a href="https://doi.org/10.1093/jamia/ocaa242">DOI</a>。本轮只核对了题录和摘要。</li>
+    <li id="ref-S010"><span class="id">S010</span>Zech JR, Badgeley MA, Liu M, Costa AB, Titano JJ, Oermann EK. <i>Variable generalization performance of a deep learning model to detect pneumonia in chest radiographs: A cross-sectional study</i>. PLOS Medicine 2018;15(11):e1002683。<a href="https://doi.org/10.1371/journal.pmed.1002683">DOI</a>。本轮只核对了题录和摘要：模型几乎能完美认出医院系统，只用各院患病率的基线 AUC 达 0.861。</li>
+    <li id="ref-S011"><span class="id">S011</span>eICU-CRD patient 表结构（MIT LCP 的 schema 页面）。<a href="https://lcp.mit.edu/eicu-schema-spy/tables/patient.html">链接</a>。确认有 unitadmittime24、hospitalid、unittype 等字段，没有星期几字段。</li>
+  </ol>
+</section>
+
+<section class="sec" id="changes">
+  <h2>附：和 v2 的区别</h2>
+  <p class="lead">只供参考。v2 默认问题已经存在，讨论的是改善方法；这一版先退一步，验证问题是否存在。</p>
+  <ol class="changes">
+    <li><span class="tag adj">调整</span><div><h4>重心从“怎么改善”改为“问题是否存在”</h4><p>v2 的主比较是两种删观测方法（M2 对 M1b）；这一版的三个问题是：记录方式是否因院而异、是否改变特征含义、是否让模型换院变差。</p></div></li>
+    <li><span class="tag new">新增</span><div><h4>三级判断和“认出医院”的对照</h4><p>差异存在、含义不同、换院变差三级分开下结论；加入 V+H 对照和“只看死亡”的敏感性，区分记录习惯和治疗门槛。</p></div></li>
+    <li><span class="tag new">新增</span><div><h4>通道分三类</h4><p>设备自动、护士录入、医生开单分开报告，避免把系统差异说成临床习惯。</p></div></li>
+    <li><span class="tag cut">后移</span><div><h4>改善方法、删观测工具、后训练小测试</h4><p>移到问题成立之后。届时 v2 的公平比较框架（几组实验逐层对照、条数对齐、只评一次）可以直接接上。</p></div></li>
+    <li><span class="tag adj">保留</span><div><h4>数据保护和统计纪律</h4><p>159 家 eval 医院不碰；按病人聚类；配置冻结后只跑一次；20 小时最低版本。</p></div></li>
+  </ol>
+  <h3>关于这个页面</h3>
+  <p class="prose">根据合作线的问题发现阶段小结、V2 / B1v2 文档、服务器只读审计和核对过的文献整理。示意图都是虚构的；新分析都还没跑。</p>
+</section>
+</main>
+</div>
+<footer>下周研究计划（问题验证版），2026-10-31 整理。只含汇总数据和虚构示意，不含任何病人记录。</footer>
+<div class="tip" id="tip" role="tooltip" hidden></div>
+<script>
+(function(){
+  var root=document.documentElement, body=document.body;
+  var store={get:function(k){try{return localStorage.getItem(k)}catch(e){return null}},set:function(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+  var tbtn=document.getElementById('themeBtn'), tlab=document.getElementById('themeLabel');
+  function cur(){var t=root.getAttribute('data-theme');if(t)return t;return (window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light'}
+  function paint(){var d=cur()==='dark';tlab.textContent=d?'浅色':'深色';tbtn.setAttribute('aria-label',d?'切换到浅色':'切换到深色')}
+  var saved=store.get('plan-v3-theme');if(saved==='dark'||saved==='light')root.setAttribute('data-theme',saved);
+  paint();
+  tbtn.addEventListener('click',function(){var n=cur()==='dark'?'light':'dark';root.setAttribute('data-theme',n);store.set('plan-v3-theme',n);paint()});
+  var pb=[].slice.call(document.querySelectorAll('[data-path-btn]'));
+  function setPath(p){body.setAttribute('data-path',p);pb.forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-path-btn')===p))});
+    [].forEach.call(document.querySelectorAll('[data-h-full]'),function(el){el.textContent=p==='min'?el.getAttribute('data-h-min'):el.getAttribute('data-h-full')});
+    [].forEach.call(document.querySelectorAll('[data-note]'),function(el){el.hidden=el.getAttribute('data-note')!==p});
+    store.set('plan-v3-path',p)}
+  pb.forEach(function(b){b.addEventListener('click',function(){setPath(b.getAttribute('data-path-btn'))})});
+  setPath(store.get('plan-v3-path')==='min'?'min':'full');
+  var checks={};try{checks=JSON.parse(store.get('plan-v3-checks')||'{}')}catch(e){checks={}}
+  [].forEach.call(document.querySelectorAll('input[data-key]'),function(cb){if(checks[cb.getAttribute('data-key')])cb.checked=true;
+    cb.addEventListener('change',function(){checks[cb.getAttribute('data-key')]=cb.checked;store.set('plan-v3-checks',JSON.stringify(checks))})});
+  var links=[].slice.call(document.querySelectorAll('.toc a'));
+  if('IntersectionObserver' in window){
+    var byId={};links.forEach(function(a){byId[a.getAttribute('href').slice(1)]=a});
+    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){links.forEach(function(a){a.removeAttribute('aria-current')});var a=byId[e.target.id];if(a)a.setAttribute('aria-current','true')}})},{rootMargin:'-15% 0px -75% 0px'});
+    [].forEach.call(document.querySelectorAll('section.sec[id]'),function(s){io.observe(s)});
+  }
+  var fs=document.getElementById('fs');var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(fs){if(reduce){fs.classList.add('thinned')}else{setTimeout(function(){fs.classList.add('thinned')},700)}
+    document.getElementById('replay').addEventListener('click',function(){fs.classList.remove('thinned');void fs.getBoundingClientRect();setTimeout(function(){fs.classList.add('thinned')},reduce?0:450)})}
+  var tip=document.getElementById('tip');
+  [].forEach.call(document.querySelectorAll('[data-tip]'),function(el){
+    function show(x,y){tip.textContent=el.getAttribute('data-tip');tip.hidden=false;var r=tip.getBoundingClientRect();var L=x+14,T=y+14;if(L+r.width>innerWidth-8)L=Math.max(8,x-r.width-14);if(T+r.height>innerHeight-8)T=y-r.height-14;tip.style.left=L+'px';tip.style.top=T+'px'}
+    el.addEventListener('pointermove',function(e){show(e.clientX,e.clientY)});
+    el.addEventListener('pointerleave',function(){tip.hidden=true});
+    el.addEventListener('focus',function(){var r=el.getBoundingClientRect();show(r.left+24,r.bottom)});
+    el.addEventListener('blur',function(){tip.hidden=true});
+  });
+  window.addEventListener('beforeprint',function(){[].forEach.call(document.querySelectorAll('details'),function(d){d.setAttribute('data-was',d.open?'1':'0');d.open=true})});
+  window.addEventListener('afterprint',function(){[].forEach.call(document.querySelectorAll('details'),function(d){if(d.getAttribute('data-was')==='0')d.open=false})});
+})();
+</script>
+</body>
+</html>

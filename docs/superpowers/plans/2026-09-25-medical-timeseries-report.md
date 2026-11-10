@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- 主证据为 `research/medical-ts-posttrain-rl-20260923/report.md` 及 `paper/首次调研/` 的第二轮数据与模型对比。
+- 主证据为 `research/后训练与强化学习/medical-ts-posttrain-rl-20260923/report.md` 及 `paper/首次调研/` 的第二轮数据与模型对比。
 - 不把群体级流感预测等同个体转重；不把治疗策略奖励写成分类损失。
 - 单文件离线可用，响应式、可打印、键盘可操作。
 

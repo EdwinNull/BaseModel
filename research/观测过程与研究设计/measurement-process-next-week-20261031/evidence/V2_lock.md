@@ -1,0 +1,9 @@
+# V2_eicu_cohort 锁定  2026-10-05 01:04:24
+# eICU V2 队列与 landmark（标★的操作化待研究者复核；只产出 derived 数据与聚合审计，不评价任何模型）
+bdc11878506b8272c0b39290927c0d7cc35ce8b6ab0d99b70ab96de86b34a3d5  docs/basemodel/plan/week02/无裁定条件下的对齐_基础模型与后训练综合实验规划_20261004.md
+6c169184a7a454fc822a4db4862b7441b77e4c76ec07d235ebb675475b88900b  basemodel/experiments/public_eicu_v2/build_cohort.py
+916b38905c4b0f6991a3c8c55dba81385d7ba50a8b9cde199e921933b0fb00eb  basemodel/experiments/public_thour_v2/build_landmarks.py
+0114a30dbe94562455f0b7e56dc6f1d3682501ec23aef1041ac89cfbdf2a6374  basemodel/tests/test_public_eicu_v2.py
+465aa63f80d40d8e6ce5c0a3846049a08e679c59acc24d11a544ec96c31e5625  logs/2026-10-05/public_eicu_v2/vocab_audit_batch2.txt
+# 追加 2026-10-05 01:04:46：首次运行因 SQL 别名 offset 为保留字失败（ParserException），改名 off_min 后重跑；口径未变
+e913c785791314604961939265319e39d1934f1c9913feca7f506ac087d33778  basemodel/experiments/public_eicu_v2/build_cohort.py

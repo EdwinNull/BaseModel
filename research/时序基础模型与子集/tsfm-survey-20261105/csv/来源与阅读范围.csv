@@ -1,0 +1,21 @@
+﻿Model,主要来源,定位,阅读范围,未读到的部分 / 待核对
+MIRA,"Li et al., MIRA, NeurIPS 2025",arXiv 2506.07584（v7）；github.com/microsoft/MIRA,正文 + 附录 A–I 原文,内部不一致：Sec 3.3 称含流行病与心理健康数据，Table 7 无；正文称 7 个 OOD 数据集，Table 2 只有 6 个；'best results on all datasets' 与 Table 2 不符
+Time-MoE,"Shi et al., Time-MoE, ICLR 2025",arXiv 2409.16040；github.com/Time-MoE/Time-MoE,正文 + App B/C,Table 10 后半、App D
+Sundial,"Liu et al., Sundial, ICML 2025",arXiv 2502.00816（v4）；github.com/thuml/Sundial,正文 + 附录 A–F,ECG 子集具体库名未给出
+TimesFM 1.0,"Das et al., ICML 2024",arXiv 2310.10688（v4，本机 PDF 09_TimesFM.pdf）,全文,—
+TimesFM 2.0 / 2.5 / 3.0,HF 模型卡 google/timesfm-2.0-500m-pytorch、timesfm-2.5-200m-pytorch、timesfm-3.0-pytorch；README；Google Research 博客 2026-08-31,huggingface.co/google；github.com/google-research/timesfm,模型卡 + README + 博客,无论文；GiftEvalPretrain 组成清单未公开
+Timer-XL,"Liu et al., Timer-XL, ICLR 2025",arXiv 2410.04803（v4）；github.com/thuml/Timer-XL,正文 + App A–E,Tables 14–16；UTSD 点数正文写 10 亿、Table 9 为 868.8M；BIDMC32HR 来源属性凭记忆
+Timer / UTSD,"Liu et al., Timer, ICML 2024；HF thuml/UTSD 数据卡",arXiv 2402.02368,正文 + 数据卡,附录（摘要级）
+VisionTS / VisionTS++,"Chen et al., ICML 2025；Shen et al., arXiv 2508.04379",arXiv 2408.17253；github.com/Keytoyze/VisionTS,VisionTS 正文；VisionTS++ 正文部分,VisionTS 附录 B.9；Fig 6 具体取值
+VIMTS,"Hu et al., ICML 2025",arXiv 2505.22815；github.com/WHU-HZY/VIMTS,正文 + App A.1–A.5、B.1–B.2,B.2 之后
+Aurora,"Wu et al., ICLR 2026（华东师大）",arXiv 2509.22295；github.com/decisionintelligence/Aurora,正文（v6）+ App A.1–A.4（v1）,ICLR 版附录；Fig 6 来源比例；局限性章节
+LightGTS,"Wang et al., ICML 2025",arXiv 2506.06005；github.com/decisionintelligence/LightGTS,正文 + App A–C,Table 13 数值截断；N=10 与 App A.4 'N=4' 不一致
+Chronos / Chronos-Bolt,"Ansari et al., TMLR 10/2024；Chronos-Bolt README",arXiv 2403.07815（本机 PDF 08_Chronos.pdf）；github.com/amazon-science/chronos-forecasting,全文含附录；Bolt 仅 README,Bolt 无论文，patch 长度未核对
+Chronos-2,"Ansari et al., arXiv 2510.15821",arXiv 2510.15821；HF amazon/chronos-2,正文,附录 A/B、Table 6（训练数据清单）
+Moirai（1.0/1.1）,"Woo et al., ICML 2024",arXiv 2402.02592；github.com/SalesforceAIResearch/uni2ts,正文 + Tables 8–17,—
+Moirai-MoE,"Liu et al., arXiv 2410.10469",arXiv 2410.10469,正文部分,附录
+Moirai 2.0,"Liu et al., arXiv 2511.11698（v3）",arXiv 2511.11698,正文到 Sec 5.4,Sec 6、Table 2 数值（摘要级）、附录
+MOMENT,"Goswami et al., ICML 2024",arXiv 2402.03885（本机 PDF 11_Moment.pdf）,全文,—
+Lag-Llama,"Rasul et al., arXiv 2310.08278",本机 PDF 10_Lag-Llama.pdf,全文,—
+GIFT-Eval,"Aksu et al., arXiv 2410.10393",arXiv 2410.10393；HF Salesforce/GiftEvalPretrain,正文,App D/E/F.2；Healthcare 测试集名称
+独立临床评测,Gu et al. ML4H 2024；Pucher et al. AI4TS 2025、AIIM 2026；Syed et al. ICML 2026；Al Attrach et al. ICLR 2026 研讨会；PULSE-ICU,PMLR 259:401–419；doi:10.1016/j.artmed.2026.103473；PMLR 306；arXiv 2511.22199,Gu 正文与表格原文；其余仅摘要,除 Gu 外均为摘要级

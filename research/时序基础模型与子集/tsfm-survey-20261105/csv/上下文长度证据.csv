@@ -1,0 +1,19 @@
+﻿Model,训练 / 最大上下文,输入切分方式,15 点窗口约等于几个 token（推算）,论文中的上下文长度实验,实验里最短的上下文,结论方向,位置
+MIRA,≤512 点,点级 token + 连续时间戳,15,无,—,Not reported,Table 6；全文无上下文实验
+Time-MoE,≤4096（含预测段）,点级 token,15,无单独消融；评价输入 512–3072 与预测长度绑定,512（评价设定）,Not reported,Sec 4.1
+Sundial,2880,patch 16,1（左侧填充 1 点）,TSLib lookback 480 / 960 / 1440 / 1920 / 2400 / 2880,480,依任务而定，应按预测长度与周期调,App C.3 Fig 10
+TimesFM 1.0,512,输入 patch 32,1（填充 17 点）,无长度扫描；Fig 3c 只比较 patch 长度 8–128,—,设计上用随机遮蔽覆盖 1–512 的所有上下文长度,Sec 4 'Patch Masking'；Fig 3c
+TimesFM 2.5 / 3.0,"16k / 15,360",3.0：输入 patch 32,1,Not reported（无论文）,—,Not reported,README、模型卡
+Timer-XL,2880（ERA5 3072）,patch 96,1（填充 81 点）,Fig 3 lookback 8 小时→1 年；Table 15 与 DLinear、PatchTST 比较；Fig 8 推理 lookback 96–3072；Fig 5b 预训练上下文 1440 vs 2880,8 小时（以时间跨度表示）,日→月持续改善，月 / 年后放缓或变差；作者明言短上下文学不到全局趋势,Sec 1；Sec 4.1 Fig 3；App E.4 Table 15；Fig 5b、Fig 8
+VisionTS,各数据集调到 1728–4032,按周期 P 折成图像，再切 16×16 图像 patch,取决于 P；无周期时 P=1,Fig 6 改变上下文长度 L,未读到具体取值,L 越长越好，高频数据尤甚,Sec 4.2 Fig 6；App B.1 Table 8
+VIMTS,按数据集（ICU 24 h）,等长时间窗 patch（ICU 为 8 个时间步）+ TTCN 聚合,需重设窗长,无（只扫隐藏维、patch 大小、mask 比例等）,—,Not reported,Table 2；App A.5；Figs 5–9
+Aurora,Not reported（README 示例 528）,token 长 48,1,正文无；附录未读到,—,Not reported,README；Sec 3.1.1
+LightGTS,10 个周期 token（约 480–528 点）,patch = 周期长度,≤1（15 分钟内通常无稳定周期）,无（N 固定为 10）,—,Not reported,App A.4；README
+Chronos,512,点级量化 token,15,用 4 种训练上下文长度训练 Chronos-T5-Small,见 Fig 11b,到 1024 前越长越好，再长持平或变差,Sec 5.6 Fig 11b
+Chronos-Bolt,README 未写,patch 输入（长度 README 未写）,Not reported,无论文,—,Not reported,README
+Chronos-2,8192（两阶段 2048→8192）,patch（长度正文未写）,Not reported,Fig 8c：2K 与 8K 上下文后训练比较,2048,8K 更好（高频数据多的 GIFT-Eval 最明显）；上下文学习在短上下文任务上收益最大,Sec 5.4 Fig 8c；Sec 5.2
+Moirai（1.0/1.1）,训练 ≤512 token；评价 1000–5000,按频率选 patch：分钟级 32/64/128,1,Fig 5：上下文 100–5000,100,越长越好,Sec 4.4 Fig 5；App B.1
+Moirai 2.0,Not reported,patch（长度未报告）,Not reported,无（只有约 10K 上下文的速度测试）,—,Not reported,Sec 3.3
+MOMENT（补充）,固定 512,patch 8，短序列左侧补零,2（其余约 97% 为填充）,Not reported,—,Not reported,Sec 3.2
+Lag-Llama（补充）,连续窗口 C 搜索 32–1024,点级 token + 长 lag 特征,15，但多数 lag 取不到,C 的超参搜索,32（最优）,短连续窗口最优，但依赖足够长的历史来取 lag,Sec 4.1；Table 5
+Gu et al. 2024（独立评测）,默认历史 6 h（5 分钟重采样）,—,—,eICU 上改变历史窗口,见 Fig 3,多数情况下历史越长越好,Sec 4.2 Fig 3

@@ -1,0 +1,98 @@
+[
+  {
+    "key": "B1v2",
+    "remote_path": "/home/ud202482579/wangyiming/docs/basemodel/result/week02/B1v2_MIMIC逐小时队列重建与泄漏审计_20261004.md",
+    "local_path": "research/measurement-process-next-week-20261031/evidence/B1v2.md",
+    "sha256": "40d3fe51fdd59abf7bc6b8e605d21136a11c4a6059557b84d3e1f0666bfb9978",
+    "bytes": 11239,
+    "accessed_at": "2026-10-31T06:32:35.816913-04:00"
+  },
+  {
+    "key": "V2",
+    "remote_path": "/home/ud202482579/wangyiming/docs/basemodel/result/week02/V2_eICU队列与逐小时视图_20261005.md",
+    "local_path": "research/measurement-process-next-week-20261031/evidence/V2.md",
+    "sha256": "1c3606ebd499104f13b63f9f5c1e07394c425ba2deff639218e704ecc40d0208",
+    "bytes": 14321,
+    "accessed_at": "2026-10-31T06:32:37.807548-04:00"
+  },
+  {
+    "key": "MC_test",
+    "remote_path": "/home/ud202482579/wangyiming/docs/GEM-MIRA/result/Week5/13_test_final/TEST_READOUT.md",
+    "local_path": "research/measurement-process-next-week-20261031/evidence/MC_test.md",
+    "sha256": "c8a17ff50e007c6f3d62b9d9e2c33d8845ceecf0ebd07dd755a8a61033fbf030",
+    "bytes": 7805,
+    "accessed_at": "2026-10-31T06:32:39.126649-04:00"
+  },
+  {
+    "key": "MC_prereg",
+    "remote_path": "/home/ud202482579/wangyiming/docs/GEM-MIRA/result/Week5/12_b10/PREREG.md",
+    "local_path": "research/measurement-process-next-week-20261031/evidence/MC_prereg.md",
+    "sha256": "b5a98d58162b056d377146505d8de468bab2c0d1c8aac78c6e182f2e75a39019",
+    "bytes": 10937,
+    "accessed_at": "2026-10-31T06:32:40.864489-04:00"
+  },
+  {
+    "key": "MC_deviations",
+    "remote_path": "/home/ud202482579/wangyiming/docs/GEM-MIRA/result/Week5/00_执行偏差与已知问题登记.md",
+    "local_path": "research/measurement-process-next-week-20261031/evidence/MC_deviations.md",
+    "sha256": "001c35159243a65f0fd8b37ca54c7c91972ec0c2c1926ce6b497e318a2befcb2",
+    "bytes": 32329,
+    "accessed_at": "2026-10-31T06:32:42.624896-04:00"
+  },
+  {
+    "key": "MC_oct",
+    "remote_path": "/home/ud202482579/wangyiming/docs/basemodel/result/week04/mp_benchmark_v1_三模型结果报告_wangyiming_20261021.md",
+    "local_path": "research/measurement-process-next-week-20261031/evidence/MC_oct.md",
+    "sha256": "5f0292c1179a3eb3a55b25c7f8d41a2d508d288f47e21427ffb1379252db67cc",
+    "bytes": 30691,
+    "accessed_at": "2026-10-31T06:32:44.575465-04:00"
+  },
+  {
+    "key": "decisions",
+    "remote_path": "/home/ud202482579/wangyiming/docs/basemodel/plan/week02/研究者决策记录_20261005.md",
+    "local_path": "research/measurement-process-next-week-20261031/evidence/decisions.md",
+    "sha256": "e188129657d46517396ed5d2e746e25091119b02b08a3325289e68feec25c65f",
+    "bytes": 38449,
+    "accessed_at": "2026-10-31T06:32:46.573051-04:00"
+  },
+  {
+    "key": "A4",
+    "remote_path": "/home/ud202482579/wangyiming/docs/basemodel/result/week05/A4桥接_只用编码队列重跑_结果_20261030.md",
+    "local_path": "research/measurement-process-next-week-20261031/evidence/A4.md",
+    "sha256": "5033752299d17c73d521e2fcfe52a9188061118be012948ccd29cc5ece02df6d",
+    "bytes": 6542,
+    "accessed_at": "2026-10-31T06:32:47.694347-04:00"
+  },
+  {
+    "key": "B1_lock",
+    "remote_path": "/home/ud202482579/wangyiming/logs/2026-10-04/B1v2_plan_lock.txt",
+    "local_path": "research/measurement-process-next-week-20261031/evidence/B1_lock.md",
+    "sha256": "5eb62210d22d7c4c1ae003c1f6bca4c72c6134dd437a41081d2e82e2cafec8cc",
+    "bytes": 1272,
+    "accessed_at": "2026-10-31T06:32:47.981864-04:00"
+  },
+  {
+    "key": "V2_lock",
+    "remote_path": "/home/ud202482579/wangyiming/logs/2026-10-04/V2_eicu_cohort_plan_lock.txt",
+    "local_path": "research/measurement-process-next-week-20261031/evidence/V2_lock.md",
+    "sha256": "63ef6963fa09a20bfdd491b996d4e996cfe40ca99c2e83831be4315103dc000f",
+    "bytes": 1091,
+    "accessed_at": "2026-10-31T06:32:48.258351-04:00"
+  },
+  {
+    "key": "MC_lock",
+    "remote_path": "/home/ud202482579/wangyiming/logs/2026-10-21/mp_benchmark_v1_plan_lock.txt",
+    "local_path": "research/measurement-process-next-week-20261031/evidence/MC_lock.md",
+    "sha256": "2e83a9da8f98f7b0a017998ee2d91896ceca3bb1534c543b6bee4a23c325164e",
+    "bytes": 6462,
+    "accessed_at": "2026-10-31T06:32:49.153131-04:00"
+  },
+  {
+    "key": "MC_test_prereg",
+    "remote_path": "/home/ud202482579/wangyiming/docs/GEM-MIRA/result/Week5/13_test_final/TEST_PREREG.md",
+    "local_path": "research/measurement-process-next-week-20261031/evidence/MC_test_prereg.md",
+    "sha256": "d7a7400cf5c85f7265ee7bf2998f00673a84aa8fe51143be5912c2a42b05c02b",
+    "bytes": 9687,
+    "accessed_at": "2026-10-31T06:48:59.790874-04:00"
+  }
+]

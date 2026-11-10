@@ -1,0 +1,34 @@
+﻿文献,链接,阅读范围
+Chen et al. 2023 MC-BEC,https://arxiv.org/abs/2311.04937,正文与 Table 2–5 逐字；附录为工具摘要
+Kansal et al. 2025 MC-MED,https://doi.org/10.1038/s41597-025-05419-5,正文；PhysioNet Table 11 为工具摘要
+MC-MED PhysioNet 1.0.0,https://physionet.org/content/mc-med/1.0.0/,部分
+Gustafsson et al. 2026 SignalMC-MED,https://arxiv.org/abs/2603.09940,正文约一半
+Xie et al. 2022 MIMIC-IV-ED 基准,https://arxiv.org/abs/2111.11017,正文
+Lett et al. 2025 JAMA Netw Open,https://doi.org/10.1001/jamanetworkopen.2025.12947,正文
+Liu et al. FAIM,https://arxiv.org/abs/2403.05235,全文含表
+Röösli et al. 2022 Sci Data,https://doi.org/10.1038/s41597-021-01110-7,全文
+Meng et al. 2022 Sci Rep,https://doi.org/10.1038/s41598-022-11012-2,摘要
+Guo et al. 2022 Sci Rep,https://doi.org/10.1038/s41598-022-06484-1,摘要
+Zhang et al. 2021 CHIL,https://arxiv.org/abs/2103.11163,正文部分逐字
+Shi et al. 2025 BMC MIDM,https://doi.org/10.1186/s12911-025-03058-9,全文
+Agniel et al. 2018 BMJ,https://doi.org/10.1136/bmj.k1479,正文与表
+Jeanselme et al. 2022 ML4H,https://proceedings.mlr.press/v193/jeanselme22a.html,部分
+Wong et al. 2021 JAMA Netw Open,https://doi.org/10.1001/jamanetworkopen.2021.31674,摘要
+Mettler et al. 2024 medRxiv,https://www.medrxiv.org/content/10.1101/2024.03.28.24305036v1,摘要
+Pradhan et al. 2025 Front Med,https://doi.org/10.3389/fmed.2025.1606254,部分
+Platts-Mills et al. 2010,https://doi.org/10.1111/j.1553-2712.2010.00670.x,摘要
+Grossmann et al. 2014,https://doi.org/10.1371/journal.pone.0106203,摘要
+Sax et al. 2023,https://doi.org/10.1001/jamanetworkopen.2023.3404,摘要
+Kemp et al. 2020,https://doi.org/10.1186/s12873-020-00379-y,摘要
+Martín-Conty et al. 2024,https://doi.org/10.1093/qjmed/hcae031,摘要
+Subbaswamy et al. 2024 AFISP,https://doi.org/10.1038/s41746-024-01275-6,全文
+Seyyed-Kalantari et al. 2021,https://pubmed.ncbi.nlm.nih.gov/34893776/,摘要
+Oakden-Rayner et al. 2020,https://arxiv.org/abs/1909.12475,扩展摘要全文
+McDermott et al. 2024,https://arxiv.org/abs/2401.06091,正文部分逐字
+Yang et al. 2023 SubpopBench,https://proceedings.mlr.press/v202/yang23s.html,正文部分逐字
+Eyuboglu et al. 2022 Domino,https://arxiv.org/abs/2203.14960,正文部分逐字
+Barda et al. 2021 JAMIA,https://doi.org/10.1093/jamia/ocaa283,摘要
+Pfohl et al. 2021 JBI,https://doi.org/10.1016/j.jbi.2020.103621,摘要
+"Chen, Johansson, Sontag 2018",https://arxiv.org/abs/1805.12002,摘要
+"Tan, Shen, Chen 2026",https://arxiv.org/abs/2604.03478,正文约三分之二
+Locati et al. 2026 ICML 研讨会,https://icml.cc/virtual/2026/71757,摘要

@@ -1,0 +1,33 @@
+[
+  {
+    "file": "decision_gate.svg",
+    "returncode": 0,
+    "audit": "PASS: 0 errors, 0 warning(s)",
+    "visual": "Quick Look 1200px PNG rendered and visually inspected; parent handles desktop/mobile HTML QA"
+  },
+  {
+    "file": "evidence_chain.svg",
+    "returncode": 0,
+    "audit": "PASS: 0 errors, 0 warning(s)",
+    "visual": "Quick Look 1200px PNG rendered and visually inspected; parent handles desktop/mobile HTML QA"
+  },
+  {
+    "file": "split_boundary.svg",
+    "returncode": 0,
+    "audit": "PASS: 0 errors, 0 warning(s)",
+    "visual": "Final wording: source val for source selection/retention evaluation; tree refit vs neural common-checkpoint adaptation; cross-hospital patient handling preserves held-out hospital boundary. Quick Look 1400px reviewed. Exact script/SVG match verified.",
+    "sha256": "627db56c6a7ee5d3ef06c1e6818982aed037167f2af4791f5022fe825f3c5e32"
+  },
+  {
+    "file": "timing_vs_thinning.svg",
+    "returncode": 0,
+    "audit": "PASS: 0 errors, 0 warning(s)",
+    "visual": "Quick Look 1200px PNG rendered and visually inspected; parent handles desktop/mobile HTML QA"
+  },
+  {
+    "file": "week_gantt.svg",
+    "returncode": 0,
+    "audit": "PASS: 0 errors, 0 warning(s)",
+    "visual": "Quick Look 1200px PNG rendered and visually inspected; parent handles desktop/mobile HTML QA"
+  }
+]

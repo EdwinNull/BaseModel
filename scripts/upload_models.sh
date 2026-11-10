@@ -1,7 +1,7 @@
 #!/bin/bash
 # 上传模型权重到服务器，传完在服务器上按 SHA256SUMS.local 核对（scripts/download_models.py 下载时写的）。
 #   bash scripts/upload_models.sh                               # 默认：MOMENT-1-large、chronos-t5-large → W/（原来的位置）
-#   bash scripts/upload_models.sh OpenJev-Flash-9B Qwen3.5-9B   # J 线 → W/models/（plans/零样本决策读出J线_参照MedJev_实验计划_20261029.md J0）
+#   bash scripts/upload_models.sh OpenJev-Flash-9B Qwen3.5-9B   # J 线 → W/models/（plans/零样本决策读出/零样本决策读出J线_参照MedJev_实验计划_20261029.md J0）
 # 本机有 rsync 就用 rsync（能断点续传），没有就用 scp。
 
 # ====== 配置区域 ======

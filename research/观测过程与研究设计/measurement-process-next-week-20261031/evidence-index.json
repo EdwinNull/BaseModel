@@ -1,0 +1,162 @@
+[
+  {
+    "evidence_id": "E01",
+    "accessed_at": "2026-10-31",
+    "files": [
+      {
+        "path": "plans/医学时序预测_生理状态与记录过程分解_可行性分析_20261031.md",
+        "sha256": "d8c0de06c4ce407d0ca1b3d88406a8d8c103b81be7c4a7e6d41aa866a26d467a"
+      }
+    ],
+    "access": "local_full_document_or_readonly_audit",
+    "limitation": "原报告未独立重跑；具体限制见正文"
+  },
+  {
+    "evidence_id": "E02",
+    "accessed_at": "2026-10-31",
+    "files": [
+      {
+        "path": "docs/实验/MC_MED_观测过程问题发现阶段总结.docx",
+        "sha256": "8357bc5da4676af72b2d51a8a4d5983d7f77a33c2c4cf8f6e4c401c50f71c7a7"
+      },
+      {
+        "path": "research/measurement-process-next-week-20261031/evidence/MC_colleague.txt",
+        "sha256": "1ba5176daea11addb8671edfe74fdd29b41bbac534fe5775edfe565dc12b359b"
+      }
+    ],
+    "access": "local_full_document_or_readonly_audit",
+    "limitation": "原报告未独立重跑；具体限制见正文"
+  },
+  {
+    "evidence_id": "E03",
+    "accessed_at": "2026-10-31",
+    "files": [
+      {
+        "path": "research/measurement-process-next-week-20261031/evidence/B1v2.md",
+        "sha256": "40d3fe51fdd59abf7bc6b8e605d21136a11c4a6059557b84d3e1f0666bfb9978"
+      }
+    ],
+    "access": "local_full_document_or_readonly_audit",
+    "limitation": "原报告未独立重跑；具体限制见正文"
+  },
+  {
+    "evidence_id": "E04",
+    "accessed_at": "2026-10-31",
+    "files": [
+      {
+        "path": "research/measurement-process-next-week-20261031/evidence/V2.md",
+        "sha256": "1c3606ebd499104f13b63f9f5c1e07394c425ba2deff639218e704ecc40d0208"
+      }
+    ],
+    "access": "local_full_document_or_readonly_audit",
+    "limitation": "原报告未独立重跑；具体限制见正文"
+  },
+  {
+    "evidence_id": "E05",
+    "accessed_at": "2026-10-31",
+    "files": [
+      {
+        "path": "research/measurement-process-next-week-20261031/evidence/MC_test.md",
+        "sha256": "c8a17ff50e007c6f3d62b9d9e2c33d8845ceecf0ebd07dd755a8a61033fbf030"
+      },
+      {
+        "path": "research/measurement-process-next-week-20261031/evidence/MC_test_prereg.md",
+        "sha256": "d7a7400cf5c85f7265ee7bf2998f00673a84aa8fe51143be5912c2a42b05c02b"
+      },
+      {
+        "path": "research/measurement-process-next-week-20261031/evidence/MC_deviations.md",
+        "sha256": "001c35159243a65f0fd8b37ca54c7c91972ec0c2c1926ce6b497e318a2befcb2"
+      }
+    ],
+    "access": "local_full_document_or_readonly_audit",
+    "limitation": "原报告未独立重跑；具体限制见正文"
+  },
+  {
+    "evidence_id": "E06",
+    "accessed_at": "2026-10-31",
+    "files": [
+      {
+        "path": "research/measurement-process-next-week-20261031/evidence/MC_oct.md",
+        "sha256": "5f0292c1179a3eb3a55b25c7f8d41a2d508d288f47e21427ffb1379252db67cc"
+      }
+    ],
+    "access": "local_full_document_or_readonly_audit",
+    "limitation": "原报告未独立重跑；具体限制见正文"
+  },
+  {
+    "evidence_id": "E07",
+    "accessed_at": "2026-10-31",
+    "files": [
+      {
+        "path": "research/measurement-process-next-week-20261031/server_method_audit.md",
+        "sha256": "edf1cf891cc40608a6e5c3a07ea97ef97f47802bdc76397fba156381bcb70112"
+      }
+    ],
+    "access": "local_full_document_or_readonly_audit",
+    "limitation": "原报告未独立重跑；具体限制见正文"
+  },
+  {
+    "evidence_id": "E08",
+    "accessed_at": "2026-10-31",
+    "files": [
+      {
+        "path": "docs/数据标准/数据集说明书_Healthsheet_v0.1_20261031.md",
+        "sha256": "13b4b7faf9343774901ea1da7052d5837d8eb949c014f0fd269ed95c3e11b3f7"
+      }
+    ],
+    "access": "local_full_document_or_readonly_audit",
+    "limitation": "原报告未独立重跑；具体限制见正文"
+  },
+  {
+    "evidence_id": "E09",
+    "accessed_at": "2026-10-31",
+    "files": [
+      {
+        "path": "docs/数据标准/质量成绩单_std_v3_20261031_5.md",
+        "sha256": "2085163fd2ff684f45197033cc13656d46135ea10f24c482c2dad8bd329dbfca"
+      }
+    ],
+    "access": "local_full_document_or_readonly_audit",
+    "limitation": "原报告未独立重跑；具体限制见正文"
+  },
+  {
+    "evidence_id": "E10",
+    "accessed_at": "2026-10-31",
+    "files": [
+      {
+        "path": "research/measurement-process-next-week-20261031/evidence/A4.md",
+        "sha256": "5033752299d17c73d521e2fcfe52a9188061118be012948ccd29cc5ece02df6d"
+      },
+      {
+        "path": "research/measurement-process-next-week-20261031/evidence/decisions.md",
+        "sha256": "e188129657d46517396ed5d2e746e25091119b02b08a3325289e68feec25c65f"
+      }
+    ],
+    "access": "local_full_document_or_readonly_audit",
+    "limitation": "原报告未独立重跑；具体限制见正文"
+  },
+  {
+    "evidence_id": "E11",
+    "accessed_at": "2026-10-31",
+    "files": [
+      {
+        "path": "research/measurement-process-plan-review-20261031/toy/ponly_leak_sim4.py",
+        "sha256": "e8cf5267b7a04ea2ccd4e32427ac50f9c820dfdacf499a34617a7cbf3156ecea"
+      }
+    ],
+    "access": "local_full_document_or_readonly_audit",
+    "limitation": "原报告未独立重跑；具体限制见正文"
+  },
+  {
+    "evidence_id": "E12",
+    "accessed_at": "2026-10-31",
+    "files": [
+      {
+        "path": "CLAUDE.md",
+        "sha256": "1cc4778ad070c5810485c158cfcae4bb7176089bebbed2e5f80db581503b418a"
+      }
+    ],
+    "access": "local_full_document_or_readonly_audit",
+    "limitation": "原报告未独立重跑；具体限制见正文"
+  }
+]

@@ -106,7 +106,7 @@ T_BUCKETS = [(-math.inf, -168, "t0 前 >7 天"), (-168, -24, "t0 前 1–7 天")
              (24, 72, "t0 后 1–3 天"), (72, 168, "t0 后 3–7 天"), (168, math.inf, "t0 后 >7 天")]
 FORMATS = ("std_v3", "std_v2")
 # 问题单计数（A10）用的口径
-QSHEET = "docs/汇报/临床负责人问题单_20261024.md"
+QSHEET = "docs/汇报/临床沟通/临床负责人问题单_20261024.md"
 FEVER_C = 37.3                                     # 发热阈值，腋温（D13；规则集 fever_threshold_c）
 ICU_ORGANS = ("CLP005", "CLP008", "CLP014", "CLP016", "CLP018", "CLP020", "CLP024")   # 规则集 v0.3 ICU_ORGAN 认的其他器官衰竭
 

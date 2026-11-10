@@ -1,0 +1,52 @@
+P1: MC-MED：从“缺失敏感性”到“Measurement Timing Reliance”的问题发现阶段总结
+P2: 用于同门交流 / 组会前阶段性汇报
+P3: 
+P4: 1. 最开始想回答什么问题
+P5: 核心问题不是“缺数据以后模型会不会变差”，而是：临床时序模型到底只是在学习患者的生理状态，还是也会利用临床系统“什么时候测、测得多密、间隔多久”这些观测过程信息？ 换句话说，希望区分 physiology 与 measurement / observation process 对模型预测的影响。
+P6: 2. 第一轮实验暴露出的设计问题
+P7: 最初我们在 12 个模型上做了 Original、Drop20、Drop40 和 Continuous5min。结果显示，不同模型在删掉观测后下降幅度差异很大，但很快发现：随机删观测会同时减少生理信息和改变观测模式，因此“性能下降”不能直接说明模型学到了 measurement policy。 这一步只能作为 sensitivity benchmark，而不能作为核心机制证据。
+P8: 3. Stage 1：先判断“怎么测”本身有没有信息
+P9: 随后把输入拆成三类：Value-only（只保留观测到的数值特征，不显式给 timing/gap/count）、Process-only（完全不看 HR、SpO₂、血压等具体数值，只看测量次数、时间、间隔、recency、frequency 等）、Combined（两者都给）。这里 Value-only 不能叫 pure physiology，因为这些值本身仍然是被原观测过程采到的。
+P10: Test prevalence 为 12.03%。Process-only 的 AUPRC 已经达到 0.1786–0.2037，说明即使完全不看具体生理数值，单看“怎么测”也携带明显的 outcome-related information。进一步地，LightGBM 的 Combined − Value-only ΔAUPRC = +0.0225，95% CI [0.0114, 0.0341]，说明观测过程在已有数值之外还能提供额外预测信息。
+P11: 4. 中间又发现一个坑：不能靠 strict-dense 队列硬造“pure physiology”
+P12: 我们一度尝试筛选非常密集的 HR/SpO₂/RR 序列并重建统一 1-min physiology trajectory，但严格条件会把 Test 从 5,236 人筛到只有 372 人。这不仅样本太小，而且会优先保留被密集监测的患者，本身就可能引入 measurement-process selection bias。因此这条路被降级为 supplementary，而不是主机制实验。
+P13: 5. 真正的核心控制实验：固定 values，只改 timing
+P14: 随后改成 exact-same-values timing swap：对同一患者固定 physiological value content、value order、effective observation count 和首尾位置，只改变中间 measurement timing。旧版 raw-level swap 又发现 GRU-D / OPL / BRITS 在 1-min binning 时会发生 collision / aggregation，所以继续升级为 Stage 2A-v2：在模型真实使用的 grid 层面做 collision-free timing swap。
+P15: v2 的强控制条件：
+P16: 生理数值完全一致；
+P17: 数值顺序完全一致；
+P18: 有效观测数量完全一致；
+P19: 首尾 occupied bin 固定；
+P20: collision = 0、aggregation = 0、dropped value = 0；
+P21: 唯一变化是中间 grid position / mask / delta / timing-derived process representation。
+P22: 6. 最终找到的问题：模型确实会利用 measurement timing，而且程度高度依赖模型结构
+P23: * mTAND 使用 N=4,684 的 irregular-time Strong-PASS reference cohort，其余 v2 主机制比较主要使用 N=1,328、224 个阳性的 mechanistic cohort，不能把 mTAND 当作完全同 cohort 的严格排名。
+P24: 7. 两个特别重要的进一步发现
+P25: （1）SpO₂ timing 最值得关注。在 HR / SpO₂ / RR 的单变量 v2 中，GRU-D、OPL、BRITS 三个模型的最大 MPAD 都来自 SpO₂；但这表示 SpO₂ timing 的扰动效应更大，不代表 SpO₂ 对恶化有“因果上最重要”的作用。
+P26: （2）预测翻转主要发生在决策阈值附近。最靠近 threshold 的 Q1 患者中，GRU-D、OPL、BRITS 的 disagreement 约为 21.0%、18.3%、20.0%；最远的 Q4 中 GRU-D/OPL 为 0，BRITS 仅约 0.18%。所以 timing 扰动不是让所有患者都剧烈漂移，而是尤其容易改变 borderline cases 的最终分类。
+P27: 8. 目前能下什么结论，不能下什么结论
+P28: 当前最稳妥的结论：Physiological information remains an important predictive source, but models do not rely on physiology alone. Measurement process 本身包含 outcome-related information，而且多个模型在 values、order、effective count、endpoints 全部固定时，仍会因为 measurement timing 改变而产生预测漂移；这种 reliance 明显是 architecture-dependent。
+P29: 当前不能直接声称：医院政策导致模型偏差、模型学到的是 hospital policy 而不是 physiology、所有缺失感知模型都脆弱、所有 foundation model 都不稳定，或者 SpO₂ timing 对恶化具有因果作用。
+P30: 9. 一句话总结这个“找到问题”的阶段
+P31: 我们从“删数据以后模型会不会变差”一步步收敛到更严格的问题：当患者测到的数值、顺序、数量都不变时，只改变“什么时候测”，部分模型的预测仍会变化；因此 measurement timing 不是无关噪声，而是部分模型真实在利用的预测信号。
+P32: 
+P33: 依据：FINAL_COMPLETE_RESULTS 最新汇总版本
+
+TABLE 1
+R1: 模型 | Value-only AUPRC | Process-only AUPRC | Combined AUPRC
+R2: Logistic Regression | 0.2621 | 0.1786 | 0.2733
+R3: XGBoost | 0.3099 | 0.2003 | 0.3201
+R4: LightGBM | 0.3028 | 0.2037 | 0.3253
+
+TABLE 2
+R1: 模型 | Original AUPRC | v2 MPAD | Decision disagreement | 解释
+R2: XGBoost | 0.3167 | 0.0005 | 0.45% | 高性能、低 timing reliance
+R3: LightGBM | 0.3147 | 0.0010 | 0.57% | 高性能、低 timing reliance
+R4: BRITS | 0.3141 | 0.0177 | 6.20% | 预测强，但明显受 timing 影响
+R5: GRU-D | 0.2985 | 0.0188 | 6.14% | 明显 timing reliance
+R6: OPL structured-only | 0.2939 | 0.0138 | 4.91% | 显式利用 observation process
+R7: FF-LSTM | 0.2755 | 0.0099 | 3.73% | forward-fill duration 带来 timing 依赖
+R8: mTAND* | 0.2731 | 0.0012 | 0.52% | irregular-time reference，几乎不敏感
+R9: MIRA-Large | 0.2180 | 0.0128 | 7.86% | 当前 adaptation 有明显 timing sensitivity
+R10: VIMTS-Adapter | 0.1586 | 0.0177 | 15.14% | decision disagreement 最大
+R11: TimesFM 3.0 | 0.1456 | 0.0192 | 10.47% | MPAD 最大

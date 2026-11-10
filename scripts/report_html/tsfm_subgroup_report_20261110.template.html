@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>急诊子集问题阶段汇报</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f3f2ee;
+  --paper: #ffffff;
+  --ink: #1f1f1d;
+  --ink2: #52514e;
+  --ink3: #7a7974;
+  --rule: #d9d8d2;
+  --rule-strong: #3a3a37;
+  --tint: #f7f6f2;
+  --accent: #2a78d6;
+  --neg: #c23b3a;
+  --serif: "Times New Roman", "Songti SC", "STSong", "Noto Serif CJK SC", "Source Han Serif SC", "SimSun", serif;
+  --sans: "Helvetica Neue", Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --page: #2a2a28; }
+}
+:root[data-theme="dark"] { --page: #2a2a28; }
+* { box-sizing: border-box; }
+html { background: var(--page); }
+body { margin: 0; background: var(--page); color: var(--ink); font-family: var(--serif); font-size: 16.5px; line-height: 1.85; }
+.paper { max-width: 960px; margin: 32px auto; background: var(--paper); padding: 56px 64px 64px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+header.title { text-align: center; border-bottom: 1px solid var(--rule); padding-bottom: 22px; margin-bottom: 26px; }
+header.title h1 { font-family: var(--sans); font-size: 26px; line-height: 1.45; margin: 0 0 10px; font-weight: 700; letter-spacing: .01em; }
+header.title .sub { font-family: var(--sans); color: var(--ink2); font-size: 14.5px; line-height: 1.7; }
+h2 { font-family: var(--sans); font-size: 20px; margin: 44px 0 12px; padding-top: 6px; }
+h3 { font-family: var(--sans); font-size: 16.5px; margin: 30px 0 8px; }
+p { margin: 0 0 14px; text-align: justify; }
+.abstract { background: var(--tint); border-left: 3px solid var(--rule-strong); padding: 18px 24px 8px; margin: 0 0 26px; font-size: 15.5px; }
+.abstract h2 { margin: 0 0 8px; font-size: 16.5px; padding: 0; }
+.abstract p b { font-family: var(--sans); font-weight: 700; }
+.keywords { font-size: 14.5px; color: var(--ink2); margin-top: 6px; }
+nav.toc { font-family: var(--sans); font-size: 14px; line-height: 1.8; columns: 2; column-gap: 32px; margin: 0 0 10px; padding: 0; color: var(--ink2); }
+nav.toc a { color: var(--ink2); text-decoration: none; }
+nav.toc a:hover { color: var(--accent); }
+nav.toc div { break-inside: avoid; }
+figure { margin: 26px 0 30px; }
+figure svg { display: block; width: 100%; height: auto; margin: 0 auto; }
+figure svg .tt { cursor: default; }
+figure svg .tt:hover { opacity: .72; }
+figcaption { font-family: var(--sans); font-size: 13.5px; line-height: 1.7; color: var(--ink2); margin-top: 10px; text-align: justify; }
+figcaption b { color: var(--ink); }
+details.data { font-family: var(--sans); font-size: 13px; margin: 6px 0 0; color: var(--ink2); overflow-x: auto; }
+details.data summary { cursor: pointer; color: var(--ink3); width: max-content; }
+details.data table { margin-top: 8px; }
+.tbl { overflow-x: auto; margin: 18px 0 26px; }
+table { border-collapse: collapse; width: 100%; font-family: var(--sans); font-size: 13.5px; line-height: 1.6; }
+caption { caption-side: top; text-align: left; font-family: var(--sans); font-size: 13.5px; color: var(--ink2); padding-bottom: 8px; }
+caption b { color: var(--ink); }
+thead tr { border-top: 1.5px solid var(--rule-strong); border-bottom: 1px solid var(--rule-strong); }
+tbody tr:last-child { border-bottom: 1.5px solid var(--rule-strong); }
+th, td { padding: 6px 9px; text-align: left; vertical-align: top; }
+th { font-weight: 600; white-space: nowrap; }
+tbody tr + tr td { border-top: 1px solid #ecebe6; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; font-family: var(--sans); font-size: 13px; line-height: 1.55; counter-reset: st; }
+.flow .st { border: 1px solid var(--rule); border-radius: 6px; padding: 10px 12px; background: var(--paper); position: relative; }
+.flow .st .d { color: var(--ink3); font-size: 12px; }
+.flow .st b { display: block; font-size: 13.5px; margin: 2px 0 4px; }
+.flow .st .r { color: var(--ink2); }
+.flow .st.out { background: var(--tint); border-color: var(--rule-strong); }
+.flow .st .r .neg { color: var(--neg); }
+.note { font-family: var(--sans); font-size: 13.5px; color: var(--ink2); }
+ol.refs { font-size: 14px; line-height: 1.7; padding-left: 22px; }
+ol.refs li { margin-bottom: 6px; }
+a { color: var(--accent); }
+code { font-size: .88em; word-break: break-all; }
+sup a { text-decoration: none; }
+.kpi { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 6px 0 22px; font-family: var(--sans); }
+.kpi div { border-top: 2px solid var(--rule-strong); padding-top: 8px; }
+.kpi .v { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.kpi .l { font-size: 12.5px; color: var(--ink2); line-height: 1.5; margin-top: 4px; }
+@media (max-width: 760px) {
+  body { font-size: 15.5px; }
+  .paper { margin: 0; padding: 26px 16px 40px; box-shadow: none; }
+  header.title h1 { font-size: 21px; }
+  nav.toc { columns: 1; }
+  .flow, .kpi { grid-template-columns: repeat(2, 1fr); }
+}
+@media print {
+  html, body { background: #fff; }
+  .paper { box-shadow: none; margin: 0; max-width: none; padding: 0; }
+  details.data { display: none; }
+  figure { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<article class="paper">
+
+<header class="title">
+  <h1>时序基础模型在急诊公开数据子集上的表现差异：<br>问题定位、机制分析与改进方向</h1>
+  <div class="sub">阶段汇报 · 2026 年 11 月 2 日至 11 月 10 日（决策 D103–D166）<br>数据：MC-MED、MIMIC-IV-ED（另引 eICU 一项结果）· 只含聚合量 · 全部结论为探索性</div>
+</header>
+
+<section class="abstract">
+  <h2>摘要</h2>
+  <p><b>目的</b>　11 月 2 日组会要求把常用的时序基础模型（time-series foundation model，TSFM）放到 MC-MED 和 MIMIC-IV-ED 两个公开急诊库上运行，按患者子集找出表现差的人群，分析原因并尝试修补。本文汇总这一阶段的全部实验，回答两个问题：子集之间的表现差异从哪里来，以及哪些差异能够被改善。</p>
+  <p><b>方法</b>　两库各定义一个早期恶化任务：MC-MED 用到床后 15 分钟的逐分钟体征预测此后 60 分钟内新出现的越阈（decomp_60）；MIMIC-IV-ED 用到院后 2 小时内的分诊与体征预测此后 12 小时内进 ICU 或院内死亡（D103）。八个 TSFM 零样本预测体征轨迹并读出风险，LR、LightGBM、BRITS、mTAND、Raindrop 五个监督模型作参照。按年龄、性别、分诊等级（ESI）、到达方式、主诊断和观测密度预先登记子集，在发现集上找差距，确认集只评价一次。随后依次检验了加输入、训练时删观测、冻结嵌入加线性探针、预测输出校正、模型平均、常数输入的修复，以及 Chronos-2 归一化空间内的跨通道响应。</p>
+  <p><b>结果</b>　零样本预测与沿用末值（LOCF）持平，风险读出不超过直接取上下文中最异常的值（MIMIC-IV-ED 连续分数 0.716–0.729，对照 0.755），比监督模型低 0.04–0.15。子集之间差别最大的是测量过程：MIMIC-IV-ED 到院 2 小时内心率只测一次的比例在 ESI 1–2、3、4–5 依次为 51%、81%、87%。TSFM 普遍做逐序列标准化，常数输入的预测因此恒等于 LOCF，而三项体征全为常数的就诊占 69%；补回绝对水平能把这部分就诊的预测误差降低 17%–20%，风险排序却没有改善。Chronos-2 内部对常数目标的跨通道响应只有动态目标的约 4%。稳定变差的子集在 LightGBM 和时序模型上一起变差，没有一个差距是时序模型特有的。加入到院时信息和已出结果的检查后，MIMIC-IV-ED 总体 AUROC 提高 0.024–0.036，早期体征稀疏的高危就诊与其余就诊的差距从约 −0.19 缩小到约 −0.10；高龄和急救车送达的差距仍在，前者主要来自病例构成，后者缺少院前信息。小样本条件下，TabPFN v2 与 LightGBM 的等权平均在确认集上比单个 LightGBM 高 0.006–0.015。</p>
+  <p><b>结论</b>　表现差的子集主要由测量过程、病例构成和预测时点的信息量决定，更换模型结构、按子集专门训练或修补零样本输出都改变不了这些差距。能改善子集表现的做法是补充预测时点已经可得的信息，把测量过程作为显式变量和分层维度，用组内校准和固定报警预算评价子集，并在建模前核实终点能否可靠判定。</p>
+  <div class="keywords">关键词：时序基础模型；急诊；子集分析；测量过程；实例归一化；病例构成；MC-MED；MIMIC-IV-ED</div>
+</section>
+
+<nav class="toc" aria-label="目录">
+  <div><a href="#s1">1　研究问题与本阶段路线</a></div>
+  <div><a href="#s2">2　数据、任务与方法</a></div>
+  <div><a href="#s3-1">3.1　零样本 TSFM 的总体表现</a></div>
+  <div><a href="#s3-2">3.2　子集在数据上的差别集中在测量过程</a></div>
+  <div><a href="#s3-3">3.3　零样本模型的失效方式</a></div>
+  <div><a href="#s3-4">3.4　监督模型与输入补丁</a></div>
+  <div><a href="#s3-5">3.5　冻结表示、输出校正与模型平均</a></div>
+  <div><a href="#s3-6">3.6　常数输入的修复与信息上限</a></div>
+  <div><a href="#s3-7">3.7　归一化空间内的跨通道响应</a></div>
+  <div><a href="#s3-8">3.8　高龄差距的来源</a></div>
+  <div><a href="#s3-9">3.9　小样本条件下的模型平均</a></div>
+  <div><a href="#s4">4　讨论：现有问题、根源与改进方向</a></div>
+  <div><a href="#s5">5　结论与下一步</a></div>
+  <div><a href="#refs">参考文献与依据文档</a></div>
+</nav>
+
+<h2 id="s1">1　研究问题与本阶段路线</h2>
+
+<p>项目主线是老年流感患者的“转重”预测。医院数据尚在核验阶段，样本小、两院测量习惯不同，所以在建医院模型之前，需要先在公开急诊数据上回答两件事：时序基础模型能否在急诊早期的短窗口上提供监督模型之外的信息；如果不能，表现差的是哪些人群，原因是什么。分诊等级、到达方式和年龄是两院都能取得的变量，也是急诊转重风险最主要的分层，因此本阶段把它们作为子集分析的核心维度。</p>
+
+<p>11 月 2 日组会提出五步：调研常用时序模型所用的数据与序列长度；在 MC-MED 和 MIMIC-IV-ED 上运行这些模型；划分子集，找出表现差的子集；分析原因并给模型打补丁；检索备用急诊数据集。调研发现，八个 TSFM 的预训练和评测多基于数百到数千个时点的长序列，以气象、能源、交通数据为主，只有 MIRA 以医疗数据为主；这些模型的原论文几乎都没有按年龄、病情或观测密度报告患者子集结果。急诊早期窗口只有十几个时点，远在这些模型的常见工作区间之外，这是本阶段系统做子集审计的出发点。检索到的带时间戳体征的公开急诊原始库只有 MIMIC-IV-ED 和 MC-MED 两个，二者都已在服务器上；衍生库与 MIMIC-IV-ED 同源，不能用作外部验证。</p>
+
+<p>图 1 是本阶段的实验路线。前半段（11-03 至 11-07）按组会的五步完成了子集发现、确认与输入补丁；后半段（11-07 至 11-10）针对前半段暴露的问题做机制追查，依次是零样本与冻结表示、常数输入、MC-MED 的高龄与低氧事件，以及 Chronos-2 归一化空间内的跨通道响应。同期的 J 线（大语言模型零样本决策）不在本文范围内。</p>
+
+<figure>
+  <div class="flow">
+    <div class="st"><span class="d">11-02</span><b>组会五步</b><span class="r">调研、两库运行、划子集、找原因打补丁、备用数据集</span></div>
+    <div class="st"><span class="d">11-03 · D103–D107</span><b>任务与子集锁定</b><span class="r">MIMIC-IV-ED 2 h 时点、12 h 终点；登记子集；发现集与确认集分开</span></div>
+    <div class="st"><span class="d">11-03 至 11-07 · D108–D113、D138–D142</span><b>监督模型与输入补丁</b><span class="r">补丁 1 加 ESI 与年龄（确认集复现）；补丁 2 删观测无效；补丁 3 加到院信息与检查</span></div>
+    <div class="st"><span class="d">11-06 至 11-07 · D130–D137、D143–D151</span><b>八个 TSFM 零样本与冻结表示</b><span class="r">预测约等于 LOCF；风险不超过 Context-max；嵌入增益来自首次测量时间</span></div>
+    <div class="st"><span class="d">11-07 至 11-08 · D149、D152–D156</span><b>模型补丁五轮与小样本组合</b><span class="r">输出校正、时序与树模型平均无增量；TabPFN + LightGBM 平均在确认集成立</span></div>
+    <div class="st"><span class="d">11-08 · D157–D161</span><b>常数输入线</b><span class="r">退化可修，修复后的预测分数在监督读出中增量约为 0；该路线收尾</span></div>
+    <div class="st"><span class="d">11-08 · D162–D165</span><b>MC-MED 高龄与低氧</b><span class="r">年龄差距约一半来自事件构成；低氧事件多为单分钟低值，终点可靠性待查</span></div>
+    <div class="st"><span class="d">11-10 · D166</span><b>归一化空间跨通道敏感性</b><span class="r">注意力看了辅助通道，但输出响应只有动态目标的 4%</span></div>
+  </div>
+  <figcaption><b>图 1　本阶段实验路线。</b>每个方框标出日期与研究者决策编号（D 编号，登记在服务器决策记录中）。11-04 起确认集已用于补丁 1 的检验（D109），之后的补丁只在发现集上比较，结论均为探索性（D111）；D156 经研究者同意为小样本组合再使用确认集一次，此后封存。</figcaption>
+</figure>
+
+<h2 id="s2">2　数据、任务与方法</h2>
+
+<h3>2.1　数据与任务</h3>
+
+<p>两库的任务定义不同（表 1），结局率和 AUROC 不能横向比较，两库结果只在各自的配对比较内解释。MC-MED 的输入窗口短而密，监护仪逐分钟记录；MIMIC-IV-ED 的窗口长而稀，2 小时内体征中位数只有一个时点（分诊），三分位切点都是 1。两库切分都在患者层面进行。</p>
+
+<div class="tbl">
+<table>
+  <caption><b>表 1　两个急诊任务</b></caption>
+  <thead><tr><th></th><th>MC-MED</th><th>MIMIC-IV-ED</th></tr></thead>
+  <tbody>
+    <tr><td>任务</td><td>decomp_60：到床后 15 min 预测此后 60 min 内新出现生命体征越阈（沿用 mp_benchmark_v1）</td><td>D103：到院后 2 h 预测此后 12 h 内进 ICU 或院内死亡（含急诊内死亡）</td></tr>
+    <tr><td>输入窗口</td><td>[0, 15] min，1 min 网格，16 步</td><td>[到院, 2 h)，分诊值置于第 0 分钟，15 min 网格</td></tr>
+    <tr><td>体征</td><td>HR、RR、SpO₂、SBP、DBP、MAP</td><td>HR、RR、SpO₂、SBP、DBP、体温</td></tr>
+    <tr><td>规模</td><td>训练集 42,983 次就诊（五折交叉拟合用）</td><td>387,249 次就诊，事件 20,722 个（5.35%）</td></tr>
+    <tr><td>发现集</td><td>验证集 + 测试集 MRN 哈希 A 半：8,085 次 / 999 个阳性（12.4%）</td><td>验证集：38,242 次 / 2,072 个阳性（5.4%）</td></tr>
+    <tr><td>确认集</td><td>测试集 B 半：2,602 次 / 312 个阳性</td><td>测试集：39,231 次 / 2,092 个阳性</td></tr>
+    <tr><td>切分</td><td>按 MRN 患者级</td><td>按 subject_id 哈希 8:1:1 患者级</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>2.2　模型</h3>
+
+<p>零样本部分运行八个 TSFM：MIRA、Time-MoE（官方归一化）、Sundial、TimesFM 3.0、Timer-XL、LightGTS、VisionTS、Chronos-2。每个模型先预测未来体征轨迹，再读出风险：对 HR、MAP、SpO₂ 分别取预测轨迹上有符号阈值距离的峰值，连续读出 S-max 取三者的最大值，截断读出 R-max = max(0, S-max)，只保留越过阈值的部分。参照有两条：LOCF（沿用最后一个观测值）和 Context-max（不预测，直接取上下文中最异常的值）。监督部分运行 LR、LightGBM 和三个不规则时序模型 BRITS、mTAND、Raindrop，树模型和时序模型各 5 个 seed，LR 一次。</p>
+
+<h3>2.3　子集与“表现差”的判据</h3>
+
+<p>子集在看结果前登记（D104）：年龄（18–64、65–79、≥80，评价补丁 3 前加登记 ≥75，D137）、性别、ESI（1–2 对 3–5）、到达方式、是否呼吸系统主诊断（离院诊断，只用于回顾性分组）、窗口内观测密度，以及密度与 ESI 的交叉；每个子集至少 30 个阳性和 30 个阴性。判为“表现差”要求子集 AUROC 低于补集、过半数 seed 的 95% 区间上限小于 0。随后与 LR、LightGBM 对照分三类解释：所有模型都差，说明子集本身难（信息少、事件少或标签不准），应回到数据和标签；只有时序模型差，才是时序模型的修补对象；只有校准差，先做分组再校准。</p>
+
+<h3>2.4　评价与流程</h3>
+
+<p>所有模型在原始验证集上拟合一次 Platt 再校准（D106）。区间均按患者聚类 bootstrap 计算，次数为 500 或 1,000，种子 2026。每项实验先写方案，冒烟测试后把方案、配置、代码和输入的 SHA-256 写入锁定文件，再正式运行一次。MC-MED 在验证集加测试集 A 半上发现，B 半留作确认；MIMIC-IV-ED 在验证集上发现，测试集留作确认（D105）。确认集在补丁 1 后评价过一次（D109），D156 为小样本组合破例再用一次，此后封存。其余比较只在发现集或训练集内部交叉拟合上进行，结论均标为探索性。常数输入线和 D166 使用 D103 训练集内部反复使用的 eval 子集（45,041 次就诊、2,296 个事件），只代表一份内部评价人群。</p>
+
+<h2 id="s3">3　结果</h2>
+
+<div class="kpi">
+  <div><div class="v">≤ LOCF</div><div class="l">八个 TSFM 零样本预测误差，两库均未优于沿用末值</div></div>
+  <div><div class="v">69%</div><div class="l">MIMIC-IV-ED 2 h 窗口内 HR、MAP、SpO₂ 全为常数的就诊（D157）</div></div>
+  <div><div class="v">−0.19 → −0.10</div><div class="l">稀疏高危就诊与其余就诊的 AUROC 差，加入到院信息与检查后（MIMIC-IV-ED）</div></div>
+  <div><div class="v">≈4%</div><div class="l">Chronos-2 对常数目标的跨通道输出响应，相对动态目标（D166）</div></div>
+</div>
+
+<h3 id="s3-1">3.1　零样本 TSFM 的总体表现：预测约等于 LOCF，风险不超过上下文最大值</h3>
+
+<p>八个 TSFM 的零样本预测在两库都没有优于 LOCF。MIMIC-IV-ED 上心率总体 MAE 最低的 Chronos-2 为 10.94，LOCF 为 10.76；MC-MED 上最低者与 LOCF 持平（4.68 对 4.69）。模型之间差别很小，名次不宜解读为模型优劣。</p>
+
+<p>把预测轨迹读成风险分后，结果见图 2。截断读出 R-max 在 MC-MED 上退化到 0.500–0.521：任务定义已经排除一开始就越阈的就诊，而预测轨迹又几乎不越阈，除 TimesFM 外 99.8%–100% 的就诊风险分为 0。连续读出 S-max 不再退化，但两库八个模型与 Context-max 的配对差，区间上限都小于 0。监督模型比最好的零样本读出高 0.04（MC-MED）到 0.15（MIMIC-IV-ED）。上下文从 2 小时延长到 4 小时（D145 敏感性分析）后，预测紧贴末值的比例从 72%–83% 降到 38%–43%，误差仍不低于 LOCF。冻结嵌入加线性探针的结果见 3.5 节；研究者据此把零样本和冻结表示路线在急诊短窗口上收尾（D144、D150）。</p>
+
+<figure>
+<!--FIG:overall-->
+  <figcaption><b>图 2　八个 TSFM 零样本风险分与参照的 AUROC。</b>蓝色横条为八个模型的范围，绿色横条为五个监督模型的范围（补丁前输入，即 6 项体征）；灰色菱形为 LOCF，橙色方块为 Context-max；虚线为 0.5。MC-MED 上 LOCF 和 Context-max 的截断读出都等于 0.500，两个标记重合。两库任务不同，AUROC 不能横向比较。来源：导师讨论稿终版（11-07）“两库总体结果”。</figcaption>
+</figure>
+
+<h3 id="s3-2">3.2　子集在数据上的差别集中在测量过程</h3>
+
+<p>子集之间差别最大的是“怎么测”，而不是“测出来是多少”。MIMIC-IV-ED 到院后 2 小时内心率只有分诊那一次测量的比例，在 ESI 1–2、3、4–5 依次为 51%、81%、87%；急救车送达者为 58%，自行到达者为 76%（图 3a）。MC-MED 的窗口很密，高危与中危组差得不多，心率只有一分钟有观测的比例为 13% 和 22%；低危组多数不上监护仪，59% 只有一次手工记录。两库都是急救车送达和 75 岁以上的患者测得更早、更多：MC-MED 上急救车送达者第一个心率出现在第 3 分钟，自行到达者在第 7 分钟。</p>
+
+<p>数值水平的差别小得多。两库三组心率末值的中位数都在 78–82 次/分之间，差别集中在异常尾部：MIMIC-IV-ED 上下文中心率超过 110 的比例在三组依次为 13.6%、6.2%、3.7%。分诊之后体征整体回落，MIMIC-IV-ED 心率平均下降 4.0、5.7、8.5 次/分，低危组和自行到达者（6.8 对急救车 2.8）回落最多。结局率随分诊等级和到达方式变化明显（图 3b）。另有一个流程信号：MIMIC-IV-ED 有 1.4% 的就诊分诊体征里没有心率，这些就诊的转重率约 45%，其余为 4.8%，它们集中在高危组和急救车送达者中。</p>
+
+<p>这些差别意味着，“测了几次、何时开始测、是否上监护仪”本身是临床对病情判断的结果。Agniel 等（2018）在住院电子病历中报告过同类现象：检验的下单时间与频率比检验数值本身更能预测生存<sup><a href="#r1">[1]</a></sup>。按分诊等级切出的子集，首先是一组测量过程不同的人群。</p>
+
+<figure>
+<!--FIG:measure-->
+  <figcaption><b>图 3　两库按子集的测量过程与结局率。</b>(a) MIMIC-IV-ED 为到院 2 h 内心率只有一次测量的比例（验证集 38,242 次）；MC-MED 为 15 min 窗口内心率只有一分钟有观测的比例（训练集、验证集和测试集 A 半共 51,068 次）。(b) MIMIC-IV-ED 为 D103 结局率，MC-MED 为 decomp_60 结局率；MIMIC-IV-ED ESI 4–5 事件不足 10 个，按规定不报。来源：回复导师（11-08）附表 1。</figcaption>
+</figure>
+
+<h3 id="s3-3">3.3　零样本模型的失效方式决定了它在子集上的差异</h3>
+
+<p>八个 TSFM 都先按每条序列自身的均值和标准差做标准化，再在标准化空间里预测。这带来三个后果（图 4）。第一，常数输入标准化后是一条零线，预测就是一条水平线，与 LOCF 完全相同，MIMIC-IV-ED 中低危组 80%–90% 的输入属于这种情况。第二，输入有波动时，七个模型把预测往这段序列的均值拉回，拉得比真实数据更重（MIMIC-IV-ED 回拉斜率真实 −0.32，模型平均 −0.70）；TimesFM 则顺着趋势外推（+0.23 和 +1.54）。非常数输入上八模型平均误差比 LOCF 高 18%（MIMIC-IV-ED）和 23%（MC-MED；不计 TimesFM 时中位数高 4.5%）。第三，标准化去掉了绝对水平，模型看不到“这个值离正常人群多远”，也就用不上“偏高的值之后会回落”这条规律：真实数据中末值偏离人群水平越远、之后回落越多，斜率为 −0.41（MIMIC-IV-ED）和 −0.13（MC-MED），模型只有 −0.02。</p>
+
+<p>所以零样本模型在子集上的误差差异跟着“有波动的输入有多少”走，与病情没有直接关系。MIMIC-IV-ED 高危组看起来预测更差，是因为高危组非常数输入更多；按序列形状标准化后，ESI 组间差异为 0.000。自行到达者在相同形状下反而更差，两库方向一致：这组人分诊值偏高、之后回落多，模型却看不到水平。</p>
+
+<figure>
+<!--FIG:zsmech-->
+  <figcaption><b>图 4　零样本 TSFM 的三种失效方式（心率）。</b>(a) 八模型平均 MAE 与 LOCF MAE 之比，常数输入上恰好为 1。(b)(c) 两种回落规律的回归斜率：“回到上下文均值”为未来变化对“末值 − 上下文均值”的斜率，“回到人群水平”为未来变化对“末值 − 人群水平”的斜率；灰色为真实数据，蓝色为八模型平均。MC-MED 的误差和斜率在测试集 A 半（2,634 次）上计算。来源：回复导师（11-08）附表 3。</figcaption>
+</figure>
+
+<h3 id="s3-4">3.4　监督模型：没有只属于时序模型的弱子集，加输入缩小了信息不足型差距</h3>
+
+<p>补丁 1 阶段，两库凡是稳定变差的子集，LightGBM 和三个时序模型都一起变差，模型之间的差距在各子集上基本是总体差距的平移。补丁 3 后出现过两处“树模型不差、时序模型差”的归类（MC-MED ≥75 岁的 mTAND，MIMIC-IV-ED ESI 3–5），时序模型与 LightGBM 平均后都不再被标出（3.5 节），反映的是个别时序模型整体偏弱。按 2.3 节的判据，这些子集的问题在数据一侧，给时序模型结构打补丁没有子集目标。两库共同的短板是观测少的就诊：MC-MED 15 分钟内不超过 15 个值的约占三分之一，MIMIC-IV-ED 2 小时内 vitalsign 不超过 1 次的占 77%。</p>
+
+<p>输入补丁的效果见图 5。补丁 1 把 ESI 和年龄作为静态输入，MIMIC-IV-ED 总体 AUROC 提高 0.025–0.047，在确认集上复现（+0.023–0.042，五个模型全部 seed 成立），按 ESI 和年龄的校准偏差也基本消除：不给 ESI 时，高危组观察/预期比为 1.16–1.27（风险被低估），ESI 3–5 为 0.36–0.47（被高估），加入后分别为 0.98–1.00 和 0.93–1.05。MC-MED 上补丁 1 只提高 0.004–0.009，确认集上未能确认。补丁 2 在训练时随机删去最多一半的观测，两库总体 AUROC 变化 −0.002 至 +0.003，低密度格子的组内 AUROC 变化 −0.009 至 +0.005，说明低密度子集差的原因是窗口里信息少，而不是训练时见到的稀疏样本不够。补丁 3 分两步加入到院时就有的信息（3a：到达方式、主诉、既往急诊与诊断、家庭用药、分诊体征）和预测时点前已出结果的检查（3b），MIMIC-IV-ED 合计提高 0.024–0.036，MC-MED 提高 0.013–0.041。训练集内五折交叉拟合（D139）复现了这两步增益；消融显示 MIMIC-IV-ED 上贡献依次来自窗口体征、预测时点前化验、主诉、年龄与 ESI、到达方式，MC-MED 上 3b 的增益来自灌注指数和心率变异性，不来自化验。</p>
+
+<figure>
+<!--FIG:patch-->
+  <figcaption><b>图 5　各输入阶段的总体 AUROC（发现集，5 个 seed 均值；LR 为一次运行）。</b>补丁 1 在补丁前的 6 项体征上加 ESI 与年龄；3a、3b 在补丁 1 上依次叠加。补丁 2（训练时删观测）叠在补丁 1 上，与补丁 1 相差 −0.002 至 +0.003，图中未画。两个面板的纵轴范围不同。来源：本周周报 §2，补丁 3 发现集结果 §2.1、§3.1。</figcaption>
+</figure>
+
+<p>子集差距的变化不均匀（图 6）。差距最大的格子是 MIMIC-IV-ED “2 小时内体征不超过 1 次且 ESI 1–2”的高危就诊，补丁 1 后仍为 −0.178 至 −0.218；补丁 3 后组内 AUROC 提高 0.10–0.13（LightGBM 0.753 → 0.858），差距缩小到 −0.093 至 −0.103，增益主要来自化验和主诉。这是唯一被输入补丁明显改善的格子，但五个模型仍都被标出。把预测时点延后到 4 小时也补不上这一格：到 4 小时仍有 52% 的就诊不超过 1 个体征时刻（D142）。MC-MED 的低密度格子在补丁 3 后不再稳定变差，部分原因是观测最多的组涨得少。急救车送达的差距从 −0.030 至 −0.041 缩到 −0.018 至 −0.027，仍被标出。高龄格子几乎不动：≥80 岁和 ≥75 岁组内 AUROC 与补集同步提高，差距维持在 −0.04 左右。“体征不超过 1 次且 ESI 3–5”的组内只提高 0.006–0.045，补集涨得更多，差距反而扩大到 −0.058 至 −0.097。</p>
+
+<figure>
+<!--FIG:subgap-->
+  <figcaption><b>图 6　登记子集的“子集 − 补集”AUROC 差，按输入阶段（发现集）。</b>每行三组标记分别为补丁 1、3a、3b；标记为五个模型的均值，横线为五个模型的最小值到最大值。小于 0 表示该子集内的排序不如其余就诊。≥75 岁一行的补丁 1 值由两组组内 AUROC 之差计算，没有判据标记。MC-MED 补丁 1 之后的 ≥80 岁只有 LR 被标出（一次运行）。来源：补丁 3 发现集结果 §2.3、§3.3。</figcaption>
+</figure>
+
+<h3 id="s3-5">3.5　冻结表示、输出校正与模型平均都没有带来摘要之外的信息</h3>
+
+<p>三组实验从不同方向检验“基础模型的表示或预测里是否藏着可用的信息”，结论一致。冻结嵌入加线性探针（D148）在 MIMIC-IV-ED 上，八个模型的“摘要 + 嵌入”都形式上优于“摘要”（LR +0.002 至 +0.018），但增益几乎全部来自一个流程变量，即窗口内第一次测到该体征的时间：常数序列的嵌入只由“变量 × 长度”决定，每组最多 2–7 种取值；只给摘要加三列长度，LR 从 0.835 升到 0.849，LightGBM 从 0.850 升到 0.864，追平最好的嵌入；在补丁 3b 的完整特征上再加嵌入，ΔAUROC 绝对值不超过 0.0004。</p>
+
+<p>预测输出校正（模型补丁第一轮 A）用中位数回归校正八个 TSFM 的预测，心率 MAE 与 LOCF 之比从 1.016–1.170 降到 0.81；但只用末值、上下文均值和截距的无模型对照得到相同的误差，48 个判读中只有 1 个显示模型有贡献，幅度为 MAE 的 0.05%。把时序模型与 LightGBM 等权平均，或以 LightGBM 的 logit 为偏置训练时序模型（B0、B1），都能补上时序模型自身的短板，但没有一个模型在任何 seed 上超过 LightGBM，训练得到的偏置系数在 0.97–1.06，基本原样沿用 LightGBM。按 ESI × 密度分组再校准（C）修好了这些格子的校准，不改变排序。</p>
+
+<h3 id="s3-6">3.6　常数输入：退化可以修复，修复后的预测不提供风险信息</h3>
+
+<p>3.3 节的第一种失效在 MIMIC-IV-ED 上覆盖面最大：D157 的内部评价集中，HR、MAP、SpO₂ 三项全为常数的就诊有 31,144 次（69%），其中 99.2% 的 RR 和体温也是常数或没测，多变量模型没有其他通道的动态可借。Chronos-2 的单通道、五通道和协变量设置在这些就诊上都与 LOCF 完全相同。我们分四轮检验了修复是否有用（D157–D160）。</p>
+
+<p>修复本身是可行的。训练的小模型把均值、末值等统计量补回去后，常数就诊上的预测 nMAE 降低 17%–20%；给零样本模型加锚点、或对 Chronos-2 做锚点微调，也都能让预测脱离末值，微调后常数层 nMAE 从 0.644 降到 0.563。但预测更准没有带来更好的风险排序（图 7a）：只补统计量的三个臂 nMAE 降 17%–18%，D103 AUROC 反而比 LOCF 低 0.008–0.021；AUROC 上升 0.030–0.033 的三个臂同时加入了年龄、性别、ESI 和到达方式，增益来自这些协变量。同一批常数就诊上，直接用同样输入训练的逻辑回归 AUROC 为 0.834，LightGBM 3b 为 0.889，“先预测体征、再按阈值读风险”这条路线本身就损失了 0.15–0.20。锚点微调的原始越阈分数在全体就诊上的 AUROC 从锚点零样本的 0.761 降到 0.682，而单用“是否常数”这一个标志排序已有 0.747。</p>
+
+<p>时间信息在表格模型之上的增量有一个上限（图 7b）。D158 中，在 3b 特征上加入预测得到的时序摘要，全体增量只有 0.0008，非常数层 0.0023；D159 把实际记录到的未来体征摘要加进 3b，全体也只增加 0.016（常数层 0.037）。后一个数字使用了预测时点之后的真实观测，并受选择性复测和窗口重叠影响，只能当作上限参照。在体征密集、几乎没有常数输入的 eICU 上，Chronos-2 越阈读出的 AUROC 比 LOCF 高 0.031（0.015 至 0.045），但仍远低于表格模型（0.630 对 0.743），表格模型再加预测摘要的差约为 0（95% CI −0.011 至 +0.011）。</p>
+
+<figure>
+<!--FIG:const-->
+  <figcaption><b>图 7　常数输入的修复与时间信息的增量（MIMIC-IV-ED，D103 训练集内部 eval）。</b>(a) 常数就诊（31,144 次 / 512 个事件）上各臂的预测 nMAE 与 S-max AUROC；nMAE 为 HR、MAP、SpO₂ 三项 MAE 分别除以人群标准差后的均值，训练臂取 3 个 seed 平均。五个钉住到 LOCF 的零样本臂与 LOCF 重合。(b) 在表格模型之上增加的 AUROC；橙色两条使用了预测时点之后的实际体征，是上限参照；eICU 一条带 95% CI。来源：常数上下文可行性结果（D157）、D157–D160 收尾报告。</figcaption>
+</figure>
+
+<p>D160 用四组监督读出把这一点固定下来（图 8a）。只含测量模式（测量时刻、距末次测量时长、常数标志）的 A 臂全体 AUROC 已达 0.823；加入体征末值和年龄、性别、ESI、到达方式后（B 臂）为 0.901。在 B 之上加入锚点零样本分数（C）或微调分数（D），全体 AUROC 分别为 0.900936 和 0.900902，D−B 为 +0.000001（95% CI −0.000376 至 +0.000426）。常数层与非常数层的结局率相差近 8 倍（512/31,144 = 1.6% 对 1,784/13,897 = 12.8%），因此“是否复测”本身就把高低风险分开了。配对分解（图 8b）显示，微调相对零样本下降的 0.079 中，97.4% 来自跨层配对：权重最大的“非常数事件 × 常数非事件”这一类配对，被排对的概率从 0.853 降到 0.689。这类配对在零样本分数下主要靠“有复测即高危”的测量过程信号被排对，微调后的分数削弱了这一信号；分解本身不能区分复测决策与病情各自的作用。研究者据此把 MIMIC-IV-ED 到院 2 小时、D103 终点下从稀疏体征轨迹提取增量风险信息的路线正式收尾（D161）。</p>
+
+<figure>
+<!--FIG:fourarm-->
+  <figcaption><b>图 8　四组监督读出与原始分数下降的配对分解（D160）。</b>(a) 四臂使用相同配置的样条逻辑回归，五折预测，在同一批就诊上评价。(b) 把锚点微调相对锚点零样本的 AUROC 差（−0.079188）按“事件就诊所在层 × 非事件就诊所在层”拆成四类配对的加权贡献；误差线为患者聚类 bootstrap 95% CI（B = 500）。来源：MIMIC-IV-ED 四组读出与排序分解结果。</figcaption>
+</figure>
+
+<h3 id="s3-7">3.7　归一化空间内的跨通道响应：注意力看了辅助通道，输出几乎不动</h3>
+
+<p>D157 与梁睿颖的审计都是在反归一化之后的输出上测量的。Chronos-2 的输出为 ŷ = μ + σ·sinh(ẑ)，常数通道的 σ 被置为 1e-5，输出端测不到变化与网络内部是否用了辅助通道无关。D166 在反归一化之前读取网络自己的输出 ẑ 和进入分位数头的隐状态，按目标通道把就诊分为 B 组（目标常数、辅助通道有动态）和 D 组（两者都有动态），只干预四个辅助通道。</p>
+
+<p>结果分三层（图 9）。输出空间复现了“完全不敏感”：B 组十种干预下原单位预测变化的中位数和 P90 都是 0。归一化空间里有响应但很弱：跨就诊打乱辅助通道后，B 组 ẑ 变化的中位数为 0.0029、0.0031、0.0027（HR、MAP、SpO₂），约为数值噪声底的 3,000 倍，却只有 D 组（0.070–0.075）的 4%，按预先写定的判据为“弱敏感”。注意力没有忽略辅助通道：常数目标那一行放到其他行的注意力质量为 0.78–0.79，与 D 组和均匀分配（0.80）几乎相同；进入分位数头的隐状态相对变化为 9%（D 组 21%）。也就是说，信息传到了隐状态，分位数头把常数目标的输出几乎固定住，剩下的再被 1e-5 的输出尺度抹成 0。这部分弱响应与未来真实变化也无关：辅助通道带来的 ẑ 偏移与未来 48 步观测均值减末值的 Spearman 相关，HR 为 −0.018（−0.090，0.060），SpO₂ 为 −0.013（−0.044，0.024）；MAP 为 −0.094（−0.168，−0.021），形式上成立，但主要来自被减去的单变量项，多变量 ẑ 本身的相关只有 −0.008。能预测未来变化的是末值水平（−0.41 至 −0.58）。</p>
+
+<p>这排除了“只改输出尺度或归一化参考系，让零样本模型在常数通道上用上跨通道信息”的路线；要让模型用这部分信息只能训练，而 3.6 节已经表明训练后的预测分数在监督读出中没有增量。D166 只检验了 Chronos-2 一个模型，使用 2 小时上下文，与梁睿颖的 4 小时口径不同。</p>
+
+<figure>
+<!--FIG:d166-->
+  <figcaption><b>图 9　Chronos-2 归一化空间内的跨通道敏感性（D166）。</b>(a) 跨就诊打乱四个辅助通道后，目标通道 0.5 分位 ẑ 在 48 步上的平均绝对变化的中位数；灰色区域为数值噪声底（1e-6，两项不变性对照的 P90 约为 7e-8）以下。B 组人数：HR 813、MAP 760、SpO₂ 4,340。(b) 目标行在三个预测位置上放到同组其他四行的分组注意力质量，对头取平均；五行均匀分配时为 0.80。来源：Chronos-2 归一化空间跨通道敏感性结果 §3、§4。</figcaption>
+</figure>
+
+<h3 id="s3-8">3.8　高龄差距的来源：MIMIC-IV-ED 是病例谱，MC-MED 是事件构成</h3>
+
+<p>≥75 岁排序更差是两库共同、最稳定的子集信号，训练集内交叉拟合中 3b 的差距在 MIMIC-IV-ED 为 −0.038（LightGBM）和 −0.040（LR），在 MC-MED 为 −0.018 和 −0.023。两库的原因不同。</p>
+
+<p>MIMIC-IV-ED 上，≥75 岁事件的构成与 &lt;75 岁相同（先进 ICU 的占 87%–89%），各成分内的差距与总体相同；不同的是非事件：≥75 岁的非事件 58% 收住院（&lt;75 岁 30%），预测风险中位数是 &lt;75 岁的 3–5 倍（D141）。剔除“标签之外的重症”非事件（12 小时后进 ICU 或死亡、出院去临终关怀、12 小时内有 DNR/DNI 医嘱）后，差距只缩小 0.008–0.010，不到四分之一。只用 ≥75 岁患者训练，在该层比全年龄模型低 0.007；三倍加权约低 0.001。这些结果符合病例谱效应：同一个系数正确的模型，用在病情更均一、普遍更重的人群上，C 统计量也会下降<sup><a href="#r2">[2]</a></sup>。</p>
+
+<p>MC-MED 上，≥75 岁的事件更多由 SpO₂ 触发（62.6% 对 50.5%），而 SpO₂ 触发的事件对任何年龄都最难分辨（图 10）。按全体阳性的共同构成标准化后（D162），LR 的年龄差距缩小 57%，LightGBM 缩小 47%，剩余差距约 −0.01，95% 区间包含 0。继续沿低氧事件追查：在原 15 分钟窗口中加入 23 个动态特征（变化率、谷值位置、同步变化）没有提高检出，LightGBM 反而下降 0.014（D163）；在固定 10% 报警名额（4,298 个）下，基线模型检出 2,848 个低氧事件中的 982 个（34.5%），两种改进候选只净增 3 例和 19 例，都没有达到预先写定的净增 29 例门槛（D164）。漏检集中在预测前血氧较高的就诊；输入最低血氧 ≥97% 的层中，审核窗内只有一个低值分钟的事件占 57.4%（624/1,088，D165）。这类事件中有多少是真实的低氧，目前缺少独立证据，终点本身的可靠性需要先核实。</p>
+
+<figure>
+<!--FIG:age-->
+  <figcaption><b>图 10　MC-MED 年龄差距的事件成分分解（D162，训练集 3b 五折 OOF，42,983 次就诊、5,319 个事件）。</b>(a) 两个年龄组的事件按触发体征的构成。(b) LightGBM 在每类事件对本组全部阴性上的成分 AUROC，空心为 &lt;75 岁，实心为 ≥75 岁。(c) ≥75 岁减 &lt;75 岁的 AUROC 差，标准化使用全体开发集阳性的构成（SpO₂ 53.5%、HR 34.9%、MAP 11.5%）；误差线为患者聚类 bootstrap 95% CI（B = 1,000）。来源：MC-MED 年龄与事件成分标准化结果。</figcaption>
+</figure>
+
+<h3 id="s3-9">3.9　小样本条件下的模型平均</h3>
+
+<p>医院数据的标签只有数百个，所以模型补丁第二至第五轮（D152–D155）转向小样本问题：在两库训练集中整人抽取 1,000、2,500、5,000 次就诊，各抽 20 次，比较 LR、LightGBM、TabPFN v2 及其组合。同库源模型作先验的增益很大，但它与评价集同分布，只是上界；跨库先验在按含义对齐输入后也没有稳定收益（第二轮跨库输入有 202 列按列名对上但含义错位，第三轮已按含义重建）。最终候选 ens_bag 是 TabPFN v2 与 5 个种子 LightGBM 平均的等权 logit 平均。它在确认集上的 6 个主要比较全部优于单个 LightGBM（图 11），增益随样本量增大而减小，n = 1,000 时 MC-MED 为 +0.0147，MIMIC-IV-ED 为 +0.0095；确认集上的增益与选择阶段的估计相当或略大，没有看到选择带来的乐观偏差。约一半的增益来自平均本身（第四轮），学习组合权重不如等权。</p>
+
+<figure>
+<!--FIG:small-->
+  <figcaption><b>图 11　小样本组合 ens_bag 相对单个 LightGBM 的 AUROC 增益（D156）。</b>实心标记与误差线为确认集（MC-MED 2,602 次 / 312 个阳性；MIMIC-IV-ED 39,231 次 / 2,092 个阳性），6 个比较一起做 Holm 校正后 p 均 ≤ 0.002；空心标记为选择阶段在源池 S 集上的估计。来源：小样本配方确认结果 §1。</figcaption>
+</figure>
+
+<h2 id="s4">4　讨论：现有问题、根源与改进方向</h2>
+
+<h3>4.1　现有问题及其根源</h3>
+
+<p>把本阶段的结果按问题归并，可以得到表 2。表中八个问题有一个共同点：差距来源于数据侧（测量过程、病例构成、预测时点的信息量、终点判定），在模型侧做过的修补（加深训练、删观测增强、子集专训与加权、零样本输出修复、冻结表示）都没有缩小差距。被明显改善的只有两类，一是校准偏差（加 ESI、年龄或分组再校准），二是信息不足型差距（加入预测时点已有的化验和主诉）。</p>
+
+<div class="tbl">
+<table>
+  <caption><b>表 2　本阶段暴露的问题、根源与已有处理</b></caption>
+  <thead><tr><th>问题</th><th>表现</th><th>根源</th><th>已做的处理与结果</th><th>仍可做的</th></tr></thead>
+  <tbody>
+    <tr><td>零样本 TSFM 没有可用增量</td><td>预测 ≈ LOCF；风险 ≤ Context-max；比监督模型低 0.04–0.15</td><td>预训练为长序列、非急诊数据；逐序列标准化去掉水平；常数输入退化；短序列上过度回拉或外推</td><td>4 h 上下文、连续读出、冻结嵌入、输出校正、锚点与微调均无监督读出之外的增量；路线收尾（D144、D150、D161）</td><td>不再投入；保留为低标签预算的参照</td></tr>
+    <tr><td>子集比较被测量过程混杂</td><td>高危组零样本误差更大；子集 AUROC 随密度变化</td><td>复测是临床对病情的反应；子集差距按补集的相对量判定</td><td>按序列形状标准化后 ESI 差异为 0；“是否常数”单独 AUROC 0.747</td><td>报告时固定按测量过程分层，并与 ESI 交叉</td></tr>
+    <tr><td>早期体征稀疏的高危就诊</td><td>MIMIC-IV-ED ≤1 次 × ESI 1–2：−0.19 → −0.10</td><td>窗口内几乎只有分诊值，ESI 在格内为常数</td><td>补丁 3 化验与主诉贡献最大；4 h 时点仍有 52% 不超过 1 个时刻；分诊缺测就诊转重率约 45%</td><td>继续补预测时点已有的信息：是否开了化验、主诉、分诊缺测标志</td></tr>
+    <tr><td>急救车送达</td><td>MIMIC-IV-ED −0.030 至 −0.041 → −0.018 至 −0.027，确认集复现</td><td>到达方式在组内为常数，不能用于组内排序；院前处置可能改变首测值</td><td>加入到达方式、化验、主诉后缩小，仍被标出；MC-MED 无稳定差异</td><td>公开库没有院前数据；医院前瞻采集院前体征、吸氧与处置</td></tr>
+    <tr><td>高龄（MIMIC-IV-ED）</td><td>≥75 岁 −0.038 至 −0.040；加输入不变</td><td>非事件更重（58% 收住院），属病例谱效应</td><td>剔除标签外重症只缩小 0.008–0.010；高龄专训 −0.007；三倍加权无效；校准正常</td><td>需要区分高龄高危者之间的信息：基线功能状态、平时血氧、合并症</td></tr>
+    <tr><td>高龄与低氧事件（MC-MED）</td><td>≥75 岁 −0.018 至 −0.023；10% 报警只检出 34.5% 低氧事件</td><td>高龄事件多由 SpO₂ 触发；大量事件为单分钟低值</td><td>成分标准化后差距缩小约一半；动态特征与两种候选均未过门槛；同输入算法线收尾（D165）</td><td>先核实单分钟低值是否为真事件，再谈模型</td></tr>
+    <tr><td>时间信息的上限低</td><td>3b 之上现实增量 0.0008；用到未来真实体征也只有 0.016</td><td>急诊早期复测少，复测本身已被表格特征捕获</td><td>四组读出 D−B = +0.000001</td><td>只在复测充分的数据（住院、监护）上再比较时序表示</td></tr>
+    <tr><td>评价资源</td><td>发现集反复使用；两份确认集已封存</td><td>探索轮次多，公开库外部数据只有两个同类库</td><td>D111 规定之后结论标为探索性；D156 破例一次后封存</td><td>为新方向预留独立的人群或时期</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>4.2　为什么换模型改不动这些差距</h3>
+
+<p>“子集 − 补集”的 AUROC 差是相对量。按强预测因子切出的子集，组内病情分布更窄，事件与非事件的分数更容易重叠，即使模型系数完全正确，组内 AUROC 也会机械性地降低<sup><a href="#r2">[2]</a></sup>。ESI 1–2、急救车送达、≥75 岁都是这样的子集：ESI 和到达方式在组内是常数，年龄在 ≥75 岁组内变化很小，这些强预测因子在组内失去作用，剩下的排序只能依赖其他信息。补丁 3 后急救车送达和稀疏高危格子的差距缩小，正是因为加入了在组内仍有变化的化验和主诉。</p>
+
+<p>面向子集的训练方法也很难改变这一点。Pfohl 等（2022）在多个临床预测任务上比较了分布鲁棒优化等提升最差子集表现的方法，几乎没有一种在子集上稳定优于在全量数据上的标准训练；作者的结论是，改善子集表现需要更多有效样本或更少的标签噪声<sup><a href="#r3">[3]</a></sup>。本阶段高龄专训、加权、删观测增强都无效，与此一致。</p>
+
+<p>分诊等级本身也有局限。ESI 对老年患者存在已知的低分诊：Platts-Mills 等（2010）报告，对需要立即抢救干预的老年急诊患者，ESI 1 级的敏感度只有 42.3%<sup><a href="#r4">[4]</a></sup>；Grossmann 等（2012，基于检索摘要）报告 ESI 在老年患者中识别需抢救干预者的敏感度为 0.46，低分诊主要来自忽视高危情境和误读体征<sup><a href="#r5">[5]</a></sup>；赫尔辛基急诊队列中按年龄上调分诊等级只带来小幅改善<sup><a href="#r6">[6]</a></sup>。国内医院使用的分诊量表与 ESI 不同，所以医院模型不宜把 ESI 当作核心输入，而应尽量使用分诊所依据的原始信息（体征、主诉、到达方式）。</p>
+
+<h3>4.3　改进方向</h3>
+
+<p>第一，补充预测时点已经可得、且在高危子集内仍有变化的信息。补丁 3 的消融显示化验与主诉对稀疏高危就诊贡献最大；“是否开了化验”“分诊体征是否缺测”这类过程变量在预测时点就已确定，可以显式输入。急救车送达和高龄两格的剩余差距，对应的是公开库没有的信息：院前体征与吸氧、平时的血氧和功能状态、合并症。这些应进入医院前瞻采集表。</p>
+
+<p>第二，把测量过程作为显式变量和报告维度。复测次数、首次测量时间、是否上监护仪、来源（监护仪或手工）应进入输入；子集结果固定按“输入是否为常数”（MIMIC-IV-ED 另看分诊是否缺测，MC-MED 看是否上监护仪）分层，并与 ESI 交叉报告。这一项已请导师确认。</p>
+
+<p>第三，改变子集的评价方式。对高龄、急救车送达这类由强预测因子切出的子集，补平 AUROC 差距既不现实也不必要。更合适的目标是组内校准（观察/预期比）和固定报警预算下多检出的事件数；比较子集时用事件成分或病例构成标准化（如 D162），把构成差异与模型缺陷分开。低自由度的分组再校准成本最低，已在 ESI × 密度格子上验证有效。</p>
+
+<p>第四，小样本条件下使用模型平均。ens_bag 在两库三个样本量上都优于单个 LightGBM，可作为医院模型的候选，同时保留低参数 LR 作主要参照；医院 A4 初筛中 GD 上 LR 为 0.682、单个 LightGBM 为 0.623，区间较宽，组合在更小标签预算和不同结局上的表现需要实测。</p>
+
+<p>第五，在建模之前核实终点。MC-MED 的低氧事件中，相当一部分只是单个低值分钟；医院 v0.6 计数显示，GAM 在主风险集中无法用规则确认预测时点未吸氧，GD 的支持升级依赖医嘱。终点不能可靠判定时，模型层面的任何改进都无法检验。</p>
+
+<p>不建议继续投入的方向有三类：子集专训、重加权和分布鲁棒训练；训练时的删观测或密度增强；零样本输出尺度、参考系或冻结表示上的修补。</p>
+
+<h3>4.4　局限</h3>
+
+<p>本文所有结论都是探索性的。发现集和 D103 训练集内部的 eval 被多轮实验反复使用，D162–D166 中有若干诊断是看过初步结果后补做的，均未做多重比较校正；两份确认集已封存，后续结论需要新的人群或时期来确认。两库任务、终点和窗口都不同，只能各自解释。MIMIC-IV-ED 没有监护仪来源字段和院前数据，MC-MED 的日期被随机平移、钟点被打乱，无法分析时段与年份。D166 只检验了 Chronos-2，FF-LSTM 与 GRU-D 两个计划中的监督基线尚未在两库上运行。文献部分有几篇只读到摘要，已在引用处标出。</p>
+
+<h2 id="s5">5　结论与下一步</h2>
+
+<p>在急诊早期的短窗口上，八个时序基础模型的零样本预测、风险读出和冻结表示都没有提供监督模型之外的信息。子集之间的表现差异主要来自测量过程、病例构成和预测时点的信息量，而不是某个模型对某类病人的生理存在特定缺陷；常数输入的退化可以修复，修复后的预测却不带来风险信息，Chronos-2 内部对常数目标的跨通道响应也只有动态目标的约 4%。对老年流感转重预测，可行的改进来自数据侧：在预测时点补充仍有区分度的信息，把测量过程显式化并分层报告，用组内校准和固定预算评价子集，以及先确认终点可判定。</p>
+
+<p>在公开库内，现有任务下能修的格子已经修过。一个对医院主线有直接用处的方向是在 MIMIC-IV-ED 中建立“≥65 岁、主诉为呼吸道感染样表现的急诊就诊”代理队列，结局取就诊后 14 天内的恶化，对应医院登记的门急诊首次就诊后 14 天主场景。这一场景中体征多半只测一次，问题会直接变成表格预测；MC-MED 可作为第二个库预演“一院开发、另一院验证”，并检验小样本组合在这一人群上是否仍有增益；ESI 3 的高龄呼吸道感染患者中谁会恶化，正是表 2 中尚未处理的一格。它的不确定性在数据：两库中这类就诊的数量、14 天结局能否判定（离院后去别处就诊看不到）都还不知道，需要先出只含计数的可行性核查。队列和终点的定义属于 A 档决策，由研究者确定。</p>
+
+<p>医院一侧，v0.6 两院终点可判定性计数是当前瓶颈：近期最有价值的工作是在 GD 核实医嘱与实际用氧是否一致，在 GAM 查明预测时点的支持状态能否从原病历找回，并补齐门急诊主场景的入组与随访分母。</p>
+
+<h2 id="refs">参考文献</h2>
+<ol class="refs">
+  <li id="r1">Agniel D, Kohane IS, Weber GM. Biases in electronic health record data due to processes within the healthcare system: retrospective observational study. <i>BMJ</i>. 2018;361:k1479. <a href="https://doi.org/10.1136/bmj.k1479">doi:10.1136/bmj.k1479</a></li>
+  <li id="r2">Vergouwe Y, Moons KGM, Steyerberg EW. External validity of risk models: use of benchmark values to disentangle a case-mix effect from incorrect coefficients. <i>Am J Epidemiol</i>. 2010;172(8):971–980. <a href="https://doi.org/10.1093/aje/kwq223">doi:10.1093/aje/kwq223</a></li>
+  <li id="r3">Pfohl SR, Zhang H, Xu Y, Foryciarz A, Ghassemi M, Shah NH. A comparison of approaches to improve worst-case predictive model performance over patient subpopulations. <i>Sci Rep</i>. 2022;12:3254. <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8885701/">PMC8885701</a></li>
+  <li id="r4">Platts-Mills TF, Travers D, Biese K, et al. Accuracy of the Emergency Severity Index triage instrument for identifying elder emergency department patients receiving an immediate life-saving intervention. <i>Acad Emerg Med</i>. 2010;17(3):238–243. <a href="https://pubmed.ncbi.nlm.nih.gov/20370755/">PMID 20370755</a>（基于摘要）</li>
+  <li id="r5">Grossmann FF, Zumbrunn T, Frauchiger A, et al. At risk of undertriage? Testing the performance and accuracy of the Emergency Severity Index in older emergency department patients. <i>Ann Emerg Med</i>. 2012;60(3):317–325.（基于检索摘要，未核对原文）</li>
+  <li id="r6">BMC Emergency Medicine 2022，赫尔辛基急诊队列中按年龄调整分诊的研究。<a href="https://link.springer.com/article/10.1186/s12873-022-00600-0">doi:10.1186/s12873-022-00600-0</a>（基于摘要）</li>
+  <li id="r7">Kansal A, et al. MC-MED, multimodal clinical monitoring in the emergency department. <i>Sci Data</i>. 2025. <a href="https://doi.org/10.1038/s41597-025-05419-5">doi:10.1038/s41597-025-05419-5</a></li>
+  <li id="r8">Xie F, Zhou J, Lee JW, et al. Benchmarking emergency department prediction models with machine learning and public electronic health records. <i>Sci Data</i>. 2022. <a href="https://arxiv.org/abs/2111.11017">arXiv:2111.11017</a></li>
+</ol>
+
+<h3>本文依据的结果文档</h3>
+<p class="note">本机 <code>result/</code> 与 <code>docs/汇报/</code> 下的聚合结果文档，服务器 <code>W/docs/basemodel/result/week06/</code>、<code>week07/</code> 有同名副本：MC-MED 与 MIMIC-IV-ED 时序模型子集诊断本周周报、确认集结果（D109）、补丁 1–3 发现集结果及补丁 3 后续局限处理、TSFM 八模型零样本（v1、v2）与冻结嵌入线性探针结果、导师讨论稿终版（11-07）、回复导师（11-08）、急诊子集数据分布与基础模型机制、模型补丁第一至第五轮、小样本配方确认（D156）、常数上下文可行性（D157）、常数输入阶段 0–2（D158）、其他方向可行性（D159）、四组读出与排序分解（D160）、D157–D160 收尾报告、MC-MED D162–D165 结果、v0.6 两院终点综合结果、Chronos-2 归一化空间跨通道敏感性（D166）。图由 <code>scripts/report_html/build_tsfm_subgroup_report_20261110.py</code> 从这些文档中的数字生成，鼠标悬停可看单个数值，每张图下方可展开数据表。</p>
+
+</article>
+</body>
+</html>

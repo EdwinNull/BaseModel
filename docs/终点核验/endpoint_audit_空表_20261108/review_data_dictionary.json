@@ -1,0 +1,199 @@
+{
+  "version": "D165_v2",
+  "fields": [
+    {
+      "field": "sample_id",
+      "label": "随机核验编号",
+      "allowed_values": [],
+      "note": ""
+    },
+    {
+      "field": "reviewer",
+      "label": "评阅者代码",
+      "allowed_values": [
+        "A",
+        "B",
+        "consensus"
+      ],
+      "note": ""
+    },
+    {
+      "field": "baseline_level",
+      "label": "预测时点支持级别",
+      "allowed_values": [
+        "L0",
+        "L1",
+        "L2",
+        "L3",
+        "unknown"
+      ],
+      "note": ""
+    },
+    {
+      "field": "baseline_basis",
+      "label": "基线支持证据",
+      "allowed_values": [],
+      "note": "仅留本机，不进入聚合报告"
+    },
+    {
+      "field": "maximum_level_7d",
+      "label": "7天最高支持级别",
+      "allowed_values": [
+        "L0",
+        "L1",
+        "L2",
+        "L3",
+        "L4",
+        "unknown"
+      ],
+      "note": ""
+    },
+    {
+      "field": "first_upgrade_time",
+      "label": "首次支持升级实际时间",
+      "allowed_values": [],
+      "note": "时间未知时留空并将对应precision写unknown"
+    },
+    {
+      "field": "time_precision",
+      "label": "支持升级时间精度",
+      "allowed_values": [
+        "day",
+        "hour",
+        "minute",
+        "unknown"
+      ],
+      "note": ""
+    },
+    {
+      "field": "first_deterioration_time",
+      "label": "首次临床呼吸恶化时间",
+      "allowed_values": [],
+      "note": "时间未知时留空并将对应precision写unknown"
+    },
+    {
+      "field": "deterioration_time_precision",
+      "label": "临床恶化时间精度",
+      "allowed_values": [
+        "day",
+        "hour",
+        "minute",
+        "unknown"
+      ],
+      "note": ""
+    },
+    {
+      "field": "baseline_execution",
+      "label": "基线支持是否执行",
+      "allowed_values": [
+        "not_applicable",
+        "order_only",
+        "unknown",
+        "yes"
+      ],
+      "note": ""
+    },
+    {
+      "field": "actual_execution",
+      "label": "升级支持是否执行",
+      "allowed_values": [
+        "not_applicable",
+        "order_only",
+        "unknown",
+        "yes"
+      ],
+      "note": ""
+    },
+    {
+      "field": "hfnc_confirmed",
+      "label": "高流量是否属实",
+      "allowed_values": [
+        "no",
+        "not_applicable",
+        "unknown",
+        "yes"
+      ],
+      "note": ""
+    },
+    {
+      "field": "rr_documentation_quality",
+      "label": "呼吸记录的测量依据",
+      "allowed_values": [
+        "estimated_or_template",
+        "measured",
+        "not_applicable",
+        "unknown"
+      ],
+      "note": ""
+    },
+    {
+      "field": "new_deterioration",
+      "label": "是否新发且有临床意义的呼吸恶化",
+      "allowed_values": [
+        "no",
+        "unknown",
+        "yes"
+      ],
+      "note": ""
+    },
+    {
+      "field": "onset_class",
+      "label": "相对预测时点的新发类别",
+      "allowed_values": [
+        "new",
+        "no_event",
+        "pre_existing",
+        "unknown"
+      ],
+      "note": ""
+    },
+    {
+      "field": "death",
+      "label": "死亡",
+      "allowed_values": [
+        "no",
+        "unknown",
+        "yes"
+      ],
+      "note": ""
+    },
+    {
+      "field": "treatment_limit",
+      "label": "治疗受限",
+      "allowed_values": [
+        "no",
+        "unknown",
+        "yes"
+      ],
+      "note": ""
+    },
+    {
+      "field": "review_minutes",
+      "label": "本次评阅分钟数",
+      "allowed_values": [],
+      "note": ""
+    },
+    {
+      "field": "reason",
+      "label": "分歧或错误原因代码",
+      "allowed_values": [
+        "baseline",
+        "device",
+        "missing",
+        "negation",
+        "none",
+        "other",
+        "planned_not_executed",
+        "timing"
+      ],
+      "note": ""
+    },
+    {
+      "field": "quality_notes",
+      "label": "记录质量备注",
+      "allowed_values": [],
+      "note": "仅留本机，不进入聚合报告"
+    }
+  ],
+  "blindness": "空表不含algorithm、stratum、weight；只按随机编号填写"
+}

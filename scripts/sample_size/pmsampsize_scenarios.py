@@ -12,7 +12,7 @@
 不读任何病例数据，结局率、C 统计量、候选参数数都是假设，见报告“假设的出处”。只用标准库。
 
 运行（仓库根目录）：
-  python scripts/sample_size/pmsampsize_scenarios.py --out docs/实验/前瞻样本量情景_20261031.md
+  python scripts/sample_size/pmsampsize_scenarios.py --out result/医院队列与终点/前瞻样本量情景_20261031.md
 """
 from __future__ import annotations
 
@@ -129,7 +129,7 @@ def report() -> str:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="前瞻样本量情景：只含假设，不读病例数据")
-    ap.add_argument("--out", type=Path, default=Path("docs/实验/前瞻样本量情景_20261031.md"))
+    ap.add_argument("--out", type=Path, default=Path("result/医院队列与终点/前瞻样本量情景_20261031.md"))
     a = ap.parse_args()
     a.out.parent.mkdir(parents=True, exist_ok=True)
     a.out.write_text(report(), encoding="utf-8", newline="\n")

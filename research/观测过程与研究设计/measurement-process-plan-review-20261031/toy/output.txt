@@ -1,0 +1,74 @@
+# 运行：python3 ponly_leak_sim.py; ponly_leak_sim2.py; ponly_leak_sim3.py; ponly_leak_sim4.py; ponly_leak_sim5.py（numpy 2.5.3、scikit-learn 1.9.1；只用合成数据）
+
+## ponly_leak_sim.py
+mean measurements/var/24h  A=13.6  B=5.1; prevalence A=0.138 B=0.139
+
+[1] M-recoverability within hospital A: AUROC for 'above-median #measurements' from P-only input
+  P-only, grid LOCF -> summaries                   0.969
+  P-only, grid mean-impute -> summaries            0.976
+  P-only, observed values: mean/sd/min/max/last    0.968
+  P-only, observed values: mean/last only          0.965
+  oracle: full (unmasked) physiology               0.966
+
+[2] Hospital A vs B classifier AUROC (pooled, 50/50 split)
+  P-only (observed mean/last)      0.697
+  P-only (grid LOCF summaries)     0.955
+  M-only                           0.899
+
+[3] Outcome AUROC / Brier / O:E; train on A(first half), internal = A(second half), external = B
+  LR  P-only AUROC int 0.779 ext 0.769 TGap +0.010 | Brier int 0.1030 ext 0.1038 | O:E ext 1.00
+  LR  M-only AUROC int 0.772 ext 0.723 TGap +0.049 | Brier int 0.1052 ext 0.1284 | O:E ext 6.46
+  LR  P+M    AUROC int 0.779 ext 0.745 TGap +0.034 | Brier int 0.1031 ext 0.1103 | O:E ext 1.79
+  GBT P-only AUROC int 0.738 ext 0.723 TGap +0.015 | Brier int 0.1160 ext 0.1149 | O:E ext 1.17
+  GBT M-only AUROC int 0.738 ext 0.687 TGap +0.051 | Brier int 0.1133 ext 0.1317 | O:E ext 10.61
+  GBT P+M    AUROC int 0.744 ext 0.714 TGap +0.030 | Brier int 0.1141 ext 0.1237 | O:E ext 4.29
+
+## ponly_leak_sim2.py
+(a) Thinning-invariance test, AUROC original vs MCAR-thinned (same patients; 0.5 = invariant)
+   grid LOCF -> mean/sd/min/max/last    0.891
+   grid mean-impute -> summaries        0.974
+   observed: mean/sd/min/max/last       0.912
+   observed: mean/last only             0.562
+   (reference) M-only features          0.858
+
+(b) Predicting above-median #measurements: oracle physiology alone vs oracle + P-only features
+   oracle physiology only                 0.966
+   oracle + grid LOCF -> mean/sd/min/max/last 0.970
+   oracle + grid mean-impute -> summaries  0.979
+   oracle + observed: mean/sd/min/max/last 0.970
+   oracle + observed: mean/last only       0.968
+
+(c) Patient-level drift when A's patients are re-observed under B's policy (physiology fixed)
+   LR P-only mean|dp| 0.028  P90|dp| 0.063  signed mean dp +0.017  flip(top20%) 0.059  AUROC 0.779->0.771
+   LR M-only mean|dp| 0.117  P90|dp| 0.292  signed mean dp -0.116  flip(top20%) 0.197  AUROC 0.772->0.709
+   LR P+M    mean|dp| 0.065  P90|dp| 0.153  signed mean dp -0.053  flip(top20%) 0.129  AUROC 0.779->0.735
+
+## ponly_leak_sim3.py
+obs/var/24h: A original 13.6 -> transplanted to B policy 4.8 (B actual 5.1)
+LR P-only mean|dp| 0.026  P90|dp| 0.060  signed +0.013  flip(top20%) 0.046  AUROC 0.779->0.767  O:E 1.03->0.94
+LR M-only mean|dp| 0.117  P90|dp| 0.293  signed -0.117  flip(top20%) 0.197  AUROC 0.772->0.719  O:E 1.03->6.73
+LR P+M    mean|dp| 0.067  P90|dp| 0.155  signed -0.056  flip(top20%) 0.129  AUROC 0.779->0.742  O:E 1.03->1.73
+
+## ponly_leak_sim4.py
+measurement rate: A=0.565  library=[np.float64(0.46), np.float64(0.342), np.float64(0.256), np.float64(0.128)]  B=0.211
+LR  ERM                          int AUROC 0.779 | ext B AUROC 0.745  Brier 0.1103  O:E 1.79
+LR  MCAR-drop aug                int AUROC 0.779 | ext B AUROC 0.772  Brier 0.1034  O:E 1.04
+LR  policy-transplant aug        int AUROC 0.780 | ext B AUROC 0.776  Brier 0.1033  O:E 1.11
+LR  transplant aug + descriptor  int AUROC 0.780 | ext B AUROC 0.778  Brier 0.1028  O:E 1.06
+GBT ERM                          int AUROC 0.744 | ext B AUROC 0.714  Brier 0.1237  O:E 4.29
+GBT MCAR-drop aug                int AUROC 0.757 | ext B AUROC 0.756  Brier 0.1082  O:E 1.12
+GBT policy-transplant aug        int AUROC 0.755 | ext B AUROC 0.763  Brier 0.1073  O:E 1.13
+GBT transplant aug + descriptor  int AUROC 0.755 | ext B AUROC 0.759  Brier 0.1081  O:E 1.12
+LR  (reference) P-only ERM          ext B AUROC 0.769  Brier 0.1038  O:E 1.00
+
+## ponly_leak_sim5.py
+per-variable rate  A: [0.568 0.569 0.567]  B: [0.56  0.376 0.203]  library: [[0.49, 0.42, 0.27], [0.41, 0.32, 0.42], [0.55, 0.16, 0.17], [0.36, 0.42, 0.17]]
+LR  ERM                          int 0.779 | ext B AUROC 0.782  Brier 0.1027  O:E 0.97
+LR  MCAR-drop aug                int 0.779 | ext B AUROC 0.780  Brier 0.1027  O:E 0.92
+LR  policy-transplant aug        int 0.780 | ext B AUROC 0.784  Brier 0.1021  O:E 0.95
+LR  transplant aug + descriptor  int 0.780 | ext B AUROC 0.785  Brier 0.1020  O:E 0.94
+GBT ERM                          int 0.739 | ext B AUROC 0.748  Brier 0.1112  O:E 1.28
+GBT MCAR-drop aug                int 0.747 | ext B AUROC 0.749  Brier 0.1099  O:E 1.00
+GBT policy-transplant aug        int 0.745 | ext B AUROC 0.750  Brier 0.1100  O:E 1.02
+GBT transplant aug + descriptor  int 0.746 | ext B AUROC 0.755  Brier 0.1110  O:E 1.01
+LR  (reference) P-only ERM          ext B AUROC 0.776  Brier 0.1025  O:E 0.96

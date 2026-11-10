@@ -1,0 +1,25 @@
+{
+  "mobile": {
+    "tableKeyboardScroll": 40,
+    "documentWidth": 390,
+    "viewport": 390
+  },
+  "desktop": {
+    "viewport": 1280,
+    "documentWidth": 1280,
+    "navCount": 14,
+    "svgCount": 5,
+    "svgOverflows": [
+      [],
+      [],
+      [],
+      [],
+      []
+    ],
+    "missingAnchors": []
+  },
+  "consoleErrors": [],
+  "detailsClickClosed": true,
+  "detailsEnterOpened": true,
+  "navClickHash": "#7"
+}

@@ -1,0 +1,281 @@
+version,model,axis,group,d,lo,hi,n,ev,flag_worse
+before,lr,age,18-64,0.0034,-0.0206,0.0261,25879,956,False
+before,lr,age,>=80,-0.032,-0.0593,-0.005,4761,491,True
+before,lr,age,65-79,0.0056,-0.0175,0.0282,7602,625,False
+before,lr,sex,女,0.0131,-0.0096,0.034,20982,971,False
+before,lr,sex,男,-0.0131,-0.034,0.0096,17260,1101,False
+before,lr,esi,ESI 3-5,-0.0071,-0.0431,0.0268,22798,215,False
+before,lr,esi,ESI 1-2,0.0071,-0.0268,0.0431,15244,1745,False
+before,lr,arrival,自行到达,-0.0252,-0.0579,0.0081,23065,450,False
+before,lr,arrival,急救车/直升机送达,-0.0209,-0.047,0.0041,14233,1369,False
+before,lr,arrival,其他/未知,0.0472,0.0183,0.0752,944,253,False
+before,lr,dx_resp,非呼吸系统主诊断,-0.0489,-0.075,-0.0238,36244,1831,True
+before,lr,dx_resp,呼吸系统主诊断,0.0489,0.0238,0.075,1998,241,False
+before,lr,density,<=1,-0.0718,-0.0989,-0.0443,29495,638,True
+before,lr,density,>1,0.0718,0.0443,0.0989,8747,1434,False
+before,lr,density_x_esi,<=1 | ESI 3-5,-0.0598,-0.1122,-0.0124,20107,122,True
+before,lr,density_x_esi,<=1 | ESI 1-2,-0.2274,-0.2584,-0.1984,9309,488,True
+before,lr,density_x_esi,>1 | ESI 1-2,0.0492,0.0197,0.0744,5935,1257,False
+before,lr,density_x_esi,>1 | ESI 3-5,-0.0884,-0.1497,-0.0296,2691,93,True
+before,lgbm,age,18-64,0.0199,0.0013,0.0384,25879,956,False
+before,lgbm,age,>=80,-0.0356,-0.058,-0.0125,4761,491,True
+before,lgbm,age,65-79,-0.0139,-0.0335,0.0066,7602,625,False
+before,lgbm,sex,女,0.0096,-0.0093,0.0262,20982,971,False
+before,lgbm,sex,男,-0.0096,-0.0262,0.0093,17260,1101,False
+before,lgbm,esi,ESI 3-5,-0.0158,-0.0494,0.0179,22798,215,False
+before,lgbm,esi,ESI 1-2,0.0158,-0.0179,0.0494,15244,1745,False
+before,lgbm,arrival,自行到达,-0.0174,-0.0416,0.0076,23065,450,False
+before,lgbm,arrival,急救车/直升机送达,-0.0295,-0.0499,-0.0092,14233,1369,True
+before,lgbm,arrival,其他/未知,0.0448,0.0219,0.066,944,253,False
+before,lgbm,dx_resp,非呼吸系统主诊断,-0.0379,-0.0587,-0.0169,36244,1831,True
+before,lgbm,dx_resp,呼吸系统主诊断,0.0379,0.0169,0.0587,1998,241,False
+before,lgbm,density,<=1,-0.0481,-0.0701,-0.0247,29495,638,True
+before,lgbm,density,>1,0.0481,0.0247,0.0701,8747,1434,False
+before,lgbm,density_x_esi,<=1 | ESI 3-5,-0.0798,-0.1292,-0.0327,20107,122,True
+before,lgbm,density_x_esi,<=1 | ESI 1-2,-0.188,-0.2129,-0.1621,9309,488,True
+before,lgbm,density_x_esi,>1 | ESI 1-2,0.0221,-0.0012,0.0454,5935,1257,False
+before,lgbm,density_x_esi,>1 | ESI 3-5,-0.0694,-0.1178,-0.0181,2691,93,True
+before,brits,age,18-64,0.0228,0.0039,0.0416,25879,956,False
+before,brits,age,>=80,-0.0382,-0.0617,-0.0148,4761,491,True
+before,brits,age,65-79,-0.0159,-0.0353,0.0043,7602,625,False
+before,brits,sex,女,0.0115,-0.0076,0.0282,20982,971,False
+before,brits,sex,男,-0.0115,-0.0282,0.0076,17260,1101,False
+before,brits,esi,ESI 3-5,-0.0197,-0.053,0.0139,22798,215,False
+before,brits,esi,ESI 1-2,0.0197,-0.0139,0.053,15244,1745,False
+before,brits,arrival,自行到达,-0.0194,-0.0448,0.0052,23065,450,False
+before,brits,arrival,急救车/直升机送达,-0.0292,-0.0491,-0.0089,14233,1369,True
+before,brits,arrival,其他/未知,0.0483,0.0264,0.069,944,253,False
+before,brits,dx_resp,非呼吸系统主诊断,-0.0438,-0.0643,-0.0235,36244,1831,True
+before,brits,dx_resp,呼吸系统主诊断,0.0438,0.0235,0.0643,1998,241,False
+before,brits,density,<=1,-0.0632,-0.0854,-0.0398,29495,638,True
+before,brits,density,>1,0.0632,0.0398,0.0854,8747,1434,False
+before,brits,density_x_esi,<=1 | ESI 3-5,-0.0857,-0.1365,-0.0396,20107,122,True
+before,brits,density_x_esi,<=1 | ESI 1-2,-0.1931,-0.2182,-0.1678,9309,488,True
+before,brits,density_x_esi,>1 | ESI 1-2,0.035,0.0112,0.0585,5935,1257,False
+before,brits,density_x_esi,>1 | ESI 3-5,-0.0613,-0.1087,-0.0124,2691,93,True
+before,mtand,age,18-64,0.0238,0.0047,0.0432,25879,956,False
+before,mtand,age,>=80,-0.0389,-0.062,-0.0146,4761,491,True
+before,mtand,age,65-79,-0.0183,-0.04,0.0025,7602,625,False
+before,mtand,sex,女,0.0089,-0.0098,0.027,20982,971,False
+before,mtand,sex,男,-0.0089,-0.027,0.0098,17260,1101,False
+before,mtand,esi,ESI 3-5,-0.0108,-0.0461,0.0222,22798,215,False
+before,mtand,esi,ESI 1-2,0.0108,-0.0222,0.0461,15244,1745,False
+before,mtand,arrival,自行到达,-0.0071,-0.0327,0.0186,23065,450,False
+before,mtand,arrival,急救车/直升机送达,-0.0326,-0.0538,-0.0116,14233,1369,True
+before,mtand,arrival,其他/未知,0.0401,0.0144,0.0635,944,253,False
+before,mtand,dx_resp,非呼吸系统主诊断,-0.035,-0.0579,-0.0116,36244,1831,True
+before,mtand,dx_resp,呼吸系统主诊断,0.035,0.0116,0.0579,1998,241,False
+before,mtand,density,<=1,-0.0417,-0.0655,-0.0177,29495,638,True
+before,mtand,density,>1,0.0417,0.0177,0.0655,8747,1434,False
+before,mtand,density_x_esi,<=1 | ESI 3-5,-0.0683,-0.1187,-0.0208,20107,122,True
+before,mtand,density_x_esi,<=1 | ESI 1-2,-0.1919,-0.2179,-0.1655,9309,488,True
+before,mtand,density_x_esi,>1 | ESI 1-2,0.0125,-0.0114,0.0371,5935,1257,False
+before,mtand,density_x_esi,>1 | ESI 3-5,-0.0756,-0.1337,-0.0218,2691,93,True
+before,raindrop,age,18-64,0.0243,0.0051,0.0432,25879,956,False
+before,raindrop,age,>=80,-0.0411,-0.064,-0.0185,4761,491,True
+before,raindrop,age,65-79,-0.0152,-0.0352,0.0054,7602,625,False
+before,raindrop,sex,女,0.0114,-0.0077,0.0284,20982,971,False
+before,raindrop,sex,男,-0.0114,-0.0284,0.0077,17260,1101,False
+before,raindrop,esi,ESI 3-5,-0.0108,-0.0447,0.0225,22798,215,False
+before,raindrop,esi,ESI 1-2,0.0108,-0.0225,0.0447,15244,1745,False
+before,raindrop,arrival,自行到达,-0.0151,-0.0396,0.0104,23065,450,False
+before,raindrop,arrival,急救车/直升机送达,-0.0353,-0.0565,-0.0149,14233,1369,True
+before,raindrop,arrival,其他/未知,0.0507,0.0276,0.0726,944,253,False
+before,raindrop,dx_resp,非呼吸系统主诊断,-0.0453,-0.067,-0.0237,36244,1831,True
+before,raindrop,dx_resp,呼吸系统主诊断,0.0453,0.0237,0.067,1998,241,False
+before,raindrop,density,<=1,-0.0526,-0.0761,-0.0289,29495,638,True
+before,raindrop,density,>1,0.0526,0.0289,0.0761,8747,1434,False
+before,raindrop,density_x_esi,<=1 | ESI 3-5,-0.0684,-0.1194,-0.0216,20107,122,True
+before,raindrop,density_x_esi,<=1 | ESI 1-2,-0.2001,-0.2258,-0.1738,9309,488,True
+before,raindrop,density_x_esi,>1 | ESI 1-2,0.0266,0.0034,0.0503,5935,1257,False
+before,raindrop,density_x_esi,>1 | ESI 3-5,-0.0767,-0.1293,-0.0256,2691,93,True
+patch1,lr,age,18-64,0.0289,0.0115,0.0455,25879,956,False
+patch1,lr,age,>=80,-0.0471,-0.0677,-0.0264,4761,491,True
+patch1,lr,age,65-79,-0.0168,-0.0342,0.0007,7602,625,False
+patch1,lr,sex,女,0.0214,0.0047,0.0364,20982,971,False
+patch1,lr,sex,男,-0.0214,-0.0364,-0.0047,17260,1101,True
+patch1,lr,esi,ESI 3-5,0.0177,-0.0154,0.0488,22798,215,False
+patch1,lr,esi,ESI 1-2,-0.0177,-0.0488,0.0154,15244,1745,False
+patch1,lr,arrival,自行到达,0.0017,-0.0187,0.0223,23065,450,False
+patch1,lr,arrival,急救车/直升机送达,-0.0364,-0.0535,-0.0194,14233,1369,True
+patch1,lr,arrival,其他/未知,0.0265,0.0056,0.045,944,253,False
+patch1,lr,dx_resp,非呼吸系统主诊断,-0.0271,-0.0477,-0.0074,36244,1831,True
+patch1,lr,dx_resp,呼吸系统主诊断,0.0271,0.0074,0.0477,1998,241,False
+patch1,lr,density,<=1,0.0139,-0.004,0.0327,29495,638,False
+patch1,lr,density,>1,-0.0139,-0.0327,0.004,8747,1434,False
+patch1,lr,density_x_esi,<=1 | ESI 3-5,-0.0319,-0.0757,0.01,20107,122,False
+patch1,lr,density_x_esi,<=1 | ESI 1-2,-0.2178,-0.2512,-0.1861,9309,488,True
+patch1,lr,density_x_esi,>1 | ESI 1-2,-0.0578,-0.0796,-0.0369,5935,1257,True
+patch1,lr,density_x_esi,>1 | ESI 3-5,-0.1065,-0.1617,-0.0508,2691,93,True
+patch1,lgbm,age,18-64,0.0333,0.018,0.0485,25879,956,False
+patch1,lgbm,age,>=80,-0.0442,-0.0635,-0.0245,4761,491,True
+patch1,lgbm,age,65-79,-0.0229,-0.0392,-0.006,7602,625,True
+patch1,lgbm,sex,女,0.0139,-0.0002,0.0271,20982,971,False
+patch1,lgbm,sex,男,-0.0139,-0.0271,0.0002,17260,1101,False
+patch1,lgbm,esi,ESI 3-5,0.0054,-0.0267,0.036,22798,215,False
+patch1,lgbm,esi,ESI 1-2,-0.0054,-0.036,0.0267,15244,1745,False
+patch1,lgbm,arrival,自行到达,0.0012,-0.0176,0.0194,23065,450,False
+patch1,lgbm,arrival,急救车/直升机送达,-0.0364,-0.0514,-0.0209,14233,1369,True
+patch1,lgbm,arrival,其他/未知,0.0289,0.0101,0.0455,944,253,False
+patch1,lgbm,dx_resp,非呼吸系统主诊断,-0.0246,-0.0412,-0.0073,36244,1831,True
+patch1,lgbm,dx_resp,呼吸系统主诊断,0.0246,0.0073,0.0412,1998,241,False
+patch1,lgbm,density,<=1,0.0072,-0.0099,0.0243,29495,638,False
+patch1,lgbm,density,>1,-0.0072,-0.0243,0.0099,8747,1434,False
+patch1,lgbm,density_x_esi,<=1 | ESI 3-5,-0.0527,-0.0976,-0.0107,20107,122,True
+patch1,lgbm,density_x_esi,<=1 | ESI 1-2,-0.1778,-0.2012,-0.1525,9309,488,True
+patch1,lgbm,density_x_esi,>1 | ESI 1-2,-0.0484,-0.0669,-0.0298,5935,1257,True
+patch1,lgbm,density_x_esi,>1 | ESI 3-5,-0.0785,-0.1263,-0.028,2691,93,True
+patch1,brits,age,18-64,0.0334,0.0178,0.0488,25879,956,False
+patch1,brits,age,>=80,-0.046,-0.0658,-0.0266,4761,491,True
+patch1,brits,age,65-79,-0.0219,-0.0387,-0.0048,7602,625,True
+patch1,brits,sex,女,0.0161,0.0013,0.0294,20982,971,False
+patch1,brits,sex,男,-0.0161,-0.0294,-0.0013,17260,1101,True
+patch1,brits,esi,ESI 3-5,0.0001,-0.0304,0.0303,22798,215,False
+patch1,brits,esi,ESI 1-2,-0.0001,-0.0303,0.0304,15244,1745,False
+patch1,brits,arrival,自行到达,0.0006,-0.0186,0.0193,23065,450,False
+patch1,brits,arrival,急救车/直升机送达,-0.0381,-0.0536,-0.0227,14233,1369,True
+patch1,brits,arrival,其他/未知,0.0341,0.0161,0.0501,944,253,False
+patch1,brits,dx_resp,非呼吸系统主诊断,-0.0291,-0.0459,-0.012,36244,1831,True
+patch1,brits,dx_resp,呼吸系统主诊断,0.0291,0.012,0.0459,1998,241,False
+patch1,brits,density,<=1,0.0009,-0.0168,0.0175,29495,638,False
+patch1,brits,density,>1,-0.0009,-0.0175,0.0168,8747,1434,False
+patch1,brits,density_x_esi,<=1 | ESI 3-5,-0.0544,-0.0964,-0.0128,20107,122,True
+patch1,brits,density_x_esi,<=1 | ESI 1-2,-0.1868,-0.2111,-0.1612,9309,488,True
+patch1,brits,density_x_esi,>1 | ESI 1-2,-0.0362,-0.0545,-0.0171,5935,1257,True
+patch1,brits,density_x_esi,>1 | ESI 3-5,-0.0861,-0.1338,-0.037,2691,93,True
+patch1,mtand,age,18-64,0.0404,0.024,0.0561,25879,956,False
+patch1,mtand,age,>=80,-0.0533,-0.0743,-0.0326,4761,491,True
+patch1,mtand,age,65-79,-0.0274,-0.0453,-0.0099,7602,625,True
+patch1,mtand,sex,女,0.0151,0.0003,0.0288,20982,971,False
+patch1,mtand,sex,男,-0.0151,-0.0288,-0.0003,17260,1101,False
+patch1,mtand,esi,ESI 3-5,0.0183,-0.0129,0.0485,22798,215,False
+patch1,mtand,esi,ESI 1-2,-0.0183,-0.0485,0.0129,15244,1745,False
+patch1,mtand,arrival,自行到达,0.0154,-0.0032,0.0341,23065,450,False
+patch1,mtand,arrival,急救车/直升机送达,-0.0444,-0.0602,-0.0282,14233,1369,True
+patch1,mtand,arrival,其他/未知,0.0218,0.0008,0.0406,944,253,False
+patch1,mtand,dx_resp,非呼吸系统主诊断,-0.0255,-0.0435,-0.0055,36244,1831,True
+patch1,mtand,dx_resp,呼吸系统主诊断,0.0255,0.0055,0.0435,1998,241,False
+patch1,mtand,density,<=1,0.0266,0.0086,0.0442,29495,638,False
+patch1,mtand,density,>1,-0.0266,-0.0442,-0.0086,8747,1434,True
+patch1,mtand,density_x_esi,<=1 | ESI 3-5,-0.0271,-0.0695,0.0121,20107,122,False
+patch1,mtand,density_x_esi,<=1 | ESI 1-2,-0.188,-0.213,-0.1626,9309,488,True
+patch1,mtand,density_x_esi,>1 | ESI 1-2,-0.0726,-0.0925,-0.0521,5935,1257,True
+patch1,mtand,density_x_esi,>1 | ESI 3-5,-0.0879,-0.1358,-0.0396,2691,93,True
+patch1,raindrop,age,18-64,0.0348,0.0187,0.05,25879,956,False
+patch1,raindrop,age,>=80,-0.0483,-0.0679,-0.0288,4761,491,True
+patch1,raindrop,age,65-79,-0.0222,-0.0385,-0.005,7602,625,True
+patch1,raindrop,sex,女,0.0173,0.0024,0.0308,20982,971,False
+patch1,raindrop,sex,男,-0.0173,-0.0308,-0.0024,17260,1101,True
+patch1,raindrop,esi,ESI 3-5,0.0124,-0.018,0.0417,22798,215,False
+patch1,raindrop,esi,ESI 1-2,-0.0124,-0.0417,0.018,15244,1745,False
+patch1,raindrop,arrival,自行到达,0.0026,-0.0168,0.0212,23065,450,False
+patch1,raindrop,arrival,急救车/直升机送达,-0.0413,-0.0569,-0.0253,14233,1369,True
+patch1,raindrop,arrival,其他/未知,0.0341,0.0165,0.05,944,253,False
+patch1,raindrop,dx_resp,非呼吸系统主诊断,-0.0303,-0.0472,-0.0127,36244,1831,True
+patch1,raindrop,dx_resp,呼吸系统主诊断,0.0303,0.0127,0.0472,1998,241,False
+patch1,raindrop,density,<=1,0.0068,-0.0105,0.0238,29495,638,False
+patch1,raindrop,density,>1,-0.0068,-0.0238,0.0105,8747,1434,False
+patch1,raindrop,density_x_esi,<=1 | ESI 3-5,-0.0427,-0.0848,-0.0009,20107,122,True
+patch1,raindrop,density_x_esi,<=1 | ESI 1-2,-0.1899,-0.2156,-0.1622,9309,488,True
+patch1,raindrop,density_x_esi,>1 | ESI 1-2,-0.0477,-0.0669,-0.0288,5935,1257,True
+patch1,raindrop,density_x_esi,>1 | ESI 3-5,-0.0821,-0.1289,-0.0343,2691,93,True
+p3b,lr,age,18-64,0.0287,0.0146,0.0423,25879,956,False
+p3b,lr,age,>=80,-0.0422,-0.0601,-0.0245,4761,491,True
+p3b,lr,age,65-79,-0.0174,-0.0334,-0.002,7602,625,True
+p3b,lr,sex,女,0.0173,0.0036,0.0294,20982,971,False
+p3b,lr,sex,男,-0.0173,-0.0294,-0.0036,17260,1101,True
+p3b,lr,esi,ESI 3-5,-0.0476,-0.0828,-0.0151,22798,215,True
+p3b,lr,esi,ESI 1-2,0.0476,0.0151,0.0828,15244,1745,False
+p3b,lr,arrival,自行到达,-0.0248,-0.0474,-0.0053,23065,450,True
+p3b,lr,arrival,急救车/直升机送达,-0.0177,-0.0329,-0.0024,14233,1369,True
+p3b,lr,arrival,其他/未知,0.0252,0.0084,0.0403,944,253,False
+p3b,lr,dx_resp,非呼吸系统主诊断,-0.0208,-0.0348,-0.0062,36244,1831,True
+p3b,lr,dx_resp,呼吸系统主诊断,0.0208,0.0062,0.0348,1998,241,False
+p3b,lr,density,<=1,-0.0073,-0.0237,0.0084,29495,638,False
+p3b,lr,density,>1,0.0073,-0.0084,0.0237,8747,1434,False
+p3b,lr,density_x_esi,<=1 | ESI 3-5,-0.0968,-0.1408,-0.0534,20107,122,True
+p3b,lr,density_x_esi,<=1 | ESI 1-2,-0.103,-0.1241,-0.0827,9309,488,True
+p3b,lr,density_x_esi,>1 | ESI 1-2,-0.0135,-0.0313,0.0037,5935,1257,False
+p3b,lr,density_x_esi,>1 | ESI 3-5,-0.0778,-0.1318,-0.0312,2691,93,True
+p3b,lr,age_75,<75,0.0388,0.0231,0.0543,31362,1398,False
+p3b,lr,age_75,>=75,-0.0388,-0.0543,-0.0231,6880,674,True
+p3b,lgbm,age,18-64,0.0325,0.0203,0.0449,25879,956,False
+p3b,lgbm,age,>=80,-0.0396,-0.0563,-0.0232,4761,491,True
+p3b,lgbm,age,65-79,-0.0229,-0.0373,-0.009,7602,625,True
+p3b,lgbm,sex,女,0.0145,0.0029,0.0253,20982,971,False
+p3b,lgbm,sex,男,-0.0145,-0.0253,-0.0029,17260,1101,True
+p3b,lgbm,esi,ESI 3-5,-0.0221,-0.0502,0.0042,22798,215,False
+p3b,lgbm,esi,ESI 1-2,0.0221,-0.0042,0.0502,15244,1745,False
+p3b,lgbm,arrival,自行到达,-0.0117,-0.0295,0.0044,23065,450,False
+p3b,lgbm,arrival,急救车/直升机送达,-0.0225,-0.0347,-0.0087,14233,1369,True
+p3b,lgbm,arrival,其他/未知,0.0204,0.0058,0.0339,944,253,False
+p3b,lgbm,dx_resp,非呼吸系统主诊断,-0.0148,-0.0273,-0.001,36244,1831,True
+p3b,lgbm,dx_resp,呼吸系统主诊断,0.0148,0.001,0.0273,1998,241,False
+p3b,lgbm,density,<=1,-0.0063,-0.0205,0.0079,29495,638,False
+p3b,lgbm,density,>1,0.0063,-0.0079,0.0205,8747,1434,False
+p3b,lgbm,density_x_esi,<=1 | ESI 3-5,-0.0712,-0.1138,-0.033,20107,122,True
+p3b,lgbm,density_x_esi,<=1 | ESI 1-2,-0.093,-0.1119,-0.0748,9309,488,True
+p3b,lgbm,density_x_esi,>1 | ESI 1-2,-0.0167,-0.032,-0.0014,5935,1257,True
+p3b,lgbm,density_x_esi,>1 | ESI 3-5,-0.0361,-0.0722,-0.0022,2691,93,True
+p3b,lgbm,age_75,<75,0.0374,0.0231,0.052,31362,1398,False
+p3b,lgbm,age_75,>=75,-0.0374,-0.052,-0.0231,6880,674,True
+p3b,brits,age,18-64,0.0311,0.0176,0.0444,25879,956,False
+p3b,brits,age,>=80,-0.0437,-0.0621,-0.026,4761,491,True
+p3b,brits,age,65-79,-0.0186,-0.0336,-0.0034,7602,625,True
+p3b,brits,sex,女,0.0143,0.0017,0.0262,20982,971,False
+p3b,brits,sex,男,-0.0143,-0.0262,-0.0017,17260,1101,True
+p3b,brits,esi,ESI 3-5,-0.0399,-0.0731,-0.0082,22798,215,True
+p3b,brits,esi,ESI 1-2,0.0399,0.0082,0.0731,15244,1745,False
+p3b,brits,arrival,自行到达,-0.0173,-0.0378,0.0014,23065,450,False
+p3b,brits,arrival,急救车/直升机送达,-0.0225,-0.0369,-0.008,14233,1369,True
+p3b,brits,arrival,其他/未知,0.0253,0.0093,0.0397,944,253,False
+p3b,brits,dx_resp,非呼吸系统主诊断,-0.019,-0.0318,-0.0044,36244,1831,True
+p3b,brits,dx_resp,呼吸系统主诊断,0.019,0.0044,0.0318,1998,241,False
+p3b,brits,density,<=1,-0.0043,-0.0198,0.0112,29495,638,False
+p3b,brits,density,>1,0.0043,-0.0112,0.0198,8747,1434,False
+p3b,brits,density_x_esi,<=1 | ESI 3-5,-0.0868,-0.1316,-0.0436,20107,122,True
+p3b,brits,density_x_esi,<=1 | ESI 1-2,-0.0984,-0.1197,-0.0791,9309,488,True
+p3b,brits,density_x_esi,>1 | ESI 1-2,-0.0167,-0.0334,0.0002,5935,1257,True
+p3b,brits,density_x_esi,>1 | ESI 3-5,-0.0698,-0.1187,-0.0274,2691,93,True
+p3b,brits,age_75,<75,0.038,0.0225,0.0534,31362,1398,False
+p3b,brits,age_75,>=75,-0.038,-0.0534,-0.0225,6880,674,True
+p3b,mtand,age,18-64,0.0386,0.0251,0.0523,25879,956,False
+p3b,mtand,age,>=80,-0.048,-0.0664,-0.0305,4761,491,True
+p3b,mtand,age,65-79,-0.0256,-0.0408,-0.0103,7602,625,True
+p3b,mtand,sex,女,0.0108,-0.0018,0.0228,20982,971,False
+p3b,mtand,sex,男,-0.0108,-0.0228,0.0018,17260,1101,False
+p3b,mtand,esi,ESI 3-5,-0.0241,-0.0536,0.0021,22798,215,False
+p3b,mtand,esi,ESI 1-2,0.0241,-0.0021,0.0536,15244,1745,False
+p3b,mtand,arrival,自行到达,-0.011,-0.0301,0.0064,23065,450,False
+p3b,mtand,arrival,急救车/直升机送达,-0.0272,-0.0408,-0.0132,14233,1369,True
+p3b,mtand,arrival,其他/未知,0.0211,0.004,0.0363,944,253,False
+p3b,mtand,dx_resp,非呼吸系统主诊断,-0.0176,-0.031,-0.002,36244,1831,True
+p3b,mtand,dx_resp,呼吸系统主诊断,0.0176,0.002,0.031,1998,241,False
+p3b,mtand,density,<=1,0.0037,-0.0112,0.0189,29495,638,False
+p3b,mtand,density,>1,-0.0037,-0.0189,0.0112,8747,1434,False
+p3b,mtand,density_x_esi,<=1 | ESI 3-5,-0.0581,-0.0989,-0.0226,20107,122,True
+p3b,mtand,density_x_esi,<=1 | ESI 1-2,-0.0956,-0.1154,-0.0762,9309,488,True
+p3b,mtand,density_x_esi,>1 | ESI 1-2,-0.0231,-0.0393,-0.0067,5935,1257,True
+p3b,mtand,density_x_esi,>1 | ESI 3-5,-0.0606,-0.1022,-0.0217,2691,93,True
+p3b,mtand,age_75,<75,0.0442,0.0292,0.061,31362,1398,False
+p3b,mtand,age_75,>=75,-0.0442,-0.061,-0.0292,6880,674,True
+p3b,raindrop,age,18-64,0.0361,0.0235,0.0485,25879,956,False
+p3b,raindrop,age,>=80,-0.0471,-0.0644,-0.0297,4761,491,True
+p3b,raindrop,age,65-79,-0.0226,-0.037,-0.008,7602,625,True
+p3b,raindrop,sex,女,0.0165,0.0046,0.0276,20982,971,False
+p3b,raindrop,sex,男,-0.0165,-0.0276,-0.0046,17260,1101,True
+p3b,raindrop,esi,ESI 3-5,-0.0217,-0.0502,0.0056,22798,215,False
+p3b,raindrop,esi,ESI 1-2,0.0217,-0.0056,0.0502,15244,1745,False
+p3b,raindrop,arrival,自行到达,-0.0102,-0.0284,0.0064,23065,450,False
+p3b,raindrop,arrival,急救车/直升机送达,-0.0261,-0.039,-0.0129,14233,1369,True
+p3b,raindrop,arrival,其他/未知,0.0231,0.0078,0.037,944,253,False
+p3b,raindrop,dx_resp,非呼吸系统主诊断,-0.0155,-0.0281,-0.0015,36244,1831,True
+p3b,raindrop,dx_resp,呼吸系统主诊断,0.0155,0.0015,0.0281,1998,241,False
+p3b,raindrop,density,<=1,0.0013,-0.0137,0.0154,29495,638,False
+p3b,raindrop,density,>1,-0.0013,-0.0154,0.0137,8747,1434,False
+p3b,raindrop,density_x_esi,<=1 | ESI 3-5,-0.0643,-0.1052,-0.0277,20107,122,True
+p3b,raindrop,density_x_esi,<=1 | ESI 1-2,-0.0972,-0.1172,-0.0783,9309,488,True
+p3b,raindrop,density_x_esi,>1 | ESI 1-2,-0.0243,-0.0403,-0.0087,5935,1257,True
+p3b,raindrop,density_x_esi,>1 | ESI 3-5,-0.0604,-0.1029,-0.0206,2691,93,True
+p3b,raindrop,age_75,<75,0.0429,0.0279,0.0575,31362,1398,False
+p3b,raindrop,age_75,>=75,-0.0429,-0.0575,-0.0279,6880,674,True

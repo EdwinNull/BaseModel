@@ -2,7 +2,7 @@
 下载模型权重到本地 models/，下完按 Hugging Face 给的 sha256 逐个核对（服务器连不上 HuggingFace 的 xet 存储，权重在本机中转）。
 
     python scripts/download_models.py                               # 默认：MOMENT-1-large、chronos-t5-large（原来的两份）
-    python scripts/download_models.py OpenJev-Flash-9B Qwen3.5-9B   # J 线（plans/零样本决策读出J线_参照MedJev_实验计划_20261029.md §2、J0）
+    python scripts/download_models.py OpenJev-Flash-9B Qwen3.5-9B   # J 线（plans/零样本决策读出/零样本决策读出J线_参照MedJev_实验计划_20261029.md §2、J0）
 
 核对结果写到 models/<名字>/SHA256SUMS.local（上传后在服务器上用它再核对一次，见 scripts/upload_models.sh）。
 """

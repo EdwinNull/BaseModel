@@ -1,0 +1,35 @@
+﻿可能的失效模式,模型 / 来源,论文里的证据,位置,证据类型,将来可用的表述
+短 context 下差,Timer-XL,'a short-context input leads to insufficient learning of global tendencies'；lookback 从日延长到月持续改善,Sec 1；Sec 4.1 Fig 3；App E.4 Table 15,作者陈述 + 直接实验（长上下文方向）,与 '输入远短于模型设计与评测所用上下文' 的假设一致
+短 context 下差,Chronos,训练上下文长度增加到 1024 前，域内与零样本均改善,Sec 5.6 Fig 11b,直接实验（只测到较长一端）,同上；注意该实验未测极短上下文
+短 context 下差,Moirai,上下文 100→5000，验证集 MAE 下降,Sec 4.4 Fig 5,直接实验（最短 100）,同上；最短 100 点仍远长于 MC-MED 的约 15 点
+短 context 下差,VisionTS,L 增大性能提高，高频数据尤甚,Sec 4.2 Fig 6,直接实验,同上
+短 context 下差,Sundial,lookback 480–2880，结论 '取决于任务',App C.3 Fig 10,直接实验（未测 <480）,不能作为短上下文证据，只说明未被检验
+短 context 下差,Gu et al. 2024（ML4H，eICU / MIMIC-III 体征）,'longer historical windows tend to improve performance in most cases',Sec 4.2 Fig 3,独立评测，直接实验,临床体征上也观察到历史越长越好
+短 context 下差（反向证据）,TimesFM 1.0,训练时随机遮蔽，使模型见到 1–512 的所有上下文长度,Sec 4 'Patch Masking',设计,若 TimesFM 在短窗口下仍好于其他模型，可能与此设计有关（需实验确认）
+短 context 下差（反向证据）,Chronos-2,上下文学习在 '很多短上下文任务' 的 CBII 上收益 'especially strong'；组共享对冷启动 / 短历史有帮助,Sec 5.2；Sec 3.2,作者陈述 + 基准子集,多序列上下文学习可能缓解短窗口问题
+短 context 下差（反向证据）,Al Attrach et al. 2026（ICLR 研讨会，MIMIC-IV）,近期窗口只有 8 个事件时，缓存的基础模型摘要使 AUROC 相对提升 6.5%；256 个事件时只剩 0.1%（不显著）,摘要,独立评测（只读到摘要）,基础模型表示在短窗口下的价值可能反而最大，取决于是否带入更长的历史
+短 context 下差（设计层）,Sundial / TimesFM / Timer-XL / Moirai / Aurora,patch 长度 16 / 32 / 96 / 分钟级 32–128 / 48，都 ≥ 15 点,Sundial Table 5；TimesFM Sec 4；Timer-XL Table 11；Moirai App B.1；Aurora README,设计推断（非实验）,15 分钟窗口在这些模型里只形成一个（部分填充的）token，可作为解释假设，需用 '实际 token 数' 分层验证
+分钟级 / 高频数据差,Sundial,"'The performance on very high-frequency data is not guaranteed, since TimeBench contains many middle- and low-frequency time series'",App E,作者陈述,与 '预训练频率分布偏中低频' 的假设一致
+分钟级 / 高频数据差,GIFT-Eval（基准论文）,'higher frequency data ... poses challenges that foundation models are less suited to address',Sec 4.1 Table 8,独立基准,同上
+分钟级 / 高频数据差,TimesFM 1.0,去掉合成数据后，15 分钟 ETTm 等代表性不足的频率明显变差,Sec 6.2 Fig 3d,直接消融,频率覆盖不足会伤害零样本表现
+稀疏 / 缺失 / 不规则下差,MIRA,WHO FluNet 缺失率 10%→90%，RMSE 2.85→3.97（不单调）,Sec 4.4 Table 4,直接实验,缺失增加时误差上升；注意是流感监测数据，不是体征
+稀疏 / 缺失 / 不规则下差,Chronos,稀疏尖峰无法被量化 token 表示,Sec 5.7 Fig 16a,作者分析,与 tokenization 机制有关
+稀疏 / 缺失 / 不规则下差,Time-MoE / Moirai / Moirai 2.0,预训练前在缺失处切分或过滤缺失较多的序列,Time-MoE App C；Moirai App A；Moirai 2.0 Sec 4,数据处理（设计）,预训练很少见到带缺失的输入，与 '缺失分布不匹配' 的假设一致
+稀疏 / 缺失 / 不规则下差,TimesFM 2.0,模型卡要求有 NaN 时先线性插值、上下文须连续,HF 模型卡,使用说明,插值方式本身是管线的一部分，需在报告中写明
+稀疏 / 缺失 / 不规则下差（反向证据）,本项目 week02 F3,稀疏到每变量 1 个值，TSFM 探针相对 LR 仍 +0.041 AUPRC；各模型 AUPRC 均降约 32–37%,项目背景 §6.2,项目内实验,稀疏本身不一定让 TSFM 相对变差
+稀疏 / 缺失 / 不规则下差,LightGTS,不同采样粒度下 LightGTS 稳定，Timer、Time-MoE 波动,Sec 4.6 Fig 4,直接实验,固定 patch 的模型对采样粒度变化更敏感
+高危 ESI / 急性变化下差,（所有模型论文）,无患者层面或病情严重度分层,—,无证据,不能说 '论文已发现'；只能写 '原论文未检验此情形'
+高危 ESI / 急性变化下差,Gu et al. 2024,TSFM 'performed poorly in detecting abnormal clinical values',Table 4,独立评测,与 '模型对异常值 / 急性偏离不敏感' 的假设一致
+高危 ESI / 急性变化下差,Chronos,线性趋势可以，指数趋势预测不足,Sec 5.7 Fig 12b,作者分析（合成数据）,对快速恶化轨迹可能低估（需在高危组验证）
+高危 ESI / 急性变化下差,Sundial,MSE 预训练导致单峰、过平滑预测；多步自回归可能过平滑,App C.1；App E,作者陈述,点误差训练的模型倾向均值回归
+老年患者 / 性别亚组差,（所有模型论文与已读独立评测）,无年龄或性别分层结果,—,无证据,只能从数据侧解释（各亚组观测密度、基线体征分布、事件率、实际输入长度），不能归因于预训练
+老年患者 / 性别亚组差,MIRA,语料来自 MIMIC-III/IV 成人 ICU，但年龄分布未报告,App E,无直接证据,不能推断 MIRA 对老年人更好或更差
+跨院 / 分布偏移,Pucher et al. 2026（AIIM）,基础模型 'showed superior transportability across hospital settings and patient populations',摘要,独立评测（只读到摘要）,跨院迁移上基础模型未必更差
+跨院 / 分布偏移,本项目 week02 F2,eICU 外部医院 12 个嵌入全部显著低于手工 LightGBM（−0.013 至 −0.054 AUPRC）,项目背景 §6.2,项目内实验,冻结嵌入跨院不如手工特征
+跨院 / 分布偏移,Syed et al. 2026（ICML 立场论文）,7 个 TSFM × 72 个数据集 × 6 个领域，'substantial cross-domain variability',摘要,独立评测（只读到摘要）,领域差异大，医疗需单独基准
+单变量模型丢失体征间关系,Gu et al. 2024,Moirai 加入全部五项体征后 'improved significantly'，传统模型没有类似收益,Sec 4.3 Fig 4,独立评测,多变量输入可能有用；通道独立模型（多数 TSFM）用不到这一点
+单变量模型丢失体征间关系,Chronos-2,多变量收益 'modest',Sec 5.2,作者陈述,多变量增益可能有限
+平坦序列 / 尺度问题（如 SpO₂）,Chronos,尺度大、方差小时 token 精度下降,Sec 5.7 Fig 16b,作者分析,SpO₂ 等近乎恒定的变量可能受影响，可按变量分层检查
+平坦序列 / 尺度问题（如 SpO₂）,TimesFM 1.0 / Sundial / Chronos-2,分别用首个 patch 的均值方差、样本内两阶段实例归一化、历史标准化 + arcsinh,TimesFM Sec 5；Sundial Sec 4.1.1；Chronos-2 Eq 1–2,设计,15 点窗口的统计量不稳定，是可检验的解释
+零样本口径错位,所有预测型 TSFM,论文中的 zero-shot 都是 '在未见数据集上做数值预测'，没有零样本临床结局预测,各论文零样本定义,定义,MC-MED 上的 'zero-shot' 若加了分类头或线性探针，应改称冻结表示 / 线性探针
+零样本口径错位,本项目 week02 F4,零标签 '预测轨迹 → 预警' AUROC 0.55–0.59,项目背景 §6.2,项目内实验,真正零标签的预警几乎没有判别力

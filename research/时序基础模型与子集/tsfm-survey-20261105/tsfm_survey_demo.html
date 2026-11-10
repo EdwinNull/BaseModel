@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>模型子集缺陷调研演示</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;700&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+:root{--bg:#0f1626}
+html,body{margin:0;height:100%;background:var(--bg);overflow:hidden}
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform-origin:center center}
+.slide{position:absolute;left:0;top:0;width:1920px;height:1080px;box-sizing:border-box;overflow:hidden}
+.slide:not(.on){display:none !important}
+.slide h1,.slide h2,.slide h3,.slide p,.slide ul,.slide ol{margin:0}
+.slide ul,.slide ol{padding-left:1.2em}
+.slide aside{display:none}
+.slide table{border-collapse:collapse;width:100%}
+.slide th,.slide td{padding:0.35em 0.6em;border-bottom:1px solid #D5D1C6;text-align:left;vertical-align:top}
+.slide th{font-weight:700}
+#bar{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:space-between;align-items:center;padding:8px 16px;font:14px system-ui,sans-serif;color:#cbd5e1;background:rgba(15,22,38,.85)}
+#bar button{font:inherit;color:#e2e8f0;background:#22314D;border:0;border-radius:6px;padding:6px 12px;cursor:pointer}
+#notes{position:fixed;left:16px;right:16px;bottom:48px;max-height:30vh;overflow:auto;display:none;padding:12px 16px;border-radius:8px;background:#F6F5F0;color:#172338;font:15px/1.6 'Noto Sans SC',system-ui,sans-serif}
+</style></head><body>
+<div id="stage">
+<section class="slide" id="cover" data-transition="fade" style="background:#172338;color:#F6F5F0;font-family:'Noto Sans SC', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;justify-content:space-between">
+<p style="font-size:30px;font-weight:500;color:#8FB4F5">文献调研 · 不含实验 · 2026-11-06 更新</p>
+<div style="display:flex;flex-direction:column;gap:40px">
+<h1 style="font-family:'Noto Serif SC', Georgia, serif;font-size:96px;font-weight:700;line-height:1.15;color:#F6F5F0">模型子集缺陷调研</h1>
+<p style="font-size:40px;line-height:1.45;color:#D5DCE8;width:1500px">现有方法在 MC-MED / MIMIC-IV 的哪些子集上表现差、为什么、怎么修，以及时序基础模型的训练背景</p>
+</div>
+<div style="display:flex;gap:96px">
+<p style="font-size:30px;color:#D5DCE8">第一部分：子集缺陷（33 篇文献，11-06）</p>
+<p style="font-size:30px;color:#D5DCE8">第二部分：时序基础模型（14 + 7 个模型，11-05）</p>
+</div>
+<aside>这份演示对应同名汇报报告与 FOUNDATION_MODEL_SURVEY.xlsx。当前研究主题是找出现有方法在 MIMIC-IV、MC-MED 等数据集的哪些子集上表现差，查清原因，再想办法修。第一部分是 11-06 新增的子集缺陷调研，33 篇文献，每条证据都标了阅读范围；第二部分是 11-05 的时序基础模型背景调研，保持原样。全程只用文献与聚合量，没有跑实验，也没有接触 MC-MED、MIMIC、eICU 的逐条记录。</aside>
+</section>
+
+<section class="slide" id="framework" data-transition="fade" style="background:#F6F5F0;color:#172338;font-family:'Noto Sans SC', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:56px">
+<h2 style="font-family:'Noto Serif SC', Georgia, serif;font-size:64px;font-weight:700;line-height:1.15">研究主线：找子集 → 查原因 → 对症修</h2>
+<div style="display:flex;gap:24px;align-items:stretch">
+<div style="flex:1;display:flex;flex-direction:column;gap:20px;background:#ECEAE2;padding:44px;border-radius:16px">
+<p style="font-size:30px;font-weight:700;color:#2A62C9">1 哪些子集差</p>
+<ul style="font-size:28px;line-height:1.55;color:#172338">
+<li>A 人群：年龄、性别、种族</li>
+<li>B 临床：ESI、事件类型</li>
+<li>C 测量过程：观测密度、缺失通道</li>
+<li>D 数据驱动的组合子集</li>
+</ul>
+</div>
+<p style="font-size:64px;color:#B9B5AA;align-self:center">→</p>
+<div style="flex:1;display:flex;flex-direction:column;gap:20px;background:#ECEAE2;padding:44px;border-radius:16px">
+<p style="font-size:30px;font-weight:700;color:#2A62C9">2 为什么差</p>
+<ul style="font-size:28px;line-height:1.55;color:#172338">
+<li>七类机制 C1–C7</li>
+<li>先排除指标伪差（基础率）</li>
+<li>再看测量过程、标签噪声、生理异质性</li>
+</ul>
+</div>
+<p style="font-size:64px;color:#B9B5AA;align-self:center">→</p>
+<div style="flex:1;display:flex;flex-direction:column;gap:20px;background:#ECEAE2;padding:44px;border-radius:16px">
+<p style="font-size:30px;font-weight:700;color:#2A62C9">3 怎么修</p>
+<ul style="font-size:28px;line-height:1.55;color:#172338">
+<li>八类对策 F1–F8</li>
+<li>按原因选对策</li>
+<li>同时报告最差子集与总体，防止只是挪误差</li>
+</ul>
+</div>
+</div>
+<p style="font-size:30px;line-height:1.5;color:#4A5468">落到本项目：MC-MED decomp_60 子集审计方案（子集清单、假设 S1–S6、五步流程），并在 MIMIC-IV-ED 上复现</p>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7280">完整内容见 xlsx 11-06 新增的 9 个工作表与报告第一部分</p>
+<aside>第一部分按研究主线组织：先看文献里哪些子集已经被报告表现差，再归纳原因，然后看哪些对策有证据。子集分四族：人群、临床、测量过程，以及数据驱动方法找到的组合子集。原因有七类，其中最先要排除的是指标伪差，也就是各子集患病率不同造成的假差距。对策有八类，按原因来选。最后是落到 MC-MED decomp_60 的审计方案。</aside>
+</section>
+
+<section class="slide" id="sub_verdict" data-transition="fade" style="background:#172338;color:#F6F5F0;font-family:'Noto Sans SC', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;justify-content:space-between;gap:48px">
+<p style="font-size:30px;font-weight:500;color:#8FB4F5">第一部分总判断</p>
+<h2 style="font-family:'Noto Serif SC', Georgia, serif;font-size:64px;font-weight:700;line-height:1.3;color:#F6F5F0;width:1600px">MIMIC 系列上表现差的子集已被反复报告；MC-MED 上还没有找到系统的子集评估</h2>
+<div style="display:flex;gap:32px">
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#22314D;padding:40px;border-radius:16px">
+<h3 style="font-size:40px;font-weight:700;color:#8FB4F5">4 个方向</h3>
+<p style="font-size:30px;line-height:1.45;color:#D5DCE8">种族与保险（含交叉子群）、年龄、测量过程、时间</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#22314D;padding:40px;border-radius:16px">
+<h3 style="font-size:40px;font-weight:700;color:#8FB4F5">MC-MED：1 份分组结果</h3>
+<p style="font-size:30px;line-height:1.45;color:#D5DCE8">只有 MC-BEC 的单阈值 TPR。这是可以占的空白，但检索有限，不称“首个”</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#22314D;padding:40px;border-radius:16px">
+<h3 style="font-size:40px;font-weight:700;color:#8FB4F5">先校准、DFR、补数据</h3>
+<p style="font-size:30px;line-height:1.45;color:#D5DCE8">公平约束与域适应常常只是把误差挪到别的组；项目 AL4 跨年龄 UDA 全部无效</p>
+</div>
+</div>
+<aside>一句话结论。四个方向的代表证据：种族，MIMIC-IV-ED 入院预测 ΔTPR 0.251（FAIM）；交叉子群 ECE 最高约 0.119（Lett 2025）；年龄，Medicare 风险被低估（Röösli 2022）；测量过程，去掉监护 AUPRC 0.25 到 0.14（MC-BEC）；时间，脓毒症 AUROC 最多降 0.090（Guo 2022）。MC-MED 数据论文本身没有基线和分组，SignalMC-MED 也没有做分组。对策部分的依据在后面几页。</aside>
+</section>
+
+<section class="slide" id="sub_evidence" data-section="文献证据：哪些子集表现差" data-transition="fade" style="background:#F6F5F0;color:#172338;font-family:'Noto Sans SC', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:36px">
+<h2 style="font-family:'Noto Serif SC', Georgia, serif;font-size:64px;font-weight:700;line-height:1.15">文献里已经报告的表现差子集</h2>
+<table style="font-family:'Noto Sans SC', Arial, sans-serif;font-size:24px;color:#172338">
+<tr style="background:#ECEAE2"><th style="width:15%">子集</th><th style="width:27%">数据集 · 任务 · 文献</th><th style="width:40%">原文数字</th><th style="width:18%">证据 · 阅读范围</th></tr>
+<tr><td>种族</td><td>MIMIC-IV-ED 入院 · FAIM</td><td>基线 LR 种族 ΔTPR 0.251，性别 0.074</td><td>直接实验 · 全文</td></tr>
+<tr><td>交叉子群</td><td>MIMIC-IV-ED 入院 · Lett 2025</td><td>ECE：美洲原住民男性 0.119、黑人女性 0.102</td><td>直接实验 · 正文</td></tr>
+<tr><td>保险、种族</td><td>MIMIC-III 院内死亡 · Röösli 2022</td><td>Medicaid 事件率相近但 AUROC、AUPRC 更差；Medicare 风险被低估</td><td>直接实验 · 全文</td></tr>
+<tr><td>年龄、性别</td><td>MC-MED-v0 decomp-60 · MC-BEC</td><td>单阈值 TPR：&lt;55 岁 0.87 vs ≥55 岁 0.94；女 0.88 vs 男 0.92</td><td>直接实验 · 正文</td></tr>
+<tr><td>测量过程</td><td>MC-MED-v0 decomp-60 · MC-BEC</td><td>去掉监护模态 AUPRC 0.25 → 0.14</td><td>直接实验 · 正文</td></tr>
+<tr><td>时间段</td><td>MIMIC-IV ICU · Guo 2022</td><td>2008–10 训练、2017–19 测试，脓毒症 AUROC 最多降 0.090</td><td>直接实验 · 摘要</td></tr>
+<tr><td>多变量组合</td><td>住院恶化预警 · AFISP</td><td>整体 AUROC 0.986，最差 5% 子集 0.919</td><td>直接实验 · 全文</td></tr>
+</table>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7280">完整 20 条见 xlsx『子集缺陷证据』。MC-MED（Kansal 2025）与 MIMIC-IV-ED 基准（Xie 2022）论文本身都没有子集报告</p>
+<aside>这张表只放原文给了数字的子集。注意两点。第一，MC-MED 本身只有 MC-BEC 一份分组结果，它显示较差的是年轻组和女性，而不是老年组；但那是验证集灵敏度 0.85 对应的单一阈值下的 TPR，各组患病率不同就会产生这种差。第二，Röösli 的 Medicaid 结果很有说服力：事件率几乎一样（8.5% 对 8.3%），排序仍然更差，所以不是基础率造成的。Guo 2022 只读到摘要。</aside>
+</section>
+
+<section class="slide" id="sub_age" data-transition="fade" style="background:#F6F5F0;color:#172338;font-family:'Noto Sans SC', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:48px">
+<h2 style="font-family:'Noto Serif SC', Georgia, serif;font-size:60px;font-weight:700;line-height:1.2">年龄与性别：MC-MED 上较差的是年轻组和女性；老年的问题更可能在校准</h2>
+<div style="display:flex;gap:56px;align-items:stretch">
+<div style="width:720px;display:flex;flex-direction:column;gap:28px;background:#ECEAE2;padding:44px;border-radius:16px">
+<p style="font-size:28px;font-weight:700;color:#172338">MC-BEC Table 5：decomp-60 TPR（单一阈值）</p>
+<div style="display:flex;gap:24px">
+<div style="flex:1;display:flex;flex-direction:column;gap:6px"><p style="font-size:24px;color:#4A5468">&lt;55 岁</p><p style="font-size:72px;font-weight:700;line-height:1.1;color:#B2560F">0.87</p></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:6px"><p style="font-size:24px;color:#4A5468">≥55 岁</p><p style="font-size:72px;font-weight:700;line-height:1.1;color:#2A62C9">0.94</p></div>
+</div>
+<div style="display:flex;gap:24px">
+<div style="flex:1;display:flex;flex-direction:column;gap:6px"><p style="font-size:24px;color:#4A5468">女性</p><p style="font-size:72px;font-weight:700;line-height:1.1;color:#B2560F">0.88</p></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:6px"><p style="font-size:24px;color:#4A5468">男性</p><p style="font-size:72px;font-weight:700;line-height:1.1;color:#2A62C9">0.92</p></div>
+</div>
+<p style="font-size:24px;line-height:1.45;color:#4A5468">阈值按验证集灵敏度 0.85 定；没有组内 AUROC、样本量和区间，差距混着各组基础率</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:24px">
+<h3 style="font-size:36px;font-weight:700;color:#172338">老年人在别处的证据</h3>
+<ul style="font-size:28px;line-height:1.5;color:#172338;display:flex;flex-direction:column;gap:14px">
+<li>MIMIC-III：Medicare（多为 ≥65 岁）风险被明显低估（Röösli 2022）</li>
+<li>分诊：ESI 1 识别需立即抢救的老年人灵敏度 42.3%（Platts-Mills 2010，摘要）</li>
+<li>衰弱老人 NEWS2 预测 30 天死亡 AUC 0.70；预警评分加入年龄后 AUC 都提高（摘要）</li>
+<li>本项目 AL4：跨年龄 10 种 UDA 全部无效</li>
+</ul>
+</div>
+</div>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7280">MC-BEC 表内性别差值印为 0.05，与 0.92 − 0.88 不符，引用前需核对原文。冻结基准只输入六项体征、不含年龄</p>
+<aside>这一页说明为什么老年子集要先看校准而不只看 AUROC。MC-MED 前身上，固定阈值下老年组 TPR 反而更高，但这可能只是老年组事件率更高、风险分数整体更高的结果。MIMIC 与分诊文献里，老年人的问题集中在风险被低估和分诊漏判。预警评分加年龄提升 AUC 这一条提示：我们的冻结基准只用六项体征、不含年龄，可能让老年组排序变差，这是待检验的假设 S1，不是结论。AL4 的结果说明年龄差异不是简单的协变量偏移。</aside>
+</section>
+
+<section class="slide" id="sub_process" data-transition="fade" style="background:#F6F5F0;color:#172338;font-family:'Noto Sans SC', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:48px">
+<h2 style="font-family:'Noto Serif SC', Georgia, serif;font-size:64px;font-weight:700;line-height:1.15">测量过程本身带结局信息，模型会把它当捷径</h2>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:28px">
+<div style="display:flex;flex-direction:column;gap:12px;background:#ECEAE2;padding:36px 40px;border-radius:16px"><p style="font-size:60px;font-weight:700;line-height:1.1;color:#2A62C9">0.25 → 0.14</p><p style="font-size:26px;line-height:1.45;color:#172338">MC-MED-v0：去掉监护模态后 decomp-60 AUPRC（MC-BEC Table 4）</p></div>
+<div style="display:flex;flex-direction:column;gap:12px;background:#ECEAE2;padding:36px 40px;border-radius:16px"><p style="font-size:60px;font-weight:700;line-height:1.1;color:#2A62C9">AUC 0.76</p><p style="font-size:26px;line-height:1.45;color:#172338">MIMIC-III：只用测量模式预测 ICU 死亡；调整病情后测量频率仍随年龄、种族变化（Shi 2025）</p></div>
+<div style="display:flex;flex-direction:column;gap:12px;background:#ECEAE2;padding:36px 40px;border-radius:16px"><p style="font-size:60px;font-weight:700;line-height:1.1;color:#2A62C9">86% / 68%</p><p style="font-size:26px;line-height:1.45;color:#172338">是否开化验与 3 年生存显著相关的项目占比 / 化验时间比化验值更能预测的占比（Agniel 2018）</p></div>
+<div style="display:flex;flex-direction:column;gap:12px;background:#ECEAE2;padding:36px 40px;border-radius:16px"><p style="font-size:60px;font-weight:700;line-height:1.1;color:#2A62C9">6.2%–9.7%</p><p style="font-size:26px;line-height:1.45;color:#172338">本项目 mp_benchmark：drop40 下个体预测翻转率；ΔAUPRC 只有 −0.016 至 −0.036</p></div>
+</div>
+<p style="font-size:28px;line-height:1.5;color:#4A5468">含义：测量习惯不同的子集（老年、少数族裔、人工录入为主）上，“测得多 = 病重”这条捷径会失效。插补方法的选择甚至能翻转公平方向（Jeanselme 2022），所以缺失感知模型之间的差别必须按子集报告</p>
+<aside>四个数字都是直接实验。MC-BEC 的结果说明 decomp 预测很依赖监护数据本身。Shi 2025 读了全文：在调整病情之后，65 岁以上患者体征测得更频繁，白人首 24 小时血压测量 34.22 次、黑人 32.79 次；只用测量模式就能把 ICU 死亡预测到 AUC 0.76。Agniel 是 BMJ 2018 的经典结果。我们自己的 mp_benchmark 显示，群体指标几乎不动，但个体预测翻转 6% 到 10%，所以要拆到子集看到底是哪些人翻了。</aside>
+</section>
+
+<section class="slide" id="sub_spo2" data-transition="fade" style="background:#F6F5F0;color:#172338;font-family:'Noto Sans SC', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:48px">
+<h2 style="font-family:'Noto Serif SC', Georgia, serif;font-size:64px;font-weight:700;line-height:1.15">decomp_60 的特有风险：SpO₂ 同时是输入和标签</h2>
+<div style="display:flex;gap:56px;align-items:stretch">
+<div style="width:640px;display:flex;flex-direction:column;gap:24px;background:#ECEAE2;padding:44px;border-radius:16px">
+<p style="font-size:28px;font-weight:700;color:#172338">事件定义（MC-BEC）</p>
+<p style="font-size:30px;line-height:1.6;color:#172338">评估期正常的患者，之后 60 分钟内新出现：</p>
+<p style="font-size:34px;line-height:1.6;color:#172338">HR &gt; 110<br>或 MAP &lt; 65<br>或 <span style="color:#B2560F;font-weight:700">SpO₂ &lt; 90</span></p>
+<p style="font-size:24px;line-height:1.45;color:#4A5468">输入窗口里的 SpO₂ 也来自同一台脉搏血氧仪</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:22px">
+<p style="font-size:28px;font-weight:700;color:#172338">隐匿低氧比例（SaO₂ 低但 SpO₂ 正常）</p>
+<div style="display:flex;align-items:center;gap:20px"><p style="width:120px;font-size:26px;color:#4A5468">黑人</p><div style="width:680px;height:44px;background:#B2560F;border-radius:4px"></div><p style="font-size:28px;font-weight:700">6.8%</p></div>
+<div style="display:flex;align-items:center;gap:20px"><p style="width:120px;font-size:26px;color:#4A5468">西语裔</p><div style="width:600px;height:44px;background:#B2560F;border-radius:4px"></div><p style="font-size:28px;font-weight:700">6.0%</p></div>
+<div style="display:flex;align-items:center;gap:20px"><p style="width:120px;font-size:26px;color:#4A5468">白人</p><div style="width:490px;height:44px;background:#8E9AAF;border-radius:4px"></div><p style="font-size:28px;font-weight:700">4.9%</p></div>
+<div style="display:flex;align-items:center;gap:20px"><p style="width:120px;font-size:26px;color:#4A5468">亚裔</p><div style="width:480px;height:44px;background:#8E9AAF;border-radius:4px"></div><p style="font-size:28px;font-weight:700">4.8%</p></div>
+<p style="font-size:24px;color:#6B7280">Wong 2021，eICU / MIMIC 等 87,971 对 SpO₂–SaO₂（摘要）</p>
+</div>
+</div>
+<p style="font-size:28px;line-height:1.5;color:#4A5468">推断：深肤色患者的真实低氧可能没被记成事件，表现为该子集“事件率偏低、模型漏报”。这是从 ICU 迁移到急诊的推断，需按事件分量拆开检验（假设 S3）</p>
+<aside>这是 decomp_60 任务特有的风险，因为标签是由监护体征派生的。脉搏血氧仪在深肤色患者中会高估血氧，所以真实低氧时 SpO₂ 可能仍在 90 以上，事件就不会被记录。结果是该子集的“真值”本身偏低，模型看起来漏报，或者事件率看起来更低。证据来自 ICU，Wong 2021 只读到摘要，Mettler 2024 也是摘要。检验方法只需要聚合量：按种族和事件分量（HR 型、MAP 型、SpO₂ 型）交叉报告事件率与灵敏度；去掉 SpO₂ 分量的标签变体属于“标签”决策，需研究者批准。</aside>
+</section>
+
+<section class="slide" id="sub_metric" data-section="原因与指标陷阱" data-transition="fade" style="background:#F6F5F0;color:#172338;font-family:'Noto Sans SC', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:48px">
+<h2 style="font-family:'Noto Serif SC', Georgia, serif;font-size:60px;font-weight:700;line-height:1.2">比较子集时，AUPRC 和单阈值 TPR 会把基础率差异当成模型缺陷</h2>
+<div style="display:flex;gap:48px;align-items:stretch">
+<div style="flex:1;display:flex;flex-direction:column;gap:22px">
+<h3 style="font-size:36px;font-weight:700;color:#B2560F">三个陷阱</h3>
+<ul style="font-size:28px;line-height:1.5;color:#172338;display:flex;flex-direction:column;gap:14px">
+<li>随机分类器的 AUPRC 等于患病率；优化 AUPRC 会优先改善高患病率子集（McDermott 2024 Theorem 3）</li>
+<li>同一阈值在风险分布不同的子集里对应不同工作点：MC-BEC Table 5、FAIM ΔTPR 都属这一类</li>
+<li>只看 AUROC 会漏掉校准型缺陷（老年风险被低估）；再校准又不缩小 AUROC 差距</li>
+</ul>
+</div>
+<div style="width:760px;display:flex;flex-direction:column;gap:22px;background:#ECEAE2;padding:44px;border-radius:16px">
+<h3 style="font-size:36px;font-weight:700;color:#2A62C9">口径（11-06 研究者同意）</h3>
+<ol style="font-size:28px;line-height:1.5;color:#172338;display:flex;flex-direction:column;gap:10px">
+<li>主指标：AUROC + 校准截距 / 斜率</li>
+<li>AUPRC 与该子集患病率并列</li>
+<li>按患者聚类 bootstrap 区间；多子集用 Holm 校正</li>
+<li>每个子集至少约 30 个事件（经验建议）</li>
+<li>患病率在与冻结测试集相同的纳排口径下算</li>
+</ol>
+</div>
+</div>
+<aside>这一页是做子集比较之前必须定的口径。decomp_60 的患病率在 12% 左右，各子集患病率可能差很多，直接比 AUPRC 会把基础率差异读成模型缺陷。McDermott 2024 读了正文部分。Locati 2026 只读到摘要，它报告校准不缩小 AUROC 差距。最小 30 个事件是经验建议，不是文献结论。另外，不同汇总口径的样本量和事件率不能混用，子集患病率要在冻结测试集的同一纳排下计算。</aside>
+</section>
+
+<section class="slide" id="sub_causes" data-transition="fade" style="background:#F6F5F0;color:#172338;font-family:'Noto Sans SC', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:32px">
+<h2 style="font-family:'Noto Serif SC', Georgia, serif;font-size:64px;font-weight:700;line-height:1.15">原因：七类机制，常常同时存在</h2>
+<table style="font-family:'Noto Sans SC', Arial, sans-serif;font-size:24px;color:#172338">
+<tr style="background:#ECEAE2"><th style="width:25%">机制</th><th style="width:33%">文献证据</th><th style="width:42%">在 MC-MED decomp_60 上可能的表现（推断）</th></tr>
+<tr><td>C1 样本少、方差大</td><td>Chen 2018；AFISP 学习曲线</td><td>少数族裔、ESI 1 / 5、≥80 岁事件少，区间宽</td></tr>
+<tr><td>C2 基础率造成的指标伪差</td><td>McDermott 2024；MC-BEC 单阈值</td><td>高患病率子集 AUPRC 与灵敏度“看起来更好”</td></tr>
+<tr><td>C3 测量过程被当作捷径</td><td>Agniel 2018；Shi 2025；Jeanselme 2022</td><td>稀疏、缺通道、人工录入为主的窗口排序变差</td></tr>
+<tr><td>C4 测量误差进入输入与标签</td><td>Wong 2021；Mettler 2024</td><td>深肤色患者 SpO₂ 型事件漏记</td></tr>
+<tr><td>C5 标签与分组变量有噪声</td><td>Sax 2023；Platts-Mills 2010</td><td>ESI 3 内混有高危者；HR&gt;110 对服 β 阻滞剂者难触发</td></tr>
+<tr><td>C6 生理异质性</td><td>Martín-Conty 2024；Röösli 2022</td><td>不含年龄的输入让老年风险被低估</td></tr>
+<tr><td>C7 分布偏移</td><td>Guo 2022；Zhang 2021；项目 AL4</td><td>COVID 各阶段；但时间按患者平移，日历子集可能做不了</td></tr>
+</table>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7280">每类的诊断方法（只需聚合量）见 xlsx『原因机制C1-C7』</p>
+<aside>七类机制来自上一页的作者解释和方法学文献。第三列是推断，不是已观测的结果。归因顺序建议先排除 C1 和 C2，因为它们不是模型真的差：C1 看区间和学习曲线，C2 并列 AUROC、AUPRC 与患病率。C4 和 C5 是标签问题，模型侧对策修不了，只能做敏感性分析。C7 需要先核对 MC-MED 去标识后是否保留季节和时段。</aside>
+</section>
+
+<section class="slide" id="sub_discover" data-section="怎么找子集、怎么修" data-transition="fade" style="background:#F6F5F0;color:#172338;font-family:'Noto Sans SC', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:48px">
+<h2 style="font-family:'Noto Serif SC', Georgia, serif;font-size:64px;font-weight:700;line-height:1.15">预设分组不够，要加数据驱动的子集发现</h2>
+<div style="display:flex;gap:56px;align-items:stretch">
+<div style="width:520px;display:flex;flex-direction:column;gap:20px;background:#ECEAE2;padding:44px;border-radius:16px">
+<p style="font-size:120px;font-weight:700;line-height:1;color:#2A62C9">9 / 13</p>
+<p style="font-size:28px;line-height:1.5;color:#172338">AFISP 在住院恶化预警模型上找到 13 个表现差的子群，其中 9 个是多变量组合，单变量分组发现不了</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:18px">
+<div style="display:flex;gap:20px"><p style="width:290px;font-size:28px;font-weight:700">预设分组</p><p style="flex:1;font-size:26px;line-height:1.45;color:#4A5468">年龄、性别、种族、ESI；交叉子群单列</p></div>
+<div style="display:flex;gap:20px"><p style="width:290px;font-size:28px;font-weight:700">AFISP</p><p style="flex:1;font-size:26px;line-height:1.45;color:#4A5468">稳定性分析找最差子集，再用规则学习描述成可读子群</p></div>
+<div style="display:flex;gap:20px"><p style="width:290px;font-size:28px;font-weight:700">SliceFinder / SliceLine</p><p style="flex:1;font-size:26px;line-height:1.45;color:#4A5468">穷举离散特征组合；准确，但随特征数爆炸</p></div>
+<div style="display:flex;gap:20px"><p style="width:290px;font-size:28px;font-weight:700">Domino</p><p style="flex:1;font-size:26px;line-height:1.45;color:#4A5468">在嵌入上做误差感知聚类；可用 TSFM 或 GRU-D 的窗口嵌入</p></div>
+<div style="display:flex;gap:20px"><p style="width:290px;font-size:28px;font-weight:700">误差聚类</p><p style="flex:1;font-size:26px;line-height:1.45;color:#4A5468">倒数第二层特征 k-means，比较高、低误差簇；最便宜</p></div>
+</div>
+</div>
+<p style="font-size:28px;line-height:1.5;color:#B2560F">发现和确认必须用两份数据。11-06 定为：验证集上发现，冻结测试集上确认</p>
+<aside>AFISP 读了全文：整体 AUROC 0.986，最差 5% 子集 0.919，13 个子群里 4 个 AUROC 区间低于 0.9。合成数据上 AFISP 找回目标子群 83.4%，SliceFinder 94.6%，但 AFISP 随特征数扩展好得多。Domino 在 1,235 个设置中找回 36% 的切片。误差聚类来自 Oakden-Rayner 的胸片工作，高误差簇有胸管的比例 0.17、低误差簇 0.68。数据驱动方法找到的只是误差集中的地方，原因还要回到 C1–C7 去查。</aside>
+</section>
+
+<section class="slide" id="sub_fixes" data-transition="fade" style="background:#F6F5F0;color:#172338;font-family:'Noto Sans SC', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:40px">
+<h2 style="font-family:'Noto Serif SC', Georgia, serif;font-size:60px;font-weight:700;line-height:1.2">对策：先校准、DFR、补数据，慎用公平约束与域适应</h2>
+<div style="display:flex;gap:24px;align-items:stretch">
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#E3EBFA;padding:36px;border-radius:16px">
+<p style="font-size:30px;font-weight:700;color:#2A62C9">有证据、代价低</p>
+<p style="font-size:24px;line-height:1.45"><b>F1 分组再校准</b>：MIMIC-IV-ED ECE 0.083 → 0.065，AUROC 不变。只改概率、不改排序</p>
+<p style="font-size:24px;line-height:1.45"><b>F4 DFR</b>：冻结表示 + 分组平衡重训分类头，最差组准确率 59.9 → 66.2；与 TSFM 冻结嵌入 + 探针天然契合</p>
+<p style="font-size:24px;line-height:1.45"><b>F3 补数据</b>：最差子群补到约 2,000 例时与多数子群相当（AFISP）</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#ECEAE2;padding:36px;border-radius:16px">
+<p style="font-size:30px;font-weight:700;color:#172338">视原因而定</p>
+<p style="font-size:24px;line-height:1.45"><b>F5 输入加年龄等上下文</b>：预警评分加年龄后 AUC 都提高；改输入需登记新版本</p>
+<p style="font-size:24px;line-height:1.45"><b>F6 缺失 / 过程感知</b>：对应 C3；插补方式会翻转公平方向</p>
+<p style="font-size:24px;line-height:1.45"><b>F2 分组阈值</b>：TPR 差距 0.20 → &lt;0.03（摘要）；涉及临床与伦理，只作敏感性分析</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#F5E6DA;padding:36px;border-radius:16px">
+<p style="font-size:30px;font-weight:700;color:#B2560F">常常无效</p>
+<p style="font-size:24px;line-height:1.45"><b>F7 公平约束 / 重加权</b>：组内性能几乎普遍下降；AUC 0.790 → 0.706；单属性重加权扩大其他差距</p>
+<p style="font-size:24px;line-height:1.45"><b>F8 DG / UDA</b>：时间偏移、eICU 跨地区都没有稳定胜过 ERM；项目 AL4 跨年龄全部无效</p>
+</div>
+</div>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7280">评价对策时同时报告最差子集 AUROC、总体 AUROC、校准与 FNR 差距；只看“差距”会把“别的组变差”误判为改善</p>
+<aside>优先级综合证据强度、代价和本项目设定。F1 的证据来自 Barda 2021 和 Lett 2025，注意现有训练用 pos_weight 约 7.08，本来就让概率整体偏高，再校准是第一步。F4 的数字来自 SubpopBench（Yang 2023），它对虚假相关和类别不平衡有效，对属性不平衡和属性泛化几乎无效。F3 要有针对性：Tan 2026 发现盲目加整源数据会让黑人子集最差下降 4.1%。F2 来自 Locati 2026，只读到摘要。F7 来自 Pfohl 2021 与 FAIM，F8 来自 Guo 2022、Zhang 2021 和我们自己的 AL4。</aside>
+</section>
+
+<section class="slide" id="sub_audit" data-section="MC-MED decomp_60 子集审计方案" data-transition="fade" style="background:#F6F5F0;color:#172338;font-family:'Noto Sans SC', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:40px">
+<h2 style="font-family:'Noto Serif SC', Georgia, serif;font-size:64px;font-weight:700;line-height:1.15">MC-MED decomp_60 子集清单（年龄切点 11-06 已定）</h2>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+<div style="display:flex;flex-direction:column;gap:12px;background:#ECEAE2;padding:32px 36px;border-radius:16px"><p style="font-size:30px;font-weight:700;color:#2A62C9">A 人群 · S1 S3</p><p style="font-size:26px;line-height:1.5">年龄 18–44 / 45–64 / 65–74 / ≥75（老年 = ≥65，只用于子集审计；另报 ≥60 以对齐 D70）；性别；种族、族裔；种族 × 性别、年龄 × 性别交叉</p></div>
+<div style="display:flex;flex-direction:column;gap:12px;background:#ECEAE2;padding:32px 36px;border-radius:16px"><p style="font-size:30px;font-weight:700;color:#2A62C9">B 临床 · S2 S5</p><p style="font-size:26px;line-height:1.5">ESI 1–2 / 3 / 4–5；到达方式、主诉、高危药物；评估期末到阈值的距离；事件分量（HR / MAP / SpO₂ 型）</p></div>
+<div style="display:flex;flex-direction:column;gap:12px;background:#ECEAE2;padding:32px 36px;border-radius:16px"><p style="font-size:30px;font-weight:700;color:#2A62C9">C 测量过程 · S4 S6</p><p style="font-size:26px;line-height:1.5">0–15 分钟每通道有效点数分位；缺失通道组合；Chart / Monitor 来源比例；入床距到院时间</p></div>
+<div style="display:flex;flex-direction:column;gap:12px;background:#ECEAE2;padding:32px 36px;border-radius:16px"><p style="font-size:30px;font-weight:700;color:#2A62C9">D 数据驱动</p><p style="font-size:26px;line-height:1.5">AFISP / 误差聚类在 A–C 全部字段与模型嵌入上发现的组合子集</p></div>
+</div>
+<p style="font-size:26px;line-height:1.5;color:#4A5468">数据侧注意：MC-MED 年龄加了 0–2 岁扰动并截断在 18–90；时间按患者平移，时段类子集要先核对是否可用；只覆盖有监护床位的就诊</p>
+<aside>子集分四族，每族后面标了对应的假设编号。A 族来自 MC-BEC 和公平性文献；B 族里“到阈值的距离”和“事件分量”是专门针对 decomp_60 的设计，因为入选者评估期都正常，标签是“跨阈值”；C 族把第二部分的 H1（有效 token 数）和第一部分的测量过程证据连起来。所有字段都在 MC-MED 已有表里，只需交回聚合量。年龄切点已由研究者在 11-06 定为 65 岁起算、按 65–74 和 75 岁及以上切分；这一口径只用于子集审计，项目原定的 60 岁以上主分析不变，另报 60 岁以上以便对齐。</aside>
+</section>
+
+<section class="slide" id="sub_hyp" data-transition="fade" style="background:#F6F5F0;color:#172338;font-family:'Noto Sans SC', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:36px">
+<h2 style="font-family:'Noto Serif SC', Georgia, serif;font-size:64px;font-weight:700;line-height:1.15">可检验假设 S1–S6（待检验，不是结论）</h2>
+<table style="font-family:'Noto Sans SC', Arial, sans-serif;font-size:24px;color:#172338">
+<tr style="background:#ECEAE2"><th style="width:40%">假设</th><th style="width:24%">依据</th><th style="width:36%">检验（聚合量）</th></tr>
+<tr><td>S1 年轻组、女性单阈值灵敏度更低；老年问题更可能在校准</td><td>MC-BEC；Röösli 2022</td><td>&lt;65 / 65–74 / ≥75 各组 AUROC、校准截距 / 斜率、灵敏度，并列患病率</td></tr>
+<tr><td>S2 评估期正常但远离阈值的患者最难</td><td>任务定义（设计推断）</td><td>按到阈值距离分层；阳性按事件分量拆开</td></tr>
+<tr><td>S3 深肤色患者 SpO₂ 型事件被漏记</td><td>Wong 2021（ICU）；迁移为推断</td><td>种族 × 事件分量的事件率与灵敏度</td></tr>
+<tr><td>S4 稀疏、缺通道、人工录入窗口排序变差</td><td>MC-BEC Table 4；mp_benchmark</td><td>按有效点数、缺失通道、来源分层；drop 测试集按子集拆开</td></tr>
+<tr><td>S5 ESI 3 组内 AUROC 低于 ESI 1–2，因组内混杂</td><td>Sax 2023；Platts-Mills 2010</td><td>各 ESI 组事件率、AUROC、观测密度</td></tr>
+<tr><td>S6 入床延迟与时段不同的子集表现不同</td><td>推断，无直接文献</td><td>按入床延迟分位与时段（先核对时间）</td></tr>
+</table>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7280">结果出来后只写“与某假设一致 / 不一致”。S3 的标签变体（去掉 SpO₂ 分量）只作敏感性分析（11-06 决定）</p>
+<aside>六条假设的证据强度不同：S1、S4、S5 有直接实验支持，S3 是 ICU 证据迁移到急诊，S2 和 S6 是设计推断。检验全部只需要聚合量。S4 可以直接复用已有的 drop20、drop40、continuous5min 测试集，把 ΔAUROC 和翻转率按子集拆开。</aside>
+</section>
+
+<section class="slide" id="sub_steps" data-transition="fade" style="background:#F6F5F0;color:#172338;font-family:'Noto Sans SC', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:48px">
+<h2 style="font-family:'Noto Serif SC', Georgia, serif;font-size:64px;font-weight:700;line-height:1.15">五步流程：审计 → 发现 → 归因 → 修复 → 复现</h2>
+<div style="display:flex;gap:20px;align-items:stretch">
+<div style="flex:1;display:flex;flex-direction:column;gap:14px;background:#ECEAE2;padding:32px;border-radius:16px;border-top:6px solid #2A62C9"><p style="font-size:32px;font-weight:700;color:#2A62C9">1 审计</p><p style="font-size:24px;line-height:1.5">冻结测试集上，已有全部模型按 A–C 子集打分</p><p style="font-size:22px;line-height:1.45;color:#B2560F">已定：≥65 按 65–74 / ≥75；≥约 30 事件</p></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:14px;background:#ECEAE2;padding:32px;border-radius:16px;border-top:6px solid #2A62C9"><p style="font-size:32px;font-weight:700;color:#2A62C9">2 发现</p><p style="font-size:24px;line-height:1.5">AFISP 式分析 + 误差聚类找组合子集，独立数据确认</p><p style="font-size:22px;line-height:1.45;color:#B2560F">已定：验证集发现、测试集确认</p></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:14px;background:#ECEAE2;padding:32px;border-radius:16px;border-top:6px solid #2A62C9"><p style="font-size:32px;font-weight:700;color:#2A62C9">3 归因</p><p style="font-size:24px;line-height:1.5">逐个子集查 C1–C7：基础率、学习曲线、mask 替换、事件分量、校准斜率</p><p style="font-size:22px;line-height:1.45;color:#B2560F">已定：标签变体只作敏感性分析</p></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:14px;background:#ECEAE2;padding:32px;border-radius:16px;border-top:6px solid #2A62C9"><p style="font-size:32px;font-weight:700;color:#2A62C9">4 修复</p><p style="font-size:24px;line-height:1.5">F1 → F4 → F3 → F5 / F6；F7 / F8 只作对照</p><p style="font-size:22px;line-height:1.45;color:#B2560F">已定：分组阈值只作敏感性分析</p></div>
+<div style="flex:1;display:flex;flex-direction:column;gap:14px;background:#ECEAE2;padding:32px;border-radius:16px;border-top:6px solid #2A62C9"><p style="font-size:32px;font-weight:700;color:#2A62C9">5 复现</p><p style="font-size:24px;line-height:1.5">MIMIC-IV-ED 上用 5 个可对齐变量重复 1 与 3</p><p style="font-size:22px;line-height:1.45;color:#B2560F">已定：MIRA 单独报告</p></div>
+</div>
+<p style="font-size:28px;line-height:1.5;color:#4A5468">步骤 1 的模型：XGBoost、FF-LSTM、GRU-D、BRITS、mTAND、Raindrop、OPL-MT-MNAR、MIRA、TimesFM 3.0、VIMTS-Adapter。每一步只交回聚合量：子集 × 模型的 AUROC、AUPRC、患病率、校准、灵敏度及区间</p>
+<aside>这是建议的执行顺序，橙色字是每一步依赖的研究者决定，11-06 都已定下。步骤 1 不需要新训练，只是把已有模型在冻结测试集上按子集重新打分，成本最低、信息量最大。步骤 4 的修复顺序按证据强度排。步骤 5 用 MIMIC-IV-ED 复现，看同一类子集在两个数据集上是否都差；若涉及 MIRA，需先处理它与 MIMIC-IV 的重叠。</aside>
+</section>
+
+<section class="slide" id="part2" data-section="第二部分：时序基础模型背景（11-05）" data-transition="fade" style="background:#172338;color:#F6F5F0;font-family:'Noto Sans SC', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;justify-content:center;gap:40px">
+<p style="font-size:30px;font-weight:500;color:#8FB4F5">第二部分 · 2026-11-05</p>
+<h2 style="font-family:'Noto Serif SC', Georgia, serif;font-size:80px;font-weight:700;line-height:1.2;color:#F6F5F0">时序基础模型背景</h2>
+<p style="font-size:36px;line-height:1.5;color:#D5DCE8;width:1500px">训练背景、时间尺度、zero-shot 设定与已知失效模式，以及它们与 MC-MED 急诊短窗口的匹配程度。模型论文都没有做患者层面的亚组分析，所以子集问题要靠第一部分的数据侧证据来解释</p>
+<aside>第二部分是 11-05 的调研，内容保持原样。它和第一部分的连接点在测量过程子集：窗口内有效点数、缺失通道。如果基础模型在稀疏窗口上掉得比传统模型更多，这一结果与 H1（有效 token 太少）一致。</aside>
+</section>
+
+<section class="slide" id="setting" data-transition="fade" style="background:#F6F5F0;color:#172338;font-family:'Noto Sans SC', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:56px">
+<h2 style="font-family:'Noto Serif SC', Georgia, serif;font-size:64px;font-weight:700;line-height:1.15">MC-MED 的输入：每个变量每个窗口约 15 个点</h2>
+<div style="display:flex;gap:64px;align-items:stretch">
+<div style="width:660px;display:flex;flex-direction:column;gap:24px;background:#ECEAE2;padding:48px;border-radius:16px">
+<p style="font-size:96px;font-weight:700;line-height:1.1;color:#2A62C9">≈ 15 点</p>
+<p style="font-size:30px;line-height:1.4;color:#4A5468">1 分钟均值 × 0–15 分钟输入窗口（推算）</p>
+<ul style="font-size:30px;line-height:1.5;color:#172338">
+<li>decomp_60 二分类结局</li>
+<li>六项生命体征，多变量</li>
+<li>有缺失与断续：drop20 / drop40 / continuous5min</li>
+<li>后续做 Age、Gender、ESI 亚组</li>
+</ul>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:24px;padding:48px 0px">
+<h3 style="font-size:40px;font-weight:700;color:#172338">本调研回答五个问题</h3>
+<ol style="font-size:30px;line-height:1.6;color:#4A5468">
+<li>哪些模型偏长上下文？</li>
+<li>哪些真正见过医疗数据？</li>
+<li>哪些支持不规则时间？</li>
+<li>哪些论文已经发现短上下文 / 亚组 / 域偏移问题？</li>
+<li>哪些与 MC-MED 的预训练分布差异最大？</li>
+</ol>
+</div>
+</div>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7280">来源：PhysioNet MC-MED 页面；项目背景 §6.4（冻结 benchmark，decomp_60，六项体征，0–15 分钟）</p>
+<aside>MC-MED 是斯坦福成人急诊有监护床位的数据，监护数值是 1 分钟均值。我们的任务用 0 到 15 分钟的输入窗口，所以每个变量每个窗口最多大约 15 个点，这是按 1 分钟均值推算的，不是实测的观测数。下游是二分类结局，不是数值预测，这一点对理解 zero-shot 很重要。五个问题对应用户任务书里的一页结论。</aside>
+</section>
+
+<section class="slide" id="verdict" data-section="五个问题的答案：上下文、医疗数据、不规则时间、zero-shot 口径" data-transition="fade" style="background:#172338;color:#F6F5F0;font-family:'Noto Sans SC', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;justify-content:space-between;gap:48px">
+<p style="font-size:30px;font-weight:500;color:#8FB4F5">总判断</p>
+<h2 style="font-family:'Noto Serif SC', Georgia, serif;font-size:64px;font-weight:700;line-height:1.3;color:#F6F5F0;width:1600px">没有一个模型是为“15 分钟、多变量、带缺失的急诊生命体征”设计或评测的</h2>
+<div style="display:flex;gap:32px">
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#22314D;padding:40px;border-radius:16px">
+<h3 style="font-size:40px;font-weight:700;color:#8FB4F5">最接近：MIRA</h3>
+<p style="font-size:30px;line-height:1.45;color:#D5DCE8">见过 ICU 生命体征，原生支持不规则时间；但仍是 ICU 住院、单变量、只训练数值预测</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#22314D;padding:40px;border-radius:16px">
+<h3 style="font-size:40px;font-weight:700;color:#8FB4F5">上下文：长 34 倍以上</h3>
+<p style="font-size:30px;line-height:1.45;color:#D5DCE8">最短的设计上下文是 512 点；主模型论文的上下文实验最短只测到 100 点</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#22314D;padding:40px;border-radius:16px">
+<h3 style="font-size:40px;font-weight:700;color:#8FB4F5">患者亚组：0 / 14</h3>
+<p style="font-size:30px;line-height:1.45;color:#D5DCE8">没有一篇模型论文做年龄、性别或病情分层；Age / Gender / ESI 结果只能从数据侧解释</p>
+</div>
+</div>
+<aside>这是整份调研的一句话结论。MIRA 的预训练 100% 是医疗语料，MIMIC-III 占 88%（App E Table 7），而且输入是值加时间戳，能处理不等间隔（Sec 3.1–3.2）。但它是 ICU 住院场景，不是急诊到院后 15 分钟，而且通道独立、只做数值预测。34 倍是 512 除以 15 得来的。Lag-Llama 的连续窗口超参搜索到 32 点，但它是补充模型，而且 lag 特征需要更长历史。亚组：所有模型论文最细只到数据集、领域、频率或预测长度。</aside>
+</section>
+
+<section class="slide" id="context" data-transition="fade" style="background:#F6F5F0;color:#172338;font-family:'Noto Sans SC', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:20px">
+<div style="position:absolute;left:432px;top:276px;width:2px;height:572px;background:#DCD9D0"></div>
+<div style="position:absolute;left:780px;top:276px;width:2px;height:572px;background:#DCD9D0"></div>
+<div style="position:absolute;left:1129px;top:276px;width:2px;height:572px;background:#DCD9D0"></div>
+<div style="position:absolute;left:1477px;top:276px;width:2px;height:572px;background:#DCD9D0"></div>
+<h2 style="font-family:'Noto Serif SC', Georgia, serif;font-size:64px;font-weight:700;line-height:1.15">设计上下文全部远长于 MC-MED 的约 15 点</h2>
+<p style="font-size:24px;color:#4A5468"><span style="color:#2A62C9">●</span> 训练 / 最大上下文　　<span style="color:#8A8678">○</span> 论文上下文实验中测过的最短长度　　<span style="color:#B2560F">│</span> MC-MED 0–15 分钟窗口</p>
+<div style="display:flex;flex-direction:column">
+<div style="display:flex;gap:24px;height:44px;align-items:center"><p style="width:280px;font-size:24px;text-align:right">TimesFM 3.0</p><div style="position:relative;width:1150px;height:44px"><div style="position:absolute;left:1101px;top:13px;width:18px;height:18px;background:#2A62C9;border-radius:50%"></div><p style="position:absolute;left:1126px;top:4px;width:110px;font-size:24px;color:#4A5468">15,360</p></div></div>
+<div style="display:flex;gap:24px;height:44px;align-items:center"><p style="width:280px;font-size:24px;text-align:right">Chronos-2</p><div style="position:relative;width:1150px;height:44px"><div style="position:absolute;left:805px;top:20px;width:210px;height:4px;background:#C3BFB3"></div><div style="position:absolute;left:796px;top:13px;width:18px;height:18px;background:#F6F5F0;border:3px solid #8A8678;border-radius:50%"></div><p style="position:absolute;left:705px;top:4px;width:80px;font-size:24px;text-align:right;color:#8A8678">2,048</p><div style="position:absolute;left:1006px;top:13px;width:18px;height:18px;background:#2A62C9;border-radius:50%"></div><p style="position:absolute;left:1031px;top:4px;width:110px;font-size:24px;color:#4A5468">8,192</p></div></div>
+<div style="display:flex;gap:24px;height:44px;align-items:center"><p style="width:280px;font-size:24px;text-align:right">Moirai 1.x</p><div style="position:relative;width:1150px;height:44px"><div style="position:absolute;left:348px;top:20px;width:592px;height:4px;background:#C3BFB3"></div><div style="position:absolute;left:339px;top:13px;width:18px;height:18px;background:#F6F5F0;border:3px solid #8A8678;border-radius:50%"></div><p style="position:absolute;left:248px;top:4px;width:80px;font-size:24px;text-align:right;color:#8A8678">100</p><div style="position:absolute;left:931px;top:13px;width:18px;height:18px;background:#2A62C9;border-radius:50%"></div><p style="position:absolute;left:956px;top:4px;width:110px;font-size:24px;color:#4A5468">5,000</p></div></div>
+<div style="display:flex;gap:24px;height:44px;align-items:center"><p style="width:280px;font-size:24px;text-align:right">Time-MoE</p><div style="position:relative;width:1150px;height:44px"><div style="position:absolute;left:901px;top:13px;width:18px;height:18px;background:#2A62C9;border-radius:50%"></div><p style="position:absolute;left:926px;top:4px;width:110px;font-size:24px;color:#4A5468">4,096</p></div></div>
+<div style="display:flex;gap:24px;height:44px;align-items:center"><p style="width:280px;font-size:24px;text-align:right">VisionTS</p><div style="position:relative;width:1150px;height:44px"><div style="position:absolute;left:899px;top:13px;width:18px;height:18px;background:#2A62C9;border-radius:50%"></div><p style="position:absolute;left:924px;top:4px;width:110px;font-size:24px;color:#4A5468">4,032</p></div></div>
+<div style="display:flex;gap:24px;height:44px;align-items:center"><p style="width:280px;font-size:24px;text-align:right">Sundial</p><div style="position:relative;width:1150px;height:44px"><div style="position:absolute;left:586px;top:20px;width:271px;height:4px;background:#C3BFB3"></div><div style="position:absolute;left:577px;top:13px;width:18px;height:18px;background:#F6F5F0;border:3px solid #8A8678;border-radius:50%"></div><p style="position:absolute;left:486px;top:4px;width:80px;font-size:24px;text-align:right;color:#8A8678">480</p><div style="position:absolute;left:848px;top:13px;width:18px;height:18px;background:#2A62C9;border-radius:50%"></div><p style="position:absolute;left:873px;top:4px;width:110px;font-size:24px;color:#4A5468">2,880</p></div></div>
+<div style="display:flex;gap:24px;height:44px;align-items:center"><p style="width:280px;font-size:24px;text-align:right">Timer-XL</p><div style="position:relative;width:1150px;height:44px"><div style="position:absolute;left:848px;top:13px;width:18px;height:18px;background:#2A62C9;border-radius:50%"></div><p style="position:absolute;left:873px;top:4px;width:110px;font-size:24px;color:#4A5468">2,880</p></div></div>
+<div style="display:flex;gap:24px;height:44px;align-items:center"><p style="width:280px;font-size:24px;text-align:right">Lag-Llama</p><div style="position:relative;width:1150px;height:44px"><div style="position:absolute;left:176px;top:20px;width:524px;height:4px;background:#C3BFB3"></div><div style="position:absolute;left:167px;top:13px;width:18px;height:18px;background:#F6F5F0;border:3px solid #8A8678;border-radius:50%"></div><p style="position:absolute;left:76px;top:4px;width:80px;font-size:24px;text-align:right;color:#8A8678">32</p><div style="position:absolute;left:691px;top:13px;width:18px;height:18px;background:#2A62C9;border-radius:50%"></div><p style="position:absolute;left:716px;top:4px;width:110px;font-size:24px;color:#4A5468">1,024</p></div></div>
+<div style="display:flex;gap:24px;height:44px;align-items:center"><p style="width:280px;font-size:24px;text-align:right">LightGTS</p><div style="position:relative;width:1150px;height:44px"><div style="position:absolute;left:591px;top:13px;width:18px;height:18px;background:#2A62C9;border-radius:50%"></div><p style="position:absolute;left:616px;top:4px;width:110px;font-size:24px;color:#4A5468">528</p></div></div>
+<div style="display:flex;gap:24px;height:44px;align-items:center"><p style="width:280px;font-size:24px;text-align:right">MIRA</p><div style="position:relative;width:1150px;height:44px"><div style="position:absolute;left:586px;top:13px;width:18px;height:18px;background:#2A62C9;border-radius:50%"></div><p style="position:absolute;left:611px;top:4px;width:110px;font-size:24px;color:#4A5468">512</p></div></div>
+<div style="display:flex;gap:24px;height:44px;align-items:center"><p style="width:280px;font-size:24px;text-align:right">TimesFM 1.0</p><div style="position:relative;width:1150px;height:44px"><div style="position:absolute;left:586px;top:13px;width:18px;height:18px;background:#2A62C9;border-radius:50%"></div><p style="position:absolute;left:611px;top:4px;width:110px;font-size:24px;color:#4A5468">512</p></div></div>
+<div style="display:flex;gap:24px;height:44px;align-items:center"><p style="width:280px;font-size:24px;text-align:right">Chronos</p><div style="position:relative;width:1150px;height:44px"><div style="position:absolute;left:586px;top:13px;width:18px;height:18px;background:#2A62C9;border-radius:50%"></div><p style="position:absolute;left:611px;top:4px;width:110px;font-size:24px;color:#4A5468">512</p></div></div>
+<div style="display:flex;gap:24px;height:44px;align-items:center"><p style="width:280px;font-size:24px;text-align:right">MOMENT</p><div style="position:relative;width:1150px;height:44px"><div style="position:absolute;left:586px;top:13px;width:18px;height:18px;background:#2A62C9;border-radius:50%"></div><p style="position:absolute;left:611px;top:4px;width:110px;font-size:24px;color:#4A5468">512</p></div></div>
+<div style="display:flex;gap:24px;height:40px;align-items:center"><div style="width:280px;height:40px"></div><div style="position:relative;width:1150px;height:40px"><p style="position:absolute;left:0px;top:4px;width:80px;font-size:24px;color:#6B7280">10</p><p style="position:absolute;left:308px;top:4px;width:80px;font-size:24px;text-align:center;color:#6B7280">100</p><p style="position:absolute;left:657px;top:4px;width:80px;font-size:24px;text-align:center;color:#6B7280">1,000</p><p style="position:absolute;left:995px;top:4px;width:100px;font-size:24px;text-align:center;color:#6B7280">10,000</p></div></div>
+</div>
+<div style="position:absolute;left:492px;top:276px;width:3px;height:572px;background:#B2560F"></div>
+<p style="position:absolute;left:504px;top:282px;width:300px;font-size:24px;font-weight:700;color:#B2560F">MC-MED ≈ 15 点</p>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7280">横轴：上下文长度（点，对数刻度）。来源：各论文与模型卡；Aurora、Moirai 2.0 未报告，VIMTS 按时间窗，未画；15 点为推算</p>
+<aside>蓝点是每个模型的训练或最大上下文：TimesFM 3.0 是 README 的 global_context 15,360；Chronos-2 是两阶段预训练的 8192（Sec 3.3）；Moirai 是零样本评价上下文上限 5000（Sec 4.2）；Time-MoE 是训练最大序列 4096，含预测段；VisionTS 是各数据集调参后的最大值；Sundial 与 Timer-XL 是 2880；Lag-Llama 是上下文超参搜索上限；LightGTS 是 README 示例；MIRA、TimesFM 1.0、Chronos、MOMENT 都是 512。灰圈是论文上下文实验里测过的最短长度：Moirai Fig 5 的 100、Sundial Fig 10 的 480、Chronos-2 Fig 8c 的 2048、Lag-Llama Table 5 的 32。Timer-XL Fig 3 的最短 lookback 用时间跨度 8 小时表示，折合点数没核对，所以没画。这些实验的结论几乎都是越长越好，但都测不到 15 点量级。</aside>
+</section>
+
+<section class="slide" id="tokens" data-transition="fade" style="background:#F6F5F0;color:#172338;font-family:'Noto Sans SC', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:48px">
+<h2 style="font-family:'Noto Serif SC', Georgia, serif;font-size:64px;font-weight:700;line-height:1.15">比上下文更直接的是 patch：15 个点还剩几个 token</h2>
+<div style="display:flex;gap:32px">
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#FFFFFF;padding:40px;border-top:8px solid #2A62C9;border-radius:12px">
+<h3 style="font-size:40px;font-weight:700;color:#2A62C9">15 个 token</h3>
+<p style="font-size:30px;font-weight:500;color:#4A5468">点级输入</p>
+<ul style="font-size:30px;line-height:1.55;color:#172338">
+<li>MIRA（另带时间戳）</li>
+<li>Time-MoE</li>
+<li>Chronos</li>
+<li>Lag-Llama（多数 lag 取不到）</li>
+</ul>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#FFFFFF;padding:40px;border-top:8px solid #B2560F;border-radius:12px">
+<h3 style="font-size:40px;font-weight:700;color:#B2560F">1 个填充 token</h3>
+<p style="font-size:30px;font-weight:500;color:#4A5468">patch 长度 ≥ 15 点</p>
+<ul style="font-size:30px;line-height:1.55;color:#172338">
+<li>Sundial（16）</li>
+<li>TimesFM 1.0 / 3.0（32）</li>
+<li>Aurora（48）</li>
+<li>Moirai（分钟级 32–128）</li>
+<li>Timer-XL（96）</li>
+</ul>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#FFFFFF;padding:40px;border-top:8px solid #8A8678;border-radius:12px">
+<h3 style="font-size:40px;font-weight:700;color:#5E5B52">需要特殊处理</h3>
+<p style="font-size:30px;font-weight:500;color:#4A5468">依赖周期或固定长度</p>
+<ul style="font-size:30px;line-height:1.55;color:#172338">
+<li>VisionTS（按周期折图）</li>
+<li>LightGTS（周期 = patch）</li>
+<li>MOMENT（固定 512，约 97% 填充）</li>
+<li>VIMTS（时间窗需重设）</li>
+</ul>
+</div>
+</div>
+<p style="font-size:30px;line-height:1.45;color:#172338">建议：结果表加 <b>“实际 token 数 / 窗口内有效观测点数”</b> 两列，作为解释的第一层证据。</p>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7280">token 数按 patch 长度推算，不是实验结果。位置：Sundial Table 5；TimesFM Sec 4；Timer-XL Table 11；Moirai App B.1；MOMENT Sec 3.2；Aurora README</p>
+<aside>这张是从上下文长度推进一步：真正决定模型能"看到"多少信息的是 patch。点级 token 的模型能把 15 个点当成 15 个 token。patch 长度大于等于 15 的模型，整个 15 分钟窗口只能形成 1 个、而且是部分填充的 token；Timer-XL 的 patch 是 96，等于 81 个位置都是填充。MOMENT 输入固定 512、patch 8，15 个点只占 2 个 patch，其余约 97% 是左侧补零。这些都是按设计参数推算的，不是论文实验结论，所以在报告里只能作为可检验的解释假设（H1）。Chronos-2 和 Moirai 2.0 的 patch 长度正文未写，没放进来。</aside>
+</section>
+
+<section class="slide" id="medical" data-transition="fade" style="background:#F6F5F0;color:#172338;font-family:'Noto Sans SC', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:40px">
+<h2 style="font-family:'Noto Serif SC', Georgia, serif;font-size:64px;font-weight:700;line-height:1.15">只有 MIRA 以床旁生理数据为主</h2>
+<div style="display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;gap:32px;align-items:center;background:#E3EBFA;padding:28px 36px;border-radius:12px">
+<p style="width:380px;font-size:30px;font-weight:700;color:#2A62C9">床旁 / ICU 生理数据</p>
+<p style="flex:1;font-size:30px;line-height:1.45">MIRA：MIMIC-III 88%、MIMIC-IV 10.6%，语料 100% 医疗（App E Table 7）</p>
+</div>
+<div style="display:flex;gap:32px;align-items:center;background:#ECEAE2;padding:28px 36px;border-radius:12px">
+<p style="width:380px;font-size:30px;font-weight:700">少量生理波形</p>
+<p style="flex:1;font-size:30px;line-height:1.45">Sundial（ECG 4.65%）、Timer-XL（EEG / ECG / PPG / 心率）、LightGTS（EEG / ECG / 动物血压）、MOMENT（ECG 类）</p>
+</div>
+<div style="display:flex;gap:32px;align-items:center;background:#ECEAE2;padding:28px 36px;border-radius:12px">
+<p style="width:380px;font-size:30px;font-weight:700">只有公共卫生计数</p>
+<p style="flex:1;font-size:30px;line-height:1.45">Time-MoE（0.0001%）、Moirai 1.x（0.01%）、TimesFM 2.0（CDC FluView）；Aurora 有 Health 领域但未列数据集</p>
+</div>
+<div style="display:flex;gap:32px;align-items:center;background:#ECEAE2;padding:28px 36px;border-radius:12px">
+<p style="width:380px;font-size:30px;font-weight:700">无 / 未报告</p>
+<p style="flex:1;font-size:30px;line-height:1.45">No：TimesFM 1.0、Chronos、VisionTS、Lag-Llama。Not reported：TimesFM 2.5 / 3.0、Chronos-2、Moirai 2.0</p>
+</div>
+</div>
+<p style="font-size:30px;line-height:1.45;color:#B2560F;font-weight:500">ED：没有模型明确见过。MIRA 只说 MIMIC-IV 覆盖急诊入院，未说明用了 ED 模块。</p>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7280">来源：MIRA App E；Sundial Table 4；Time-MoE Table 1；Moirai Table 2；UTSD 数据卡；LightGTS Table 7；TimesFM 2.0 模型卡。GiftEvalPretrain 清单未公开</p>
+<aside>医疗占比只写论文给出的数；没给的写 Not reported，不估算。MIRA 的两个提醒：它从 Time-MoE 通用权重续训，所以并非只见过医疗数据；MIMIC-IV 在它的预训练里，若以后用 MIMIC-IV-ED 做外部验证，要先排查重叠。Time-MoE 与 Moirai 的医疗部分都是 COVID 死亡数、医院月度计数、CDC 流感监测这类汇总计数，和床旁生命体征没有关系。TimesFM 2.5 / 3.0、Moirai 2.0、Chronos-2 用了 GiftEvalPretrain，而它的组成清单没有公开，所以无法判断。BIDMC32HR 原始来源为重症监护患者记录是凭记忆，需核对。</aside>
+</section>
+
+<section class="slide" id="irregular" data-transition="fade" style="background:#F6F5F0;color:#172338;font-family:'Noto Sans SC', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:48px">
+<h2 style="font-family:'Noto Serif SC', Georgia, serif;font-size:64px;font-weight:700;line-height:1.15">原生支持不规则时间的只有 MIRA 和 VIMTS</h2>
+<div style="display:flex;gap:32px">
+<div style="flex:1;display:flex;flex-direction:column;gap:20px;background:#E3EBFA;padding:40px;border-radius:12px">
+<h3 style="font-size:40px;font-weight:700;color:#2A62C9">原生时间戳</h3>
+<p style="font-size:30px;line-height:1.45"><b>MIRA</b>：CT-RoPE + Neural ODE，可零样本（Sec 3.1–3.2）</p>
+<p style="font-size:30px;line-height:1.45"><b>VIMTS</b>：连续时间嵌入 + 可用性 mask，但必须在目标集训练</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:20px;background:#FFFFFF;padding:40px;border-radius:12px;border:1px solid #DCD9D0">
+<h3 style="font-size:40px;font-weight:700">只有缺失 mask</h3>
+<p style="font-size:30px;line-height:1.45">Chronos（PAD token）、Chronos-2（二值 mask）、Moirai 2.0（缺失指示）、MOMENT（观测 mask）</p>
+<p style="font-size:30px;line-height:1.45;color:#4A5468">能表达“这里没值”，不能表达间隔长短</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:20px;background:#FFFFFF;padding:40px;border-radius:12px;border:1px solid #DCD9D0">
+<h3 style="font-size:40px;font-weight:700">规则网格</h3>
+<p style="font-size:30px;line-height:1.45">TimesFM、Time-MoE、Sundial、Timer-XL、Moirai 1.x、LightGTS、VisionTS、Aurora</p>
+<p style="font-size:30px;line-height:1.45;color:#4A5468">TimesFM 2.0 要求先线性插值；Time-MoE、Moirai 预训练前切掉或过滤缺失段</p>
+</div>
+</div>
+<p style="font-size:30px;line-height:1.45">预训练阶段见过不规则数据的只有 MIRA。插值或前向填充方式本身是管线的一部分，需要在报告中写明。</p>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7280">来源：MIRA Sec 3.1–3.2、App E；VIMTS Sec 2.3；Chronos Sec 3.1；Chronos-2 Sec 3.1；Moirai 2.0 Eq 1；TimesFM 2.0 模型卡；Time-MoE App C</p>
+<aside>MIRA 是唯一既原生接收时间戳、又能零样本使用的模型，但推理时 NaN 和 mask 怎么处理论文没有说明，README 的推理示例也没有 mask 字段，这一点调用时需要确认。VIMTS 设计上最贴近 MC-MED（不规则、多变量、有 mask），但需要在目标数据集上先做自监督再微调，原论文自己也说它没有真正的零样本能力（Sec 6）。只有缺失 mask 的模型能识别缺失，但无法区分“隔 1 分钟”和“隔 5 分钟”。其余模型都默认规则网格。</aside>
+</section>
+
+<section class="slide" id="zeroshot" data-transition="fade" style="background:#F6F5F0;color:#172338;font-family:'Noto Sans SC', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:44px">
+<h2 style="font-family:'Noto Serif SC', Georgia, serif;font-size:64px;font-weight:700;line-height:1.15">论文的 zero-shot 是数值预测，不是零样本临床预测</h2>
+<table style="font-family:'Noto Sans SC', Arial, sans-serif;font-size:30px;color:#172338">
+<tr style="background:#ECEAE2"><th style="width:30%">MC-MED 上的用法</th><th style="width:16%">用结局标签</th><th style="width:30%">与论文口径</th><th style="width:24%">项目已有结果</th></tr>
+<tr><td>预测轨迹 → 规则 / 阈值预警</td><td>不用</td><td>唯一一致的用法</td><td>week02 F4：AUROC 0.55–0.59</td></tr>
+<tr><td>冻结嵌入 + 探针 / 分类器</td><td>用</td><td>不是 zero-shot，建议称“冻结表示 + 探针”</td><td>week02 F2、F3</td></tr>
+<tr><td>Adapter / 微调</td><td>用</td><td>不是 zero-shot</td><td>VIMTS-Adapter</td></tr>
+</table>
+<div style="display:flex;gap:32px">
+<div style="flex:1;display:flex;flex-direction:column;gap:12px;background:#FFFFFF;padding:36px;border-radius:12px;border:1px solid #DCD9D0">
+<h3 style="font-size:30px;font-weight:700">归一化只靠上下文自身</h3>
+<p style="font-size:24px;line-height:1.5;color:#4A5468">TimesFM 用首个 patch 的均值方差；Sundial、Chronos-2 用样本内统计量；Moirai 2.0 只用前 30%。15 个点估出的统计量本身不稳</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:12px;background:#FFFFFF;padding:36px;border-radius:12px;border:1px solid #DCD9D0">
+<h3 style="font-size:30px;font-weight:700">“未见数据集”的核查程度不同</h3>
+<p style="font-size:24px;line-height:1.5;color:#4A5468">Chronos-2 Table 3 估计 GIFT-Eval 泄漏率：Chronos-2 0%、TimesFM-2.5 8%、Moirai-2.0 28%；MIRA 的 CinC 2012 与 MIMIC 的关系未讨论</p>
+</div>
+</div>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7280">来源：各论文零样本定义；TimesFM Sec 5；Sundial Sec 4.1.1；Chronos-2 Eq 1–2、Table 3；Moirai 2.0 Sec 3.1；项目背景 §6.2</p>
+<aside>所有预测型 TSFM 论文里的 zero-shot，都是指在训练没见过的数据集上直接做数值预测。MC-MED decomp_60 是二分类结局，所以只有“用预测轨迹加规则或阈值做预警”这一种用法和论文口径一致，week02 F4 在公开数据上试过，AUROC 只有 0.55 到 0.59。用冻结嵌入加线性探针或分类器的，用到了结局标签，建议在报告里叫“冻结表示 + 探针”，避免和论文的 zero-shot 混为一谈。VIMTS 原论文自己说没有零样本能力；VisionTS 是图像预训练到时序的跨模态零样本。</aside>
+</section>
+
+<section class="slide" id="analyses" data-transition="fade" style="background:#ECEAE2;color:#172338;font-family:'Noto Sans SC', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:56px">
+<h2 style="font-family:'Noto Serif SC', Georgia, serif;font-size:64px;font-weight:700;line-height:1.15">论文自带的分析：没有一篇做患者亚组</h2>
+<div style="display:flex;gap:32px">
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#F6F5F0;padding:44px;border-radius:16px">
+<p style="font-size:96px;font-weight:700;line-height:1.1;color:#B2560F">0 / 14</p>
+<h3 style="font-size:40px;font-weight:700">患者层面亚组</h3>
+<p style="font-size:30px;line-height:1.45;color:#4A5468">年龄、性别、病情严重度：都没有</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#F6F5F0;padding:44px;border-radius:16px">
+<p style="font-size:96px;font-weight:700;line-height:1.1;color:#172338">2 / 14</p>
+<h3 style="font-size:40px;font-weight:700">鲁棒性实验</h3>
+<p style="font-size:30px;line-height:1.45;color:#4A5468">MIRA 缺失率 10%→90%（Table 4）；LightGTS 采样粒度（Fig 4）</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:16px;background:#F6F5F0;padding:44px;border-radius:16px">
+<p style="font-size:96px;font-weight:700;line-height:1.1;color:#2A62C9">6 / 14</p>
+<h3 style="font-size:40px;font-weight:700">上下文长度实验</h3>
+<p style="font-size:30px;line-height:1.45;color:#4A5468">Sundial、Timer-XL、VisionTS、Chronos、Chronos-2、Moirai；最短测到 100 点</p>
+</div>
+</div>
+<p style="font-size:30px;line-height:1.45">亚组最细只到数据集、领域、频率或预测长度（Moirai 2.0 Fig 3；Aurora TimeMMD Health；Chronos-2 fev 子集）。</p>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7280">统计范围：14 个主模型的论文正文与已读附录；TimesFM 2.5 / 3.0 无论文，计入“没有”</p>
+<aside>这三个数字回答“论文里有没有做 subgroup、robustness、short-context analysis”。患者层面亚组一篇都没有，所以将来 Age、Gender、ESI 的亚组结果不能引用任何模型论文作为先验。鲁棒性只有两项直接实验：MIRA 在 WHO FluNet 流感监测数据上把缺失率从 10% 提到 90%，RMSE 从 2.85 升到 3.97，而且不单调；LightGTS 在 ETT 上换采样粒度，它稳定而 Timer、Time-MoE 波动。Chronos 另有合成模式的定性分析。上下文长度实验 6 篇，结论几乎都是越长越好，但最短只测到 100 点。域偏移方面多数论文只做了零样本对比域内，专门的消融有 TimesFM Fig 3d、Moirai Table 7、Sundial Table 8、LightGTS Fig 2b、Chronos-2 Fig 8b。</aside>
+</section>
+
+<section class="slide" id="failure" data-transition="fade" style="background:#F6F5F0;color:#172338;font-family:'Noto Sans SC', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:40px">
+<h2 style="font-family:'Noto Serif SC', Georgia, serif;font-size:64px;font-weight:700;line-height:1.15">已知失效模式：多数证据不能直接外推到 15 点</h2>
+<table style="font-family:'Noto Sans SC', Arial, sans-serif;font-size:24px;color:#172338">
+<tr style="background:#ECEAE2"><th style="width:22%">失效模式</th><th style="width:34%">最强证据</th><th style="width:20%">证据类型</th><th style="width:24%">外推到 MC-MED</th></tr>
+<tr><td>短上下文下差</td><td>Timer-XL Fig 3；Chronos Fig 11b；Moirai Fig 5</td><td>直接实验 + 作者陈述</td><td>低：实验都在 ≥100 点</td></tr>
+<tr><td>分钟级 / 高频差</td><td>Sundial App E；GIFT-Eval Sec 4.1；TimesFM Fig 3d</td><td>作者陈述 + 独立基准</td><td>中</td></tr>
+<tr><td>缺失 / 稀疏下差</td><td>MIRA Table 4；预训练过滤缺失</td><td>直接实验 + 设计</td><td>中；week02 F3 有反例</td></tr>
+<tr><td>异常值被平滑</td><td>Gu 2024 Table 4；Chronos Fig 12b</td><td>独立评测 + 作者分析</td><td>中；可在高危 ESI 组检验</td></tr>
+<tr><td>平坦序列（SpO₂）</td><td>Chronos Fig 16b</td><td>作者分析</td><td>中；可按变量检验</td></tr>
+<tr><td>单变量丢失体征间关系</td><td>Gu 2024 Fig 4；Chronos-2 Sec 5.2</td><td>独立评测</td><td>中</td></tr>
+<tr><td>老年 / 性别 / ESI 亚组差</td><td>模型论文中无</td><td>无证据</td><td>只能从数据侧解释，见第一部分</td></tr>
+</table>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7280">完整 34 条见 FOUNDATION_MODEL_SURVEY.xlsx『失效模式证据』。证据强度：直接实验 > 独立评测 > 作者陈述 / 分析 > 设计推断 > 无证据</p>
+<aside>这张表把每种可能的失效模式配上最强的一条证据，并判断它能不能外推到 MC-MED。短上下文的证据最多，但所有实验都在 100 点以上，所以外推程度低。高频：Sundial 自己说 TimeBench 以中低频为主，非常高频的数据表现无保证；GIFT-Eval 独立发现高频是基础模型的弱项。缺失：MIRA 的缺失率实验是流感监测数据，不是体征；而且我们自己 week02 F3 发现稀疏到每变量 1 个值，TSFM 探针相对 LR 仍有优势。异常值：Gu et al. 在 eICU / MIMIC-III 上发现 TSFM 检测异常临床值差。亚组没有任何证据，这是最需要我们自己的实验来回答的。</aside>
+</section>
+
+<section class="slide" id="fit" data-transition="fade" style="background:#F6F5F0;color:#172338;font-family:'Noto Sans SC', Arial, sans-serif;padding:128px;display:flex;flex-direction:column;gap:16px">
+<h2 style="font-family:'Noto Serif SC', Georgia, serif;font-size:64px;font-weight:700;line-height:1.15">与 MC-MED 的匹配：MIRA 最接近，也只到“中”</h2>
+<p style="font-size:24px;line-height:1.4;color:#4A5468">纵轴：输入设计适配度（不规则 / 短窗 / 多变量）；横轴：预训练分布相似度（生理 / ICU、急诊、语料组成）。虚线列 = 需在目标集训练（VIMTS 已定放入不规则时序专用模型组）；（?）= 预训练清单未公开。本调研的判断，不是论文结论。</p>
+<div style="display:grid;grid-template-columns:110px 1fr 1fr 1fr 1fr 1fr;grid-template-rows:auto auto auto auto auto 40px;gap:8px">
+<div style="display:flex;align-items:center;justify-content:end"><p style="font-size:24px;color:#4A5468">高</p></div>
+<div style="min-height:76px;border:1px solid #D5D1C6;border-radius:8px;background:#FFFFFF"></div>
+<div style="min-height:76px;border:1px solid #D5D1C6;border-radius:8px;background:#FFFFFF"></div>
+<div style="min-height:76px;border:1px solid #D5D1C6;border-radius:8px;background:#FFFFFF"></div>
+<div style="min-height:76px;border:1px solid #D5D1C6;border-radius:8px;background:#FFFFFF"></div>
+<div style="min-height:76px;padding:10px 14px;border:2px dashed #B9B5AA;border-radius:8px"><p style="font-size:24px;line-height:1.3">VIMTS</p></div>
+<div style="display:flex;align-items:center;justify-content:end"><p style="font-size:24px;color:#4A5468">中</p></div>
+<div style="min-height:76px;border:1px solid #D5D1C6;border-radius:8px;background:#FFFFFF"></div>
+<div style="min-height:76px;padding:10px 14px;border:1px solid #D5D1C6;border-radius:8px;background:#FFFFFF"><p style="font-size:24px;line-height:1.3;color:#6B7280">TimesFM 2.5/3.0（?）<br>Chronos-2（?）</p></div>
+<div style="min-height:76px;border:1px solid #D5D1C6;border-radius:8px;background:#FFFFFF"></div>
+<div style="min-height:76px;padding:10px 14px;border:2px solid #2A62C9;border-radius:8px;background:#E3EBFA"><p style="font-size:24px;line-height:1.3;font-weight:700;color:#2A62C9">MIRA</p></div>
+<div style="min-height:76px;border:2px dashed #B9B5AA;border-radius:8px"></div>
+<div style="display:flex;align-items:center;justify-content:end"><p style="font-size:24px;color:#4A5468">低—中</p></div>
+<div style="min-height:76px;border:1px solid #D5D1C6;border-radius:8px;background:#FFFFFF"></div>
+<div style="min-height:76px;padding:10px 14px;border:1px solid #D5D1C6;border-radius:8px;background:#FFFFFF"><p style="font-size:24px;line-height:1.3">TimesFM 1.0<br>Chronos<br>Moirai 1.x<br><span style="color:#6B7280">Moirai 2.0（?）</span></p></div>
+<div style="min-height:76px;border:1px solid #D5D1C6;border-radius:8px;background:#FFFFFF"></div>
+<div style="min-height:76px;border:1px solid #D5D1C6;border-radius:8px;background:#FFFFFF"></div>
+<div style="min-height:76px;border:2px dashed #B9B5AA;border-radius:8px"></div>
+<div style="display:flex;align-items:center;justify-content:end"><p style="font-size:24px;color:#4A5468">低</p></div>
+<div style="min-height:76px;border:1px solid #D5D1C6;border-radius:8px;background:#FFFFFF"></div>
+<div style="min-height:76px;padding:10px 14px;border:1px solid #D5D1C6;border-radius:8px;background:#FFFFFF"><p style="font-size:24px;line-height:1.3">Time-MoE</p></div>
+<div style="min-height:76px;padding:10px 14px;border:1px solid #D5D1C6;border-radius:8px;background:#FFFFFF"><p style="font-size:24px;line-height:1.3">Sundial、Timer-XL<br>Aurora、MOMENT</p></div>
+<div style="min-height:76px;border:1px solid #D5D1C6;border-radius:8px;background:#FFFFFF"></div>
+<div style="min-height:76px;border:2px dashed #B9B5AA;border-radius:8px"></div>
+<div style="display:flex;align-items:center;justify-content:end"><p style="font-size:24px;color:#4A5468">很低</p></div>
+<div style="min-height:76px;padding:10px 14px;border:1px solid #D5D1C6;border-radius:8px;background:#FFFFFF"><p style="font-size:24px;line-height:1.3">VisionTS</p></div>
+<div style="min-height:76px;padding:10px 14px;border:1px solid #D5D1C6;border-radius:8px;background:#FFFFFF"><p style="font-size:24px;line-height:1.3">Lag-Llama</p></div>
+<div style="min-height:76px;padding:10px 14px;border:1px solid #D5D1C6;border-radius:8px;background:#FFFFFF"><p style="font-size:24px;line-height:1.3">LightGTS</p></div>
+<div style="min-height:76px;border:1px solid #D5D1C6;border-radius:8px;background:#FFFFFF"></div>
+<div style="min-height:76px;border:2px dashed #B9B5AA;border-radius:8px"></div>
+<div></div>
+<p style="font-size:24px;text-align:center;color:#4A5468">无</p>
+<p style="font-size:24px;text-align:center;color:#4A5468">很低</p>
+<p style="font-size:24px;text-align:center;color:#4A5468">低</p>
+<p style="font-size:24px;text-align:center;color:#4A5468">中</p>
+<p style="font-size:24px;text-align:center;color:#4A5468">不适用</p>
+</div>
+<aside>两个评级分开看。预训练分布相似度看语料里有没有床旁生理 / ICU 数据和急诊数据；输入设计适配度看模型能不能直接吃下 15 点、带缺失、多变量的输入（D3 到 D5）。MIRA 在两个维度都是“中”，是整张图里最接近的，但它仍是 ICU 住院场景、单变量。VIMTS 的设计适配度最高，但它要在 MC-MED 上训练，不能算零样本，所以单独放在虚线列。差异最大的是左下角：VisionTS 只有 ImageNet 预训练，还要按周期把序列折成图像；LightGTS 用周期做 tokenization，而 15 分钟内的体征通常没有稳定周期；Lag-Llama 的 lag 特征需要很长的历史。带问号的三个模型用了 GiftEvalPretrain，组成清单没公开。这是按规则做的判断，研究者可以改权重。</aside>
+</section>
+
+<section class="slide" id="external" data-transition="fade" style="background:#F6F5F0;color:#172338;font-family:'Noto Sans SC', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:48px">
+<h2 style="font-family:'Noto Serif SC', Georgia, serif;font-size:64px;font-weight:700;line-height:1.15">独立评测：ICU 体征上，零样本 TSFM 多数不如从头训练</h2>
+<div style="display:flex;gap:64px">
+<div style="width:900px;display:flex;flex-direction:column;gap:20px">
+<h3 style="font-size:30px;font-weight:700">eICU 心率预测 MAE（越低越好）</h3>
+<div style="display:flex;gap:20px;align-items:center"><p style="width:200px;font-size:24px;text-align:right">GRU（从头训练）</p><div style="width:388px;height:40px;background:#172338;border-radius:4px"></div><p style="font-size:24px;color:#4A5468">4.462</p></div>
+<div style="display:flex;gap:20px;align-items:center"><p style="width:200px;font-size:24px;text-align:right">Chronos-S</p><div style="width:418px;height:40px;background:#2A62C9;border-radius:4px"></div><p style="font-size:24px;color:#4A5468">4.807</p></div>
+<div style="display:flex;gap:20px;align-items:center"><p style="width:200px;font-size:24px;text-align:right">TimesFM</p><div style="width:454px;height:40px;background:#2A62C9;border-radius:4px"></div><p style="font-size:24px;color:#4A5468">5.228</p></div>
+<div style="display:flex;gap:20px;align-items:center"><p style="width:200px;font-size:24px;text-align:right">Lag-Llama</p><div style="width:640px;height:40px;background:#2A62C9;border-radius:4px"></div><p style="font-size:24px;color:#4A5468">7.365</p></div>
+<p style="font-size:24px;line-height:1.45;color:#4A5468">深色 = 从头训练的传统模型；蓝色 = 零样本 TSFM。Gu et al.，ML4H 2024，Table 3：eICU 6,199 患者，5 分钟重采样，历史 6 h、预测 3 h</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;flex-direction:column;gap:8px;background:#FFFFFF;padding:28px;border-radius:12px;border:1px solid #DCD9D0"><h3 style="font-size:30px;font-weight:700">异常值检测差</h3><p style="font-size:24px;line-height:1.45;color:#4A5468">Table 4</p></div>
+<div style="display:flex;flex-direction:column;gap:8px;background:#FFFFFF;padding:28px;border-radius:12px;border:1px solid #DCD9D0"><h3 style="font-size:30px;font-weight:700">历史越长多数越好</h3><p style="font-size:24px;line-height:1.45;color:#4A5468">Fig 3</p></div>
+<div style="display:flex;flex-direction:column;gap:8px;background:#FFFFFF;padding:28px;border-radius:12px;border:1px solid #DCD9D0"><h3 style="font-size:30px;font-weight:700">Moirai 用五项体征明显改善</h3><p style="font-size:24px;line-height:1.45;color:#4A5468">Fig 4，多变量输入</p></div>
+</div>
+</div>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7280">其余评测只读到摘要：Pucher et al. 2026（Artif Intell Med）称跨院迁移性更好；Syed et al. 2026（ICML）称跨领域差异大</p>
+<aside>这是唯一读到原文、而且场景最接近 MC-MED 的独立评测：分钟级床旁体征，但它是 ICU、6 小时历史。原文结论是“the zero-shot performance of most TSFMs is not competitive with even the trained-from-scratch performance of most conventional methods”。微调能缩小差距，但仍略落后。NEWS2 变化检测上零样本和传统方法相当。这篇没有年龄、性别或严重度亚组。Pucher 2026 的方向不同：零样本经常接近优化过的专用模型，跨院迁移性更好，但我们只读到摘要。Al Attrach 2026（研讨会，摘要）在 MIMIC-IV 上发现近期窗口只有 8 个事件时，缓存的基础模型摘要带来的 AUROC 提升最大，可以作为“短窗口下基础模型表示可能更有价值”的线索。</aside>
+</section>
+
+<section class="slide" id="project" data-transition="fade" style="background:#F6F5F0;color:#172338;font-family:'Noto Sans SC', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:48px">
+<h2 style="font-family:'Noto Serif SC', Georgia, serif;font-size:64px;font-weight:700;line-height:1.15">与项目已有结果对照：只能作为线索</h2>
+<div style="display:flex;gap:64px">
+<div style="width:900px;display:flex;flex-direction:column;gap:20px">
+<h3 style="font-size:30px;font-weight:700">MC-MED decomp_60 AUPRC（合作同学汇总）</h3>
+<div style="display:flex;gap:20px;align-items:center"><p style="width:220px;font-size:24px;text-align:right">XGBoost</p><div style="width:600px;height:40px;background:#172338;border-radius:4px"></div><p style="font-size:24px;color:#4A5468">0.317</p></div>
+<div style="display:flex;gap:20px;align-items:center"><p style="width:220px;font-size:24px;text-align:right">MIRA-Large</p><div style="width:413px;height:40px;background:#2A62C9;border-radius:4px"></div><p style="font-size:24px;color:#4A5468">0.218</p></div>
+<div style="display:flex;gap:20px;align-items:center"><p style="width:220px;font-size:24px;text-align:right">VIMTS-Adapter</p><div style="width:300px;height:40px;background:#2A62C9;border-radius:4px"></div><p style="font-size:24px;color:#4A5468">0.159</p></div>
+<div style="display:flex;gap:20px;align-items:center"><p style="width:220px;font-size:24px;text-align:right">TimesFM 3.0</p><div style="width:276px;height:40px;background:#2A62C9;border-radius:4px"></div><p style="font-size:24px;color:#4A5468">0.146</p></div>
+<p style="font-size:24px;line-height:1.45;color:#4A5468">N=1,328、事件 224（16.87%）；与冻结 benchmark 测试集（5,236，12.0%）口径不同；无置信区间，非严格排名</p>
+</div>
+<div style="flex:1;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;flex-direction:column;gap:8px;background:#FFFFFF;padding:28px;border-radius:12px;border:1px solid #DCD9D0"><h3 style="font-size:30px;font-weight:700">week02 F1</h3><p style="font-size:24px;line-height:1.45;color:#4A5468">零样本体征预测 TimesFM 领先；MIRA 见过 MIMIC 也没领先</p></div>
+<div style="display:flex;flex-direction:column;gap:8px;background:#FFFFFF;padding:28px;border-radius:12px;border:1px solid #DCD9D0"><h3 style="font-size:30px;font-weight:700">week02 F3</h3><p style="font-size:24px;line-height:1.45;color:#4A5468">稀疏到每变量 1 个值，TSFM 探针相对 LR 仍 +0.041 AUPRC</p></div>
+<div style="display:flex;flex-direction:column;gap:8px;background:#FFFFFF;padding:28px;border-radius:12px;border:1px solid #DCD9D0"><h3 style="font-size:30px;font-weight:700">week02 F4</h3><p style="font-size:24px;line-height:1.45;color:#4A5468">零标签“预测轨迹 → 预警”AUROC 0.55–0.59</p></div>
+</div>
+</div>
+<p style="font-size:30px;line-height:1.45">数据相似度最高的 MIRA 在三个 TSFM 中最高，但设计适配度最高的 VIMTS 并不高；三个点不足以检验任何假设。</p>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7280">来源：research/观测过程与研究设计/measurement-process-next-week-20261031；项目背景 §6.2（week02 公开数据结果）。只用聚合量</p>
+<aside>右边三条是我们自己在公开数据上的 week02 结果。F1 说明 MIRA 的医疗语料优势没有转化为零样本预测优势；TimesFM 1.0 训练时覆盖所有短上下文长度，可能与它稳健有关，但这是假设。F3 提醒：短或稀疏的窗口不一定让 TSFM 相对变差。F4 和“论文的 zero-shot 是数值预测”一致。左边是合作同学的 MC-MED 汇总，评价集是 1,328 例、224 个事件，和冻结 benchmark 的测试集口径不同，也没有置信区间，所以只能当线索，不能当排名。MIRA 高于另外两个 TSFM，方向上与“预训练分布相似度”一致；但 VIMTS 设计最贴近却不高，说明设计适配度这个评级本身不能预测表现。</aside>
+</section>
+
+<section class="slide" id="hypotheses" data-section="对本项目的建议与需研究者决定的事项" data-transition="fade" style="background:#F6F5F0;color:#172338;font-family:'Noto Sans SC', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:40px">
+<h2 style="font-family:'Noto Serif SC', Georgia, serif;font-size:64px;font-weight:700;line-height:1.15">供实验侧选用的可检验假设</h2>
+<table style="font-family:'Noto Sans SC', Arial, sans-serif;font-size:24px;color:#172338">
+<tr style="background:#ECEAE2"><th style="width:30%">假设</th><th style="width:30%">调研证据</th><th style="width:40%">需要的聚合量或对比</th></tr>
+<tr><td>H1 有效 token 太少</td><td>patch 长度（Sundial、TimesFM、Timer-XL、Moirai）；Timer-XL Sec 1</td><td>点级 token 模型与 patch 模型各自相对基线的差距；按有效观测点数分层</td></tr>
+<tr><td>H2 缺失模式不匹配</td><td>预训练过滤缺失（Time-MoE、Moirai）；TimesFM 2.0 要求插值</td><td>drop20 / drop40 / continuous5min 上 TSFM 与传统模型的 Δ 对比</td></tr>
+<tr><td>H3 归一化统计量不稳</td><td>TimesFM Sec 5；Chronos Fig 16b</td><td>按变量（尤其 SpO₂）或窗口内方差分层</td></tr>
+<tr><td>H4 单变量丢失体征间关系</td><td>Gu 2024 Fig 4；Chronos-2 Sec 5.2</td><td>多变量模型与通道独立模型对比</td></tr>
+<tr><td>H5 亚组差异来自数据侧</td><td>模型论文均无患者亚组</td><td>各 Age / Gender / ESI 亚组的观测密度、输入长度、事件率、基线体征</td></tr>
+<tr><td>H6 急性轨迹被平滑</td><td>Gu 2024 Table 4；Chronos Fig 12b</td><td>高危 ESI 组的灵敏度与校准</td></tr>
+</table>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#6B7280">做不做、怎么做由研究者决定。完整写法见报告“对本项目的建议”一节</p>
+<aside>每条假设都对应调研里找到的证据，并且给出要检验它需要什么聚合量。H1 是最直接的：patch 长度大于等于 15 的模型只拿到 1 个 token，可以比较点级 token 模型和 patch 模型各自相对基线的差距，或者按窗口内有效观测点数分层。H2 可以直接用已有的三套删减测试集。H5 最重要：因为论文里没有任何患者亚组先验，Age、Gender、ESI 的差异要先看数据侧的聚合量，例如老年组观测是否更稀、实际输入是否更短、事件率是否不同，再判断是否与某个假设一致。H6 对应高危组：点误差训练的模型倾向均值回归。</aside>
+</section>
+
+<section class="slide" id="wording" data-transition="fade" style="background:#ECEAE2;color:#172338;font-family:'Noto Sans SC', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:40px">
+<h2 style="font-family:'Noto Serif SC', Georgia, serif;font-size:64px;font-weight:700;line-height:1.15">解释结果时的写法</h2>
+<div style="display:flex;flex-direction:column;gap:12px;background:#F6F5F0;padding:40px;border-radius:12px;border-left:8px solid #B2560F">
+<div style="display:flex;gap:16px;align-items:center"><span style="color:#B2560F;width:40px;height:40px;font-size:36px;line-height:40px;text-align:center;display:inline-block">⚠</span><h3 style="font-size:30px;font-weight:700;color:#B2560F">不写</h3></div>
+<p style="font-size:30px;line-height:1.5">“因为预训练没有 ED 数据，所以 TimesFM 3.0 表现差。”</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:12px;background:#F6F5F0;padding:40px;border-radius:12px;border-left:8px solid #2A62C9">
+<div style="display:flex;gap:16px;align-items:center"><span style="color:#2A62C9;width:40px;height:40px;font-size:36px;line-height:40px;text-align:center;display:inline-block">✓</span><h3 style="font-size:30px;font-weight:700;color:#2A62C9">可以写</h3></div>
+<p style="font-size:30px;line-height:1.5">“TimesFM 3.0 在 0–15 分钟窗口上 AUPRC 低于 XGBoost。这一结果与‘输入远短于模型预训练与评测所用上下文（15,360）’的假设一致；本研究未直接检验上下文长度的作用。”</p>
+</div>
+<p style="font-size:30px;line-height:1.45">引用证据时注明类型：直接实验 / 独立评测 / 作者陈述 / 设计推断 / 无证据。设计推断（如“只形成 1 个 token”）不写成“论文发现”。</p>
+<aside>这一页对应任务书第七部分的要求。不能把“预训练没见过 ED”直接当成原因，因为论文里没有任何一项实验检验过这一点。有证据时只说“这一结果与预训练分布不匹配的假设一致”，并写出证据来源和证据类型。可以写的例子里，证据是 TimesFM 3.0 模型卡给的上下文长度，加上 Timer-XL 作者关于短上下文的陈述，但我们自己没有做上下文长度实验，所以要明说“未直接检验”。</aside>
+</section>
+
+<section class="slide" id="decisions" data-transition="fade" style="background:#172338;color:#F6F5F0;font-family:'Noto Sans SC', Arial, sans-serif;padding:128px 128px 160px;display:flex;flex-direction:column;gap:40px">
+<h2 style="font-family:'Noto Serif SC', Georgia, serif;font-size:64px;font-weight:700;line-height:1.15;color:#F6F5F0">研究者决定（11-06）</h2>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px">
+<div style="display:flex;flex-direction:column;gap:12px;background:#22314D;padding:32px;border-radius:12px"><h3 style="font-size:28px;font-weight:700;line-height:1.35;color:#8FB4F5">1 输入窗口：视情况延长</h3><p style="font-size:24px;line-height:1.5;color:#D5DCE8">原稀疏度按旧版 GD / GAM 设定；先查新版生命体征与检验密度，满足条件再延长并登记新版本</p></div>
+<div style="display:flex;flex-direction:column;gap:12px;background:#22314D;padding:32px;border-radius:12px"><h3 style="font-size:28px;font-weight:700;line-height:1.35;color:#8FB4F5">2 VIMTS → 不规则时序专用模型组</h3><p style="font-size:24px;line-height:1.5;color:#D5DCE8">与 GRU-D、mTAND、Raindrop 同组比较；zero-shot 口径只用于其余基础模型</p></div>
+<div style="display:flex;flex-direction:column;gap:12px;background:#22314D;padding:32px;border-radius:12px"><h3 style="font-size:28px;font-weight:700;line-height:1.35;color:#8FB4F5">3 老年 ≥65，按 65–74 / ≥75 切分</h3><p style="font-size:24px;line-height:1.5;color:#D5DCE8">AUROC + 校准为主，AUPRC 与患病率并列；每个子集至少约 30 个事件</p></div>
+<div style="display:flex;flex-direction:column;gap:12px;background:#22314D;padding:32px;border-radius:12px"><h3 style="font-size:28px;font-weight:700;line-height:1.35;color:#8FB4F5">4 MIRA 分开考虑</h3><p style="font-size:24px;line-height:1.5;color:#D5DCE8">MIMIC-IV / MIMIC-IV-ED 上的结果单独成表并标注预训练重叠，不合并排名</p></div>
+<div style="display:flex;flex-direction:column;gap:12px;background:#22314D;padding:32px;border-radius:12px"><h3 style="font-size:28px;font-weight:700;line-height:1.35;color:#8FB4F5">5 验证集发现，测试集确认</h3><p style="font-size:24px;line-height:1.5;color:#D5DCE8">数据驱动的子集发现只在验证集上做；冻结测试集只用来确认，切分登记在案</p></div>
+<div style="display:flex;flex-direction:column;gap:12px;background:#22314D;padding:32px;border-radius:12px"><h3 style="font-size:28px;font-weight:700;line-height:1.35;color:#8FB4F5">6 变体只作敏感性分析</h3><p style="font-size:24px;line-height:1.5;color:#D5DCE8">主分析用原标签与单一阈值；去 SpO₂ 分量、年龄校正阈值、分组阈值只作敏感性分析</p></div>
+</div>
+<p style="font-size:24px;line-height:1.5;color:#E8B48A">已确认：老年 ≥65 只用于子集审计；项目 D70 的 ≥60 岁主分析不变，子集表另报 ≥60 以便对齐</p>
+<p style="position:absolute;left:128px;bottom:64px;width:1664px;font-size:24px;color:#8FB4F5">配套文件：FOUNDATION_MODEL_SURVEY.xlsx（20 个工作表，含『窗口密度检查』）· md · 一页结论 · 汇报报告（Claude Doc）</p>
+<aside>这是研究者 11-06 对六件 A 档事项的决定。第 1 件：MC-MED 输入的稀疏程度原本是按旧版 GD、GAM 的观测密度设的，新版数据生命体征和检验更密，所以先在本地对新版 GD、GAM 跑密度检查，只交回聚合量：每例观测数、覆盖率、观测间隔、同时观测比例，并按年龄分层；满足条件再延长 MC-MED 窗口，作为新版本登记。第 2 件：VIMTS 需要在目标集上训练，放进不规则时序专用模型组。第 3 件：老年从 65 岁起算，再按 65–74 和 75 岁及以上切分；研究者已确认这一口径只用于子集审计，项目原定的 60 岁以上主分析（D70）不变，子集表另报 60 岁以上以便对齐。第 4 到第 6 件按调研建议执行。</aside>
+</section>
+
+</div>
+<div id="notes"></div>
+<div id="bar"><button id="prev">← 上一页</button><span id="count"></span><span><button id="nbtn">讲稿</button> <button id="next">下一页 →</button></span></div>
+<script>
+const slides=[...document.querySelectorAll('.slide')];let i=0;
+function fit(){const s=Math.min(innerWidth/1920,(innerHeight-44)/1080);document.getElementById('stage').style.transform=`translate(-50%,calc(-50% - 22px)) scale(${s})`;}
+function show(n){i=Math.max(0,Math.min(slides.length-1,n));slides.forEach((s,k)=>s.classList.toggle('on',k===i));document.getElementById('count').textContent=(i+1)+' / '+slides.length;const a=slides[i].querySelector('aside');document.getElementById('notes').textContent=a?a.textContent:'';try{history.replaceState(null,'','#slide-'+(i+1))}catch(e){}}
+document.getElementById('prev').onclick=()=>show(i-1);document.getElementById('next').onclick=()=>show(i+1);
+document.getElementById('nbtn').onclick=()=>{const n=document.getElementById('notes');n.style.display=n.style.display==='block'?'none':'block'};
+addEventListener('keydown',e=>{if(['ArrowRight','PageDown',' '].includes(e.key))show(i+1);if(['ArrowLeft','PageUp'].includes(e.key))show(i-1);if(e.key==='n')document.getElementById('nbtn').click();});
+addEventListener('resize',fit);fit();const m=location.hash.match(/slide-(\d+)/);show(m?parseInt(m[1])-1:0);
+</script></body></html>

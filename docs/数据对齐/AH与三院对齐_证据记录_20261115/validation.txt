@@ -1,0 +1,11 @@
+ah sources: 10 record(s), all local files exist, SHA256 recorded in sources_ah.jsonl.
+alignment sources: 10 record(s), all local files exist, SHA256 recorded in sources_alignment.jsonl.
+Local links checked: 24; missing: 0.
+Export #18 pulled aggregates verified against in-package SHA256SUMS: 5/5 OK (run by researcher, pull.sh).
+research_summary.json SHA256: e5f617237938f254c6e87094e1f4e7bf4e4b2e3836072b4862209eea00245c56
+质量成绩单.md SHA256: 62cb09fce1414f9fa0404cf15009b7323dc7ca0c796a1acf311b0c87951188d8
+alignment_report.json SHA256: ca7891a8f904c16fb46d61f4e6c6a3e09388a0a442a6e106a4e03da9097f8635
+aggregate.json SHA256: ee3d9cd4695d88317ba8356a299a18cc612bdf1bbbde8f8f264863f90de3ee94
+Export #18 − #17 row deltas equal AH contribution (labs, vitals, flu tests, prediction instances): yes.
+GAM/GD counts in snapshot #11 equal snapshot #10 report: yes.
+Patient-level data accessed: no. Re-import, re-grading, model training: no.
